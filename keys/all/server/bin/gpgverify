@@ -1,0 +1,12 @@
+#!/bin/sh
+
+GPG=/usr/local/bin/gpg
+
+if ! $GPG --batch --no-default-keyring --secret-keyring ~/.gnupg/builder.sec --keyring ~/.gnupg/builder.pub --verify "${1}.sig" "${1}" >/dev/null 2>&1 ; then
+  if [ -z ${FOUNDBAD} ]; then
+    FOUNDBAD=1
+    echo
+  fi
+  echo "${1} BAD signature"
+fi
+

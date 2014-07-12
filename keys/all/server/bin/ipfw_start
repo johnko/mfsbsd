@@ -1,0 +1,6 @@
+#!/bin/sh
+
+ipfw list
+
+echo "See /sbin/ipfw_script"
+

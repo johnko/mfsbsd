@@ -1,0 +1,123 @@
+#!/bin/sh
+# $Id$
+# MFSBSD CUSTOM
+
+# PROVIDE: jcron
+# REQUIRE: FILESYSTEMS
+# BEFORE:  cron
+
+. /etc/rc.subr
+
+name="jcron"
+start_cmd="jcron_start"
+stop_cmd=":"
+
+jcron_start()
+{
+
+
+
+	if [ -x /server/bin/cron-zl-list ]; then
+		if ! /usr/bin/egrep 'cron-zl-list$' /etc/crontab > /dev/null 2>&1 ; then
+			/bin/cat >> /etc/crontab <<EOF
+# Added by /etc/rc.d/jcron
+30      4       *       *       *       root    /server/bin/cron-zl-list
+EOF
+		fi
+	fi
+
+
+
+	if [ -x /server/bin/cron-zls-list ]; then
+		if ! /usr/bin/egrep 'cron-zls-list$' /etc/crontab > /dev/null 2>&1 ; then
+			/bin/cat >> /etc/crontab <<EOF
+# Added by /etc/rc.d/jcron
+30      5       *       *       *       root    /server/bin/cron-zls-list
+EOF
+		fi
+	fi
+
+
+
+	if [ -x /server/bin/cron-zlss-list ]; then
+		if ! /usr/bin/egrep 'cron-zlss-list$' /etc/crontab > /dev/null 2>&1 ; then
+			/bin/cat >> /etc/crontab <<EOF
+# Added by /etc/rc.d/jcron
+30      6       *       *       *       root    /server/bin/cron-zlss-list
+EOF
+		fi
+	fi
+
+
+
+	if [ -x /server/bin/cron-pf-blacklist-backup ]; then
+		if ! /usr/bin/egrep 'cron-pf-blacklist-backup$' /etc/crontab > /dev/null 2>&1 ; then
+			/bin/cat >> /etc/crontab <<EOF
+# Added by /etc/rc.d/jcron
+*       5,17    *       *       *       root    /server/bin/cron-pf-blacklist-backup
+EOF
+		fi
+	fi
+
+
+
+	if [ -x /server/bin/cron-pf-whitelist-backup ]; then
+		if ! /usr/bin/egrep 'cron-pf-whitelist-backup$' /etc/crontab > /dev/null 2>&1 ; then
+			/bin/cat >> /etc/crontab <<EOF
+# Added by /etc/rc.d/jcron
+*       5,17    *       *       *       root    /server/bin/cron-pf-whitelist-backup
+EOF
+		fi
+	fi
+
+
+
+	if [ -x /server/bin/cron-pf-sshbanlist-backup ]; then
+		if ! /usr/bin/egrep 'cron-pf-sshbanlist-backup$' /etc/crontab > /dev/null 2>&1 ; then
+			/bin/cat >> /etc/crontab <<EOF
+# Added by /etc/rc.d/jcron
+*       5,17    *       *       *       root    /server/bin/cron-pf-sshbanlist-backup
+EOF
+		fi
+	fi
+
+
+
+	if [ -x /server/bin/cron-pf-weblimit-backup ]; then
+		if ! /usr/bin/egrep 'cron-pf-weblimit-backup$' /etc/crontab > /dev/null 2>&1 ; then
+			/bin/cat >> /etc/crontab <<EOF
+# Added by /etc/rc.d/jcron
+*       5,17    *       *       *       root    /server/bin/cron-pf-weblimit-backup
+EOF
+		fi
+	fi
+
+
+
+	if [ -x /server/bin/cron-pf-maillimit-backup ]; then
+		if ! /usr/bin/egrep 'cron-pf-maillimit-backup$' /etc/crontab > /dev/null 2>&1 ; then
+			/bin/cat >> /etc/crontab <<EOF
+# Added by /etc/rc.d/jcron
+*       5,17    *       *       *       root    /server/bin/cron-pf-maillimit-backup
+EOF
+		fi
+	fi
+
+
+
+	if [ -x /server/bin/cron-pf-overlimit-backup ]; then
+		if ! /usr/bin/egrep 'cron-pf-overlimit-backup$' /etc/crontab > /dev/null 2>&1 ; then
+			/bin/cat >> /etc/crontab <<EOF
+# Added by /etc/rc.d/jcron
+*       5,17    *       *       *       root    /server/bin/cron-pf-overlimit-backup
+EOF
+		fi
+	fi
+
+
+
+}
+
+load_rc_config $name
+run_rc_command "$1"
+

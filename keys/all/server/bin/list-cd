@@ -1,0 +1,5 @@
+#!/bin/sh
+
+/bin/ls -1 /dev/ | \
+  /usr/bin/egrep ".{0,1}cd[0-9]"
+

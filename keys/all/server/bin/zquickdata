@@ -1,0 +1,51 @@
+#!/bin/sh
+
+usage() {
+	echo "Usage: $0 -d geom_provider [-d geom_provider ...]"
+}
+
+while getopts d:h o; do
+	case "$o" in
+		d) DEVS="$DEVS ${OPTARG##/dev/}" ;;
+		[?]) usage; exit 1;;
+	esac
+done
+
+DETECTEDDRIVES=""
+ISMIRROR=""
+DRIVECOUNT=0
+
+doInstall() {
+	DRIVELIST="`/sbin/sysctl -n kern.disks`"
+	TRIMDEVS="`echo $DEVS | /usr/bin/tr -d ' '`"
+	if [ -n "$TRIMDEVS" ]; then
+		DRIVELIST="$DEVS"
+	fi
+	for drive in ${DRIVELIST} ; do
+		echo -n "${drive##*/}... "
+		if /sbin/gpart show "${drive##*/}" >/dev/null 2>/dev/null ; then
+			DETECTEDDRIVES="${DETECTEDDRIVES}-d ${drive##*/} "
+			DRIVECOUNT=$(( DRIVECOUNT + 1 ))
+		fi
+	done
+	if [ $DRIVECOUNT -gt 1 ]; then
+		ISMIRROR="-r mirror"
+	fi
+
+	cat <<EOF
+Trying: 
+    /server/bin/zfsdatapartition ${DETECTEDDRIVES} ${ISMIRROR} -E -n -c
+EOF
+	/server/bin/zfsdatapartition ${DETECTEDDRIVES} ${ISMIRROR} -E -n -c || exit 1
+
+}
+
+#echo " @@ WARNING @@"
+#echo "This will wipe all drives. Are you sure? (y/n) "
+#read REPLY
+#echo
+#case "$REPLY" in
+#	"Y"|"y")
+		doInstall || exit 1
+#		;;
+#esac

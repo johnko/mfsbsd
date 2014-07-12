@@ -1,0 +1,3 @@
+#!/bin/sh
+
+/usr/local/sbin/pkg-static install -y qemu-devel

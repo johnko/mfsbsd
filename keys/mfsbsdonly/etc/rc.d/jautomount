@@ -1,0 +1,68 @@
+#!/bin/sh
+# $Id$
+
+# PROVIDE: jautomount
+# REQUIRE: mountcritlocal disks
+# KEYWORD: FreeBSD
+
+. /etc/rc.subr
+
+name="jautomount"
+start_cmd="jautomount_start"
+stop_cmd=":"
+
+jautomount_start()
+{
+	if /sbin/zpool import | /usr/bin/grep 'pool.*autoboot' > /dev/null 2> /dev/null ; then
+		/sbin/zpool import -f autoboot
+	fi
+	automount=`/bin/kenv -q automount`
+	if [ "x" != "x${automount}" ]; then
+		/sbin/gmirror load > /dev/null 2> /dev/null || echo "."
+		/sbin/swapon -a > /dev/null 2> /dev/null || echo "."
+		test -e /usr/local/sbin/pkg-static && /usr/local/sbin/pkg-static clean -y -a -q
+		test -e /server/bin/geliunlockall && /server/bin/geliunlockall
+		if /sbin/zpool import | /usr/bin/grep 'pool.*autoroot' > /dev/null 2> /dev/null ; then
+			/usr/bin/install -d -m 700 /etc/ssh.mfsroot
+			/usr/bin/tar -cf - /etc/ssh | /usr/bin/tar -C /etc/ssh.mfsroot -xf -
+			/sbin/zpool import -f autoroot
+		fi
+		if [ ! -e /server/root/.ssh/authorized_keys ]; then
+			if /sbin/mount | /usr/bin/grep 'autoroot/rfs/server/root' > /dev/null 2> /dev/null ; then
+				/sbin/zfs umount autoroot/rfs/server/root
+				/sbin/zfs set canmount=off autoroot/rfs/server/root
+			fi
+		fi
+		if [ ! -e /server/bin/r ]; then
+			if /sbin/mount | /usr/bin/grep 'autoroot/rfs/server/bin' > /dev/null 2> /dev/null ; then
+				/sbin/zfs umount autoroot/rfs/server/bin
+				/sbin/zfs set canmount=off autoroot/rfs/server/bin
+			fi
+		fi
+		TRIMLIST="`echo $automount | /usr/bin/tr -d ' '`"
+		if [ -n "${TRIMLIST}" ]; then
+			for i in ${automount}; do
+				if /sbin/zpool import | /usr/bin/grep "pool.*${i}" > /dev/null 2> /dev/null ; then
+					/sbin/zpool import -f ${i}
+				fi
+			done
+		fi
+		if /sbin/mount | /usr/bin/grep '/server/savepf' > /dev/null 2> /dev/null ; then
+			test -e /etc/rc.d/jpfconf && /etc/rc.d/jpfconf onestart
+			/etc/rc.d/pfsync onerestart || echo "."
+			/etc/rc.d/pflog onereload || echo "."
+			/etc/rc.d/pf onereload || echo "."
+		fi
+	fi
+	if [ ! -e /etc/ssh/ssh_host_rsa_key ]; then
+		/usr/bin/ssh-keygen -q  -N '' -t rsa -b 4096 -f /etc/ssh/ssh_host_rsa_key
+	fi
+	if [ ! -e /etc/ssh/ssh_host_ecdsa_key ]; then
+		/usr/bin/ssh-keygen -q  -N '' -t ecdsa -b 521 -f /etc/ssh/ssh_host_ecdsa_key
+	fi
+	/etc/rc.d/sshd onestop || echo "."
+	/etc/rc.d/sshd onestart || echo "."
+}
+
+load_rc_config $name
+run_rc_command "$1"

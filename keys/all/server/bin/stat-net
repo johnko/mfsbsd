@@ -1,0 +1,7 @@
+#!/bin/sh
+
+NICLIST=`/sbin/ifconfig -l | /usr/bin/sed -E 's/lo[0-9]+//g' | /usr/bin/sed -E 's/plip[0-9]+//g' | /usr/bin/sed -E 's/ipfw[0-9]+//g' | /usr/bin/sed -E 's/enc[0-9]+//g' | /usr/bin/sed -E 's/pflog[0-9]+//g' | /usr/bin/sed -E 's/stf[0-9]+//g' | /usr/bin/sed -E 's/gif[0-9]+//g' | /usr/bin/sed -E 's/fwe[0-9]+//g' | /usr/bin/sed -E 's/fwip[0-9]+//g'`
+
+for a in ${NICLIST} ; do
+	echo "$a `/server/bin/net-mac $a`  `/server/bin/net-ip $a`"
+done | /usr/bin/column -t

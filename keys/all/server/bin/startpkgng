@@ -1,0 +1,13 @@
+#!/bin/sh
+
+/usr/bin/install -d -m 755 /server/nginx/sites-enabled
+/usr/bin/install -d -m 700 /server/www/pkgng
+/bin/ln -shf ../sites-available/pkgng.conf /server/nginx/sites-enabled/
+/server/bin/startnginx
+
+for i in /server/www/pkgng ; do
+	/usr/sbin/chown -R root:www $i
+	/usr/bin/find $i -type d -exec /bin/chmod 755 {} \;
+	/usr/bin/find $i -type f -exec /bin/chmod 644 {} \;
+	/usr/bin/find $i -type l -exec /bin/chmod -h 755 {} \;
+done

@@ -1,0 +1,9 @@
+#!/bin/sh
+
+THISSCRIPT=`echo $0 | /usr/bin/awk '{print $1}'`
+
+if /bin/pgrep -lf ${THISSCRIPT##*/} >/dev/null 2>&1 ; then
+	exit 1
+else
+	cd /usr/src/release && sh release2.sh -c /release.conf
+fi

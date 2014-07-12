@@ -1,0 +1,52 @@
+#!/bin/sh
+# $Id$
+
+# PROVIDE: jautopkg
+# REQUIRE: mountcritlocal disks jautomount mdinit tmp var jmyrepo jroute
+# BEFORE: jezjail
+# KEYWORD: FreeBSD
+
+. /etc/rc.subr
+
+name="jautopkg"
+start_cmd="jautopkg_start"
+stop_cmd=":"
+
+jautopkg_start()
+{
+	if [ -e /etc/pkg/FreeBSD.conf ]; then
+		/bin/mv /etc/pkg/FreeBSD.conf /etc/pkg.FreeBSD.conf.bkp
+	fi
+	if ! /sbin/mount | /usr/bin/grep "/var/cache/pkg" > /dev/null 2> /dev/null; then
+		/sbin/mount -t tmpfs tmpfs /var/cache
+	fi
+	if ! /sbin/mount | /usr/bin/grep "/var/db/pkg" > /dev/null 2> /dev/null; then
+		/sbin/mount -t tmpfs tmpfs /var/db/pkg
+	fi
+	autopkg=`/bin/kenv -q autopkg`
+	REPOURL=$( /usr/bin/grep URL: /usr/local/etc/pkg/repos/myrepo.conf | /usr/bin/egrep -v '^\s*#' | /usr/bin/awk '{print $NF}' | /usr/bin/head -1 )
+	if /usr/bin/fetch -o /dev/null -T 10 "${REPOURL}/digests.txz" ; then
+		TRIMLIST="`echo $autopkg | /usr/bin/tr -d ' '`"
+		if [ -n "${TRIMLIST}" ]; then
+			/usr/local/sbin/pkg-static install -y ${autopkg} || echo "Error: pkg install $i"
+		fi
+	fi
+	if ! /usr/local/sbin/pkg info | /usr/bin/grep 'rsync' > /dev/null 2> /dev/null; then
+		PACKAGES=`/bin/ls -1 /packages/*.t?z 2>/dev/null`
+		if /bin/test -n "$PACKAGES"; then
+			echo -n "Installing from /packages"
+			LOOP=1
+			while [ $LOOP -eq 1 ]; do
+				LOOP=0;
+				echo -n '.'
+				for i in /packages/*.t?z ; do
+					/usr/local/sbin/pkg-static add $i 2> /dev/null | /usr/bin/grep 'already installed' > /dev/null 2> /dev/null || LOOP=1
+				done
+			done
+			echo " done"
+		fi
+	fi
+}
+
+load_rc_config $name
+run_rc_command "$1"

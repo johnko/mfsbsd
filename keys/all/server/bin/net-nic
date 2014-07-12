@@ -1,0 +1,7 @@
+#!/bin/sh
+
+/usr/bin/netstat -nr | \
+	/usr/bin/egrep default | \
+	/usr/bin/awk '{ print $NF }' | \
+	/usr/bin/head -1
+

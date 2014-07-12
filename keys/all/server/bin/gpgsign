@@ -1,0 +1,6 @@
+#!/bin/sh
+
+GPG=/usr/local/bin/gpg
+
+echo builder | $GPG --batch --no-default-keyring --secret-keyring ~/.gnupg/builder.sec --keyring ~/.gnupg/builder.pub --passphrase-fd 0 --detach-sign "${1}"
+

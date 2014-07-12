@@ -1,0 +1,17 @@
+#!/bin/sh
+
+ram-pagesize () {
+	/sbin/sysctl -n hw.pagesize
+}
+
+case `uname -s` in
+  "Darwin")
+    exit 1
+    ;;
+  "FreeBSD")
+    # round total ram up
+    echo $( /sbin/sysctl -n vm.stats.vm.v_page_count )" "$( ram-pagesize ) | \
+      /usr/bin/awk '{ printf "%.1f\n", $1 * $2 }'
+    ;;
+esac
+

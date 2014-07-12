@@ -1,0 +1,50 @@
+#!/bin/sh
+
+if [ ! -e /server/zfs/zl.txt ]; then
+	/server/bin/cron-zl-list || exit 1
+else
+	fives=$( /server/bin/date-d | /usr/bin/head -c15 | /usr/bin/tail -c3 )
+	if [ "500" = "$fives" ]; then
+		# try to refresh
+		/server/bin/cron-zl-list
+	fi
+fi
+
+case `/usr/bin/uname -s` in
+	"Darwin")
+		exit 1
+	;;
+	"FreeBSD")
+		ZFSLIST=`/sbin/zpool status | /usr/bin/egrep -o "pool\: ([[:alnum:]-]*)" | /usr/bin/awk '{ print $NF }'`
+		for a in ${ZFSLIST} ; do
+			if [ ${#a} -lt 10 ]; then
+				tab=""
+				for i in `/usr/bin/seq ${#a} 10`; do
+					tab="$tab "
+				done
+			fi
+			echo -n "$a${tab}"
+			#echo -n $( /sbin/zfs list -H -o used,available $a 2> /dev/null )
+			echo -n $( /usr/bin/grep "^$a " /server/zfs/zl.txt | /usr/bin/awk '{print $2,$3}' )
+			echo -n "  "
+			/sbin/zpool status ${a} | /usr/bin/egrep '(state\:|scan\:|errors\:|to go|% done)' | \
+				/usr/bin/tr '\n' '`' | /usr/bin/sed \
+					-e 's/ *pool\: / /g' \
+					-e 's/`/ /g' \
+					-e 's/   */  /g' \
+					-e 's/^ *//g' \
+					-e 's/errors: No known data errors//' \
+					-e 's/ with 0 errors//' \
+					-e 's/ scrub repaired 0 in/ done in/' \
+					-e 's/scrub in progress since/started/' \
+					-e 's/state: ONLINE *//' \
+					-e 's/scan: none requested//' \
+					-e 's/ 0 repaired,//' \
+					-e 's/  / /' \
+					-e 's/[^ ]* scanned/\
+         &/'
+         done
+			
+#			egrep '(pool\:|state\:|scan\:|errors\:)' | \
+    ;;
+esac

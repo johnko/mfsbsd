@@ -1,0 +1,21 @@
+#!/bin/sh
+
+ram-pagesize () {
+	/sbin/sysctl -n hw.pagesize
+}
+
+case `uname -s` in
+  "Darwin")
+    echo $( \
+      system_profiler SPHardwareDataType | \
+      egrep 'Memory' | \
+      awk '{ print $2$3 }' \
+    ) | \
+      sed 's/GB//'
+    ;;
+  "FreeBSD")
+    echo $( /sbin/sysctl -n vm.stats.vm.v_page_count )" "$( ram-pagesize ) | \
+      /usr/bin/awk '{ printf "%.1f\n", $1 * $2 / 1073741824 }'
+    ;;
+esac
+

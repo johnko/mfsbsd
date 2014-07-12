@@ -1,0 +1,61 @@
+#!/bin/sh
+
+/usr/bin/install -d -m 755 /server/nginx/sites-enabled
+/bin/ln -shf ../sites-available/wordpress.conf  /server/nginx/sites-enabled/
+/server/bin/startnginx
+/server/bin/startphp
+
+if [ -d /server/www ]; then
+	cd /server/www
+	if [ ! -e /server/www/wordpress-latest.tar.gz ]; then
+		/usr/bin/fetch -o /server/www/wordpress-latest.tar.gz http://wordpress.org/latest.tar.gz
+	fi
+	if [ ! -e /server/www/wordpress ]; then
+		echo /usr/bin/tar -xf wordpress-latest.tar.gz
+		/usr/bin/tar -xf wordpress-latest.tar.gz
+	fi
+	find /server/www/wordpress -type d -exec /bin/chmod 755 {} \;
+	find /server/www/wordpress -type f -exec /bin/chmod 644 {} \;
+	find /server/www/wordpress -type l -exec /bin/chmod -h 755 {} \;
+	/bin/chmod 755                /server/www/wordpress
+	/usr/sbin/chown -R www:www    /server/www/wordpress/wp-content/uploads
+	/bin/chmod 755                /server/www/wordpress/wp-content/uploads
+	/bin/cat >/server/www/wp-ssl.php <<EOF
+<?php
+//This should be included in the wp-config.php
+//With
+//require_once('/server/www/wp-ssl.php');
+
+define('FORCE_SSL_ADMIN', true);
+define('FORCE_SSL_LOGIN', true);
+if (\$_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')
+\$_SERVER['HTTPS']='on';
+
+if (isset(\$_SERVER['HTTPS']) && (\$_SERVER['HTTPS'] == 'on' || \$_SERVER['HTTPS'] == 1)) {
+\$protocol = 'https://';
+}
+else {
+\$protocol = 'http://';
+}
+
+define( 'WP_SITEURL', \$protocol . \$_SERVER['HTTP_HOST'] . '/' );
+define( 'WP_HOME',    \$protocol . \$_SERVER['HTTP_HOST'] . '/' );
+
+// ** bw 2012-08-12 wordpress reverse proxy x-forwarded-for ip fix ** //
+if(isset(\$_SERVER['HTTP_X_FORWARDED_FOR'])) {
+\$xffaddrs = explode(',',\$_SERVER['HTTP_X_FORWARDED_FOR']);
+\$_SERVER['REMOTE_ADDR'] = \$xffaddrs[0];
+}
+?>
+EOF
+	/bin/chmod 644 /server/www/wp-ssl.php
+	# TODO Lockdown /server/www/wordpress
+	/usr/sbin/chown -R www:www    /server/www/wordpress
+	if [ "$1" = "ssl-watchdog" ]; then
+		/server/bin/cron-wordpress-ssl-watchdog &
+	fi
+fi
+
+# in mysql
+# create database wordpress;
+# GRANT CREATE,SELECT,INSERT,UPDATE,DELETE ON wordpress.* TO 'username'@'%' IDENTIFIED BY 'password';

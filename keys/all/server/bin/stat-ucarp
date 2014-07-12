@@ -1,0 +1,10 @@
+#!/bin/sh
+
+if /bin/pgrep -lf '/usr/local/sbin/ucarp' >/dev/null 2>/dev/null ; then
+	/bin/pgrep -lf '/usr/local/sbin/ucarp' | \
+		/usr/bin/egrep -o "\-\-(vhid|interface|srcip|addr|adv)[^ ]*" | \
+		/usr/bin/sort -r | \
+		/usr/bin/sed -e 's#--##' -e 's#ip##' -e 's#interface#nic#' -e 's#=# #' | \
+		/usr/bin/tr '\n' ' '
+	echo
+fi

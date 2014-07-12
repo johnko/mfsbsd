@@ -1,0 +1,21 @@
+#!/bin/sh
+
+if [ "$( id -u )" != "0" ]; then
+  echo "ERROR: Must be root!"
+  exit 1
+fi
+if [ -z "${1}" ]; then
+  echo "Usage: ${0##*/} username"
+  exit 1
+fi
+
+echo "${1}:::::::/usr/home/${1}:/bin/csh:" | /usr/sbin/adduser -w no -S -f - && \
+  /usr/bin/passwd ${1}
+
+/bin/chmod 755 /usr >/dev/null 2>&1
+/bin/chmod 755 /usr/home >/dev/null 2>&1
+/bin/chmod 755 /usr/local >/dev/null 2>&1
+/bin/chmod -R 755 /usr/local/bin >/dev/null 2>&1
+/bin/chmod -R 755 /usr/local/lib >/dev/null 2>&1
+/bin/chmod -R 755 /usr/local/man >/dev/null 2>&1
+

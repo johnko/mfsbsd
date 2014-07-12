@@ -1,0 +1,7 @@
+#!/bin/sh
+
+/bin/cat /dev/random | LC_ALL=C /usr/bin/tr -dc 'a-zA-Z0-9' | /usr/bin/fold -w 30 | /usr/bin/head -n 10
+
+/bin/cat /dev/random | LC_ALL=C /usr/bin/tr -dc 'a-zA-Z0-9-_@^)_+}:' | /usr/bin/fold -w 30 | /usr/bin/head -n 5
+
+/bin/cat /dev/random | LC_ALL=C /usr/bin/tr -dc 'a-zA-Z0-9-_!@#$%^&*()_+{}|:<>?=' | /usr/bin/fold -w 30 | /usr/bin/head -n 5

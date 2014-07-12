@@ -1,0 +1,8 @@
+#!/bin/sh
+
+xset s off
+xset s noblank
+xset s noexpose
+xset c on
+xset -dpms
+

@@ -1,0 +1,21 @@
+#!/bin/sh
+
+if [ "$( id -u )" != "0" ]; then
+	echo "ERROR: Must be root!"
+	exit 1
+fi
+##### Check that disk was passed as argument
+unset DISK
+DISK=${1}
+if [ ! ${#} -eq 1 ]; then
+	echo "usage:    ${0##*/} device"
+	echo "devices:  `/sbin/sysctl -n kern.disks`"
+	exit 1
+fi
+
+_getinfo () {
+	/usr/sbin/diskinfo -v ${DISK}
+	/sbin/camcontrol identify ${DISK} || /sbin/camcontrol inquiry ${DISK}
+}
+
+_getinfo | /usr/bin/grep -i 'serial number'

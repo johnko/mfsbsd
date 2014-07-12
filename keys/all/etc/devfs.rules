@@ -1,0 +1,47 @@
+[devfsrules_jail_dhcp=5]
+add include $devfsrules_hide_all
+add include $devfsrules_unhide_basic
+add include $devfsrules_unhide_login
+add path 'bpf*' unhide
+add path net unhide
+add path 'net/*' unhide
+add path mem unhide
+add path kmem unhide
+
+[devfsrules_jail_poudriere=6]
+add include $devfsrules_hide_all
+add path zfs unhide
+add path null unhide
+add path zero unhide
+add path random unhide
+add path urandom unhide
+add path stdin unhide
+add path stdout unhide
+add path stderr unhide
+add path fd unhide
+add path fd/* unhide
+add path bpf* unhide
+add path pts unhide
+add path pts/* unhide
+
+[devfsrules_jail_mfsbsd=7]
+add include $devfsrules_hide_all
+add include $devfsrules_unhide_basic
+add include $devfsrules_unhide_login
+add path mdctl unhide
+add path md* unhide
+
+[devfsrules_jail_openvpn=8]
+add include $devfsrules_hide_all
+add include $devfsrules_unhide_basic
+add include $devfsrules_unhide_login
+add path tun0 unhide
+
+[devfsrules_jail_qemu=9]
+add include $devfsrules_hide_all
+add include $devfsrules_unhide_basic
+add include $devfsrules_unhide_login
+add path 'tap*' unhide mode 0660 group wheel
+
+[system=10]
+add path 'tap*' mode 0660 group wheel

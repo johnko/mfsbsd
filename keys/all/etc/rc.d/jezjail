@@ -1,0 +1,37 @@
+#!/bin/sh
+# $Id$
+# MFSBSD CUSTOM
+
+# PROVIDE: jezjail
+# REQUIRE: FILESYSTEMS NETWORKING pf pflog jroute jrcalmost
+# KEYWORD: nojail
+
+. /etc/rc.subr
+
+name="jezjail"
+start_cmd="jezjail_start"
+stop_cmd=":"
+
+
+omitcomments()
+{
+	/usr/bin/egrep -v '^ *#'
+}
+
+
+
+jezjail_start()
+{
+
+
+	if [ ! -e /server/bin/jroledhcpdjails ]; then
+		/server/bin/jrolebootstrap
+	fi
+	/server/bin/startezjail
+
+
+}
+
+load_rc_config $name
+run_rc_command "$1"
+

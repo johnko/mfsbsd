@@ -1,0 +1,11 @@
+#!/bin/sh
+
+if which date >/dev/null 2>&1 ; then
+  datecmd=$( which date )
+else
+  echo "Command date not found"
+  exit 1
+fi
+
+$datecmd '+%Y-%m-%d %H:%M:%S %Z%z'
+

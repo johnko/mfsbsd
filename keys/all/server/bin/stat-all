@@ -1,0 +1,129 @@
+#!/bin/sh
+
+/server/bin/stat-gpg
+
+/usr/bin/uname -i -p -r -s
+echo "SSHR `/server/bin/ssh-finger-rsa`"
+echo "SSHE `/server/bin/ssh-finger-ecdsa`"
+
+line="DATE `/server/bin/date-dr`"
+echo -n "$line"
+if [ ${#line} -lt 40 ]; then
+	tab=""
+	for i in `/usr/bin/seq ${#line} 40`; do
+		tab="$tab "
+	done
+fi
+echo -n "$tab"
+echo "HOST `/bin/hostname -f`"
+
+line="CPU  `/server/bin/stat-cpu`"
+echo -n "$line"
+if [ ${#line} -lt 40 ]; then
+	tab=""
+	for i in `/usr/bin/seq ${#line} 40`; do
+		tab="$tab "
+	done
+fi
+echo -n "$tab"
+echo "UPT  `/server/bin/stat-up`"
+
+line="RAM  `/server/bin/stat-ram`"
+echo -n "$line"
+if [ ${#line} -lt 40 ]; then
+	tab=""
+	for i in `/usr/bin/seq ${#line} 40`; do
+		tab="$tab "
+	done
+fi
+echo -n "$tab"
+echo "USR  `/server/bin/stat-usr`"
+
+
+line="HDD  `/server/bin/stat-disk`"
+echo -n "$line"
+if [ ${#line} -lt 40 ]; then
+	tab=""
+	for i in `/usr/bin/seq ${#line} 40`; do
+		tab="$tab "
+	done
+fi
+echo -n "$tab"
+echo "WHO  `/server/bin/stat-who`"
+
+count=0
+/server/bin/stat-swap | while read line; do
+	count=$(( count + 1 ))
+	if [ $count -eq 1 ]; then
+		echo -n "SWAP "
+	else
+		echo -n "     "
+	fi
+	echo "$line"
+done
+
+count=0
+/server/bin/stat-zfs | while read line; do
+	count=$(( count + 1 ))
+	if [ $count -eq 1 ]; then
+		echo -n "ZFS  "
+	else
+		echo -n "     "
+	fi
+	echo "$line"
+done
+
+count=0
+/server/bin/stat-ucarp | while read line; do
+	count=$(( count + 1 ))
+	if [ $count -eq 1 ]; then
+		echo -n "CARP "
+	else
+		echo -n "     "
+	fi
+	echo "$line"
+done
+
+count=0
+/server/bin/stat-net | while read line; do
+	count=$(( count + 1 ))
+	if [ $count -eq 1 ]; then
+		echo -n "NET  "
+	else
+		echo -n "     "
+	fi
+	echo "$line"
+done
+
+count=0
+/server/bin/stat-dhcpd | while read line; do
+	count=$(( count + 1 ))
+	if [ $count -eq 1 ]; then
+		echo -n "DHCP "
+	else
+		echo -n "     "
+	fi
+	echo "$line"
+done
+
+count=0
+/server/bin/stat-jail | while read line; do
+	count=$(( count + 1 ))
+	if [ $count -eq 1 ]; then
+		echo -n "JAIL "
+	else
+		echo -n "     "
+	fi
+	echo "$line"
+done
+
+count=0
+/server/bin/net-connections -a | while read line; do
+	count=$(( count + 1 ))
+	if [ $count -eq 1 ]; then
+		echo -n "CON  "
+	else
+		echo -n "     "
+	fi
+	echo "$line"
+done

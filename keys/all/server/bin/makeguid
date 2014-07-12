@@ -1,0 +1,3 @@
+#!/bin/sh
+
+echo "${1}$(/bin/cat /dev/random | /usr/bin/tr -cd '[:alnum:]' | /usr/bin/head -c 20)" | /usr/bin/head -c 14

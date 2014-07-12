@@ -1,0 +1,85 @@
+#!/bin/sh
+# $Id$
+# MFSBSD CUSTOM
+
+# PROVIDE: jinterfaces
+# BEFORE: NETWORKING netif routing
+# REQUIRE: mdinit mfsbsd
+# KEYWORD: FreeBSD nojail
+
+. /etc/rc.subr
+
+name="jinterfaces"
+start_cmd="jinterfaces_start"
+stop_cmd=":"
+
+jinterfaces_start()
+{
+	_dif=`/sbin/ifconfig -l | /usr/bin/sed -E -e 's/lo[0-9]+//g' -e 's/bridge[0-9]+//g' -e 's/enc[0-9]+//g' -e 's/ipfw[0-9]+//g' -e 's/pflog[0-9]+//g' -e 's/plip[0-9]+//g' -e 's/tap[0-9]+//g' -e 's/tun[0-9]+//g'`
+	for i in $_dif; do
+		/usr/bin/grep "^ifconfig_$i=" /etc/rc.conf.d/network >/dev/null 2>&1 || \
+			/usr/sbin/sysrc -f /etc/rc.conf.d/network ifconfig_$i="DHCP"
+		/usr/sbin/sysrc -f /etc/rc.conf.d/network ifconfig_bridge0="addm ${i} addm tap0 up"
+	done
+	if [ -z "${mac_interfaces}" ]; then
+	    exit 0
+	fi
+	for if in ${mac_interfaces}; do
+		_cmac=`eval echo "\\$ifconfig_${if}_mac"`
+		_csum=`eval echo "\\$ifconfig_${if}_sum"`
+		if [ -n "$_cmac" -a -z "$_csum" ]; then
+			_dif=`/sbin/ifconfig -l | /usr/bin/sed -E 's/lo[0-9]+//g'`
+			for i in $_dif; do
+				_mac=`/sbin/ifconfig $i | /usr/bin/grep ether | /usr/bin/awk '{ print $2 }'`
+				if [ "$_mac" = "$_cmac" ]; then
+					_cif=`eval echo "\\$ifconfig_${if}"`
+					if [ -n "$_cif" ]; then
+						/usr/sbin/sysrc -f /etc/rc.conf.d/network ifconfig_$i="${_cif}"
+						/usr/sbin/sysrc -f /etc/rc.conf.d/network ifconfig_bridge0="addm ${i} addm tap0 up"
+					fi
+					_dr=`eval echo "\\$ifconfig_${if}_gw"`
+					if [ -n "$_dr" ]; then
+						/usr/sbin/sysrc -f /etc/rc.conf.d/routing defaultrouter="$_dr"
+					fi
+					_ns=`eval echo "\\$ifconfig_${if}_dns"`
+					if [ -n "$_ns" ]; then
+						for n in $_ns; do
+							/usr/bin/grep "nameserver $n\$" /etc/resolv.conf >/dev/null 2>&1 || \
+								echo "nameserver $n" >> /etc/resolv.conf
+						done
+					fi
+				fi
+			done
+		fi
+		if [ -z "$_cmac" -a -n "$_csum" ]; then
+			_dif=`/sbin/ifconfig -l | /usr/bin/sed -E 's/lo[0-9]+//g'`
+			for i in $_dif; do
+				_mac=`/sbin/ifconfig $i | /usr/bin/grep ether | /usr/bin/awk '{ print $2 }'`
+				if [ -n "$_mac" ]; then
+					_sum=`md5 -q -s "$_mac"`
+					if [ "$_sum" = "$_csum" ]; then
+						_cif=`eval echo "\\$ifconfig_${if}"`
+						if [ -n "$_cif" ]; then
+							/usr/sbin/sysrc -f /etc/rc.conf.d/network ifconfig_$i="${_cif}"
+							/usr/sbin/sysrc -f /etc/rc.conf.d/network ifconfig_bridge0="addm ${i} addm tap0 up"
+						fi
+						_dr=`eval echo "\\$ifconfig_${if}_gw"`
+						if [ -n "$_dr" ]; then
+							/usr/sbin/sysrc -f /etc/rc.conf.d/routing defaultrouter="$_dr"
+						fi
+						_ns=`eval echo "\\$ifconfig_${if}_dns"`
+						if [ -n "$_ns" ]; then
+							for n in $_ns; do
+								/usr/bin/grep "nameserver $n\$" /etc/resolv.conf >/dev/null 2>&1 || \
+									echo "nameserver $n" >> /etc/resolv.conf
+							done
+						fi
+					fi
+				fi
+			done
+		fi
+	done
+}
+
+load_rc_config $name
+run_rc_command "$1"

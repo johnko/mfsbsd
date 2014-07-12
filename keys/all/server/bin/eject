@@ -1,0 +1,11 @@
+#!/bin/sh
+
+DEVICE="$1"
+
+if [ -z "${DEVICE}" ]; then
+  DEVICE=/dev/cd0
+fi
+
+/sbin/umount ${DEVICE}
+/usr/sbin/cdcontrol -f ${DEVICE} eject
+

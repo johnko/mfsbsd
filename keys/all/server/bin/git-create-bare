@@ -1,0 +1,29 @@
+#!/bin/sh
+# Setup a bare remote git repo you can push to, pull from.
+
+usage() {
+	echo "Usage: $0 repo_name.git"
+	echo ; echo "Example:"
+	echo "  $0 mycode.git"
+}
+
+if [ -z "${1}" ]; then
+	usage; exit 1
+else
+	gitdir="/git/${1}"
+fi
+
+/usr/bin/install -d -m 700	${gitdir}
+cd ${gitdir}
+git init --bare 
+git update-server-info
+
+cat <<EOF
+# On your local machine:
+cd my_project
+git init
+git add *
+git commit -m "My initial commit message"
+git remote add origin ssh://user@host:port${gitdir}
+git push -u origin master
+EOF

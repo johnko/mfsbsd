@@ -1,0 +1,261 @@
+#!/bin/sh
+RESTOREMASK=`umask`
+umask 022
+
+MYSQLPASSWD=$( /server/bin/pwgen | /usr/bin/head -1 )
+CLUSTERPASS=$( /server/bin/pwgen | /usr/bin/head -1 )
+    SSTPASS=$( /server/bin/pwgen | /usr/bin/head -1 )
+#APPENDMYCNF=1
+
+if [ "$1" = "1" ]; then
+
+	/server/bin/startconfig mysql
+
+	/usr/bin/install -d -m 770 -o mysql -g mysql /server/mysql
+	/usr/bin/install -d -m 777 -o mysql -g mysql /server/mysql/data
+	/usr/bin/install -d -m 770 -o mysql -g mysql /server/mysql/sites-enabled
+	/usr/bin/install -d -m 770 -o mysql -g mysql /server/mysql/tmp
+	/usr/bin/touch /var/log/mysql-slow.log /var/log/mysql-error.log
+	/usr/sbin/chown mysql:mysql /var/log/mysql-slow.log /var/log/mysql-error.log
+	MYWSREPCNF=/server/mysql/sites-available/wsrep.cnf
+	MYCNF=/server/mysql/my.cnf
+	/bin/cat >${MYCNF} <<EOF
+[mysqldump]
+quick
+max-allowed-packet = 1M
+
+[mysql]
+no-auto-rehash
+#safe-updates
+
+[isamchk]
+key-buffer       = 1M
+sort-buffer-size = 1M
+
+[myisamchk]
+key-buffer       = 1M
+sort-buffer-size = 1M
+
+[mysqlhotcopy]
+interactive-timeout
+
+[xtrabackup]
+tmpdir    = /var/tmp
+
+[sst]
+streamfmt = xbstream
+
+[client]
+default-character-set=utf8
+
+[mysqld]
+datadir              = /server/mysql/data
+tmpdir               = /server/mysql/tmp
+log-error            = /var/log/mysql-error.log
+slow-query-log-file  = /var/log/mysql-slow.log
+port                 = 3306
+
+# ------------- Joyent Defaults --------------
+character-set-server = utf8
+skip-external-locking
+log_warnings
+skip_name_resolve
+
+EOF
+	if [ "$2" = "percona" ]; then
+		/bin/cat >>${MYCNF} <<EOF
+# very important data integrity option: logging
+# changes to the binary log between backups.
+log_bin              = percona-bin
+EOF
+	elif [ "$2" = "mariadb" -o "$2" = "mysql" ]; then
+		/bin/cat >>${MYCNF} <<EOF
+# very important data integrity option: logging
+# changes to the binary log between backups.
+log_bin              = mysql-bin
+EOF
+	fi
+	/bin/cat >>${MYCNF} <<EOF
+
+# ------------- Cluster settings --------------
+binlog_format                  = ROW
+default_storage_engine         = InnoDB
+innodb_autoinc_lock_mode       = 2
+innodb_doublewrite             = 1
+innodb_locks_unsafe_for_binlog = 1
+innodb-flush-log-at-trx-commit = 2
+query_cache_size               = 0
+query_cache_type               = 0
+
+# ------------- Medium memory settings --------------
+join-buffer-size          = 16M
+net_buffer_length         = 8K
+max_allowed_packet        = 256M
+max-connections           = 300
+read_buffer_size          = 256K
+read_rnd_buffer_size      = 512K
+sort_buffer_size          = 512K
+thread_cache_size         = 1000
+table_open_cache          = 64
+tmp_table_size            = 64M
+max_heap_table_size       = 64M
+
+# ------------- MyISAM --------------
+key_buffer_size           = 16M
+
+# ------------- SAFETY --------------
+max-connect-errors        = 100000
+innodb                    = FORCE
+innodb_file_per_table     = 1
+
+# ------------- FreeBSD specific --------------
+sql_mode                  = NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES
+# ------------- INNODB --------------
+# Set to the amount of RAM for the most important data
+# cache in MySQL. Start at 70% of total RAM for dedicated server, else 10%.
+innodb_buffer_pool_size   = 128M
+innodb-log-file-size      = 32M
+innodb-log-buffer-size    = 8M
+innodb-lock-wait-timeout  = 50
+
+# ------------- MYSQL CHARSETS --------------
+character_set_server = utf8
+collation_server = utf8_unicode_ci
+
+# ------------- REPLICATION --------------
+server-id=`/bin/date "+%s"`
+binlog-ignore-db=test
+
+EOF
+	if [ "$APPENDMYCNF" != "1" ]; then
+		/bin/cat >>${MYCNF} <<EOF
+!includedir /server/mysql/sites-enabled/
+EOF
+	fi
+	/bin/chmod 644 ${MYCNF}
+	/bin/ln -shf /server/mysql/my.cnf  /usr/local/etc/my.cnf
+
+	if [ "$2" = "percona" -o "$2" = "mariadb" ]; then
+		MYIP=$( /sbin/ifconfig | /usr/bin/egrep inet | /usr/bin/sed -e 's/broadcast.*//g' -e 's/netmask.*//g' | /usr/bin/egrep -o "([0-9]{1,3}\.){3}[0-9]{1,3}" | /usr/bin/head -1 )
+		if [ -n "$3" ]; then
+			HOSTNAME=$( /bin/hostname -s )
+			if [ "$APPENDMYCNF" = "1" ]; then
+				MYWSREPCNF="${MYCNF}"
+			else
+				/bin/cat >${MYWSREPCNF} <<EOF
+[mysqld]
+EOF
+			fi
+			if [ "$2" = "percona" ]; then
+				/bin/cat >>${MYWSREPCNF} <<EOF
+# ------------- WSREP --------------
+# Cluster with percona-xtradb-cluster
+wsrep_sst_method=xtrabackup-v2
+EOF
+			elif [ "$2" = "mariadb" ]; then
+				/bin/cat >>${MYWSREPCNF} <<EOF
+# ------------- WSREP --------------
+# Cluster with mariadb55-galera-server
+wsrep_sst_method=rsync
+EOF
+			fi
+			# Common options
+			/bin/cat >>${MYWSREPCNF} <<EOF
+# Address which donor should send State Snapshot to.
+# Should be the address of THIS node. DON'T SET IT TO DONOR ADDRESS!!!
+# If behind NAT or jailed, set it to this node's public IP and port fwd!
+# wsrep_sst_receive_address=192.168.100.131
+# wsrep_provider_options="gmcast.listen_addr=tcp://${MYIP}:4567"
+wsrep_provider=/usr/local/lib/libgalera_smm.so
+wsrep_cluster_name=mycluster
+wsrep_node_name=${HOSTNAME}
+wsrep_node_address=${MYIP}
+EOF
+			if [ "$2" = "percona" ]; then
+				/bin/cat >>${MYWSREPCNF} <<EOF
+wsrep_slave_threads=8
+wsrep_sst_auth="sst:${SSTPASS}"
+EOF
+			fi
+		fi
+		if [ "$2" = "percona" ]; then
+			if [ "$3" = "1" ]; then
+				# To satisfy grep in /usr/local/etc/rc.d/mysql-server start
+				/bin/cat >>${MYWSREPCNF} <<EOF
+wsrep_cluster_address=gcomm://
+EOF
+			fi
+		fi
+		if [ -n "$4" -a "$3" = "1" ]; then
+			echo -n "#" >>${MYWSREPCNF}
+		elif [ -n "$4" -a "$3" != "1" ]; then
+			# Strip first comma
+			OTHERNODES=$( echo $4 | /usr/bin/sed -e "s/,${MYIP}//" -e 's#/,#/#' )
+			/bin/cat >>${MYWSREPCNF} <<EOF
+wsrep_cluster_address=${OTHERNODES}
+# This should be set to include all nodes
+# wsrep_cluster_address=gcomm://IP#1,IP#2:4567
+EOF
+		fi
+		/bin/chmod 644 ${MYWSREPCNF}
+		/bin/ln -hf ${MYWSREPCNF}	/server/mysql/sites-enabled/wsrep.cnf
+	fi
+
+	/usr/bin/find /server/mysql -exec /usr/sbin/chown mysql:mysql {} \;
+
+elif [ "$1" = "2" ]; then
+
+	if [ "$2" = "percona" -o "$2" = "mysql" ]; then
+		if ! /usr/bin/egrep '^remove_anonymous_users' /usr/local/bin/mysql_secure_installation >/dev/null 2>&1 ; then
+			/usr/bin/sed -i .bkp 's/get_root_password();//' /usr/local/bin/mysql_secure_installation
+			/usr/bin/sed -i .bkp 's/set_root_password();//' /usr/local/bin/mysql_secure_installation
+			/usr/bin/sed -i .bkp 's/my \$reply = <STDIN>;/my \$reply = "n";/' /usr/local/bin/mysql_secure_installation
+			/usr/bin/sed -i .bkp 's/\$reply = <STDIN>;/\$reply = "n";/' /usr/local/bin/mysql_secure_installation
+			/bin/cat >>/usr/local/bin/mysql_secure_installation <<EOF
+remove_anonymous_users();
+remove_remote_root();
+remove_test_database();
+reload_privilege_tables();
+EOF
+		fi
+	elif [ "$2" = "mariadb" ]; then
+		if ! /usr/bin/egrep '^remove_anonymous_users$' /usr/local/bin/mysql_secure_installation >/dev/null 2>&1 ; then
+			/usr/bin/sed -i .bkp 's/^get_root_password\s*$/hadpass=1/' /usr/local/bin/mysql_secure_installation
+			/usr/bin/sed -i .bkp 's/set_root_password$//' /usr/local/bin/mysql_secure_installation
+			/usr/bin/sed -i .bkp 's/^read reply/reply="n"/' /usr/local/bin/mysql_secure_installation
+			/bin/cat >>/usr/local/bin/mysql_secure_installation <<EOF
+remove_anonymous_users
+remove_remote_root
+remove_test_database
+reload_privilege_tables
+cleanup
+EOF
+		fi
+	fi
+	/usr/local/bin/mysql_secure_installation >/var/log/mysql-secure-installation.out 2>/var/log/mysql-secure-installation.err
+
+	##### GALERA CLUSTER
+	if [ "$2" = "percona" -o "$2" = "mariadb" ]; then
+		/usr/bin/find /server/mysql/data -type d -exec /bin/chmod 777 {} \;
+		/usr/bin/find /server/mysql/data -type f -exec /bin/chmod 664 {} \;
+		if [ -n "$3" ]; then
+			mysql <<EOF
+DELETE FROM mysql.user WHERE user='';
+GRANT USAGE ON *.* TO root@'%' IDENTIFIED BY '${MYSQLPASSWD}';
+UPDATE mysql.user SET Password=PASSWORD('${MYSQLPASSWD}') WHERE User='root';
+FLUSH PRIVILEGES;
+EOF
+#GRANT USAGE ON *.* to sst@'%' IDENTIFIED BY '${SSTPASS}';
+#GRANT ALL PRIVILEGES on *.* to sst@'%';
+#GRANT USAGE on *.* to clusteroot@'%' IDENTIFIED BY '${CLUSTERPASS}';
+#GRANT ALL PRIVILEGES on *.* to clusteroot@'%';
+#INSERT INTO mysql.user (host,user) values ('%','haproxy');
+			umask 077
+			/bin/cat >~/.my.cnf <<EOF
+[client]
+user=root
+password='${MYSQLPASSWD}'
+EOF
+		fi
+	fi
+fi

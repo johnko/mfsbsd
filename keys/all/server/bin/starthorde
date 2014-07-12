@@ -1,0 +1,18 @@
+#!/bin/sh
+
+/usr/bin/install -d -m 755 /server/nginx/sites-enabled
+/bin/ln -shf ../sites-available/horde.conf /server/nginx/sites-enabled/
+/server/bin/startnginx
+/server/bin/startphp54
+
+
+if [ ! -e /usr/local/bin/webmail-install ]; then
+	/usr/local/sbin/pkg-static install -y horde-webmail bash-static php5-gd php5-tidy php5-fileinfo php5-ftp pecl-imagick pecl-lzf pecl-memcached
+fi
+
+
+# Interactive configure
+/usr/local/bin/webmail-install
+
+
+# Try opening in browser http://your-server/horde/test.php

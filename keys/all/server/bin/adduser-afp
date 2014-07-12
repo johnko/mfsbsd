@@ -1,0 +1,83 @@
+#!/bin/sh
+
+
+
+pool=data
+
+
+if ! which netatalk > /dev/null ; then
+  echo Cannot find netatalk
+  exit 1
+fi
+
+username=$1
+
+if [ -z "${username}" ]
+then
+ echo "***** NEED 1 variable argument (username)"
+ exit
+fi
+
+### freebsd, need to add a real /dir as netatalk3 breaks with just zfs mountpoint
+hompool=/apple/${username}
+afppool=/apple/${username}/afp
+afpdir=${afppool}/dir
+bkppool=/apple/${username}/tm
+bkpdir=${bkppool}/dir
+
+### freebsd
+#echo "${username}::::::gecos:/home/${username}:/not/a/real/shell:"
+echo "${username}:::::::/home/${username}:/not/a/real/shell:" | /usr/sbin/adduser -w no -S -f - || exit 1
+### add user to their own group too
+/usr/sbin/pw groupmod "$1" -m "$1" || exit 1
+### ubuntu
+#useradd -m -s /not/a/real/shell -c "AFP netatalk user" ${username} || exit 1
+/sbin/zfs create -o casesensitivity=insensitive -o mountpoint=${hompool} -o aclmode=passthrough -o aclinherit=passthrough -p ${pool}${hompool} || exit 1
+/sbin/zfs create -o casesensitivity=insensitive -o mountpoint=${afppool} -o aclmode=passthrough -o aclinherit=passthrough -p ${pool}${afppool} || exit 1
+/sbin/zfs create -o casesensitivity=insensitive -o mountpoint=${bkppool} -o aclmode=passthrough -o aclinherit=passthrough -p ${pool}${bkppool} || exit 1
+
+#### you can also set quota with
+#### zfs set quota=500G DATA/user/timemachine
+#### or add in afp.conf under each vol
+#### vol size limit = 500000
+
+/usr/bin/install -d -m 755 -o ${username} -g ${username}	${afpdir} || exit 1
+/usr/bin/install -d -m 755 -o ${username} -g ${username}	${bkpdir} || exit 1
+/usr/bin/passwd ${username}
+
+/server/bin/startconfig afp
+
+/bin/cat > /server/afp/sites-available/${username}.conf <<EOF
+[${username}'s Network Drive]
+ea = ad
+path = ${afpdir}
+umask = 077
+valid users = ${username}
+
+[${username}'s Time Machine]
+ea = ad
+path = ${bkpdir}
+umask = 077
+valid users = ${username}
+time machine = yes
+
+EOF
+
+/usr/bin/install -d -m 755 /server/afp/sites-enabled
+ln -shf ../sites-available/${username}.conf /server/afp/sites-enabled/${username}.conf
+
+/usr/sbin/chown -R ${username}:${username} ${hompool}
+/bin/chmod -R 700 ${hompool}
+/usr/local/bin/dbd -r ${afpdir}
+/usr/local/bin/dbd -r ${bkpdir}
+
+if ! /server/bin/cron-afp-add-enabled >/dev/null 2>&1 ; then
+	echo "Something went wrong when trying to include"
+	echo "/server/afp/sites-available/${username}.conf in afp.conf"
+	exit 1
+fi
+
+/usr/local/sbin/netatalk
+/bin/sleep 1
+/bin/pgrep ^netatalk$ && kill -1 `pgrep ^netatalk$`
+

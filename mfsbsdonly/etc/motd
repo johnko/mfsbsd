@@ -1,0 +1,10 @@
+Welcome to mfsBSD, the memory based FreeBSD distribution.
+
+This is a stripped-down version of FreeBSD without:
+- manual pages, info pages, examples
+- include files, static library files, development tools
+- bind binaries (named, etc.)
+
+Visit https://github.com/mmatuska/mfsbsd
+for bug reports or feature suggestions.
+

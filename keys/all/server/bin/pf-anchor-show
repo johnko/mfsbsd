@@ -1,0 +1,17 @@
+#!/bin/sh
+if [ "$( id -u )" != "0" ]; then
+	echo "ERROR: Must be root!"
+	exit 1
+fi
+
+if [ -z "$1" ]; then
+	echo "Usage: ${0##*/} anchor"
+	exit 1
+fi
+
+
+/sbin/pfctl -P -a $1 -s nat \
+	2>/dev/null
+/sbin/pfctl -P -a $1 -s rules \
+	2>/dev/null
+

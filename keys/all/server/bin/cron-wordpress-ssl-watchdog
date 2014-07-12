@@ -1,0 +1,23 @@
+#!/bin/sh
+
+THISSCRIPT=`echo $0 | /usr/bin/awk '{print $1}'`
+THISFILE=`echo ${THISSCRIPT##*/} | /usr/bin/sed 's,cron-,,' | /usr/bin/sed 's,-list,,'`
+
+if /bin/pgrep -lf ${THISSCRIPT##*/} >/dev/null 2>&1 ; then
+	exit 1
+else
+	SKIP=0
+	FILE="/server/www/wordpress/wp-config.php"
+	while [ $SKIP -eq 0 ]; do
+		if [ -e "$FILE" ]; then
+			if /usr/bin/grep "^require_once('/server/www/wp-ssl.php');" "$FILE" >/dev/null 2>&1 ; then
+				SKIP=1
+			else
+				/server/bin/insertafterfirst "$FILE" '^<?php' <<EOF
+require_once('/server/www/wp-ssl.php');
+EOF
+			fi
+		fi
+		sleep 1
+	done
+fi

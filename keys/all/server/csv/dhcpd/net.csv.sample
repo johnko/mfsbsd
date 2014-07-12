@@ -1,0 +1,13 @@
+#,/server/csv/dhcpd/net.csv.sample,NETWORK CONFIG FILE IN CSV FOR EASY HUMAN MANAGEMENT
+#,COMMENTS START WITH #,more dhcp options with dnsmasq --help dhcp
+#dhcp-host,MACADDRESS,HOSTNAME,IPADDRESS,pxemenu,static
+#dhcp-option,option:router,DEFAULTGATEWAY
+#dhcp-option,option:dns-server,DNSIPADDRESS1,DNSIPADDRESS2
+#dhcp-range,FIRSTIPADDRESS,LASTIPADDRESS,LEASETIME
+#dhcp-range,192.168.0.10,192.168.0.19,21600
+#dhcp-range,192.168.0.20,192.168.0.29,21600
+#dhcp-option,option:domain-name,contoso.local
+#dhcp-subnet,192.168.0.0,255.255.255.0,,,,
+#dhcp-boot,tag:!gpxe,gpxelinux.0,192.168.0.200,,,
+#dhcp-failover,primary,192.168.0.121,,,,
+#dhcp-failover,secondary,192.168.0.141,,,,

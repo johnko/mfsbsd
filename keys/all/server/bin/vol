@@ -1,0 +1,20 @@
+#!/bin/sh
+
+case "$1" in
+  "+"|up)
+    mixer vol +10 >/dev/null || exit 1
+    ;;
+  "-"|down)
+    mixer vol -10 >/dev/null || exit 1
+    ;;
+  "m"|mute)
+    mixer vol 0 >/dev/null || exit 1
+    ;;
+  "t"|toggle)
+    mixer | egrep "vol" | egrep "0:0" && mixer vol 50 >/dev/null || mixer vol 0 >/dev/null
+    exit 0
+    ;;
+esac
+
+exit 1
+

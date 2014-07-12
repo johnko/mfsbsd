@@ -1,0 +1,37 @@
+#!/bin/sh
+
+if [ "$( id -u )" != "0" ]; then
+	echo "ERROR: Must be root!"
+	exit 1
+fi
+
+_getinfo () {
+	if [ "x" = "x$1" ]; then
+		exit 1
+	fi
+	/usr/sbin/diskinfo -v ${1}
+	/sbin/camcontrol identify ${1} || /sbin/camcontrol inquiry ${1}
+}
+
+/bin/cat <<EOF
+ Slot  | ID    | Serial             | WWN                | DateAdded
+-------|-------|--------------------|--------------------|------------------------------
+EOF
+
+for i in `sysctl -n kern.disks` ; do
+	DISK=$i
+	while [ ${#DISK} -lt 5 ]; do
+		DISK="${DISK} "
+	done
+	SERIAL=$( _getinfo $i | /usr/bin/grep -i 'serial number' | /usr/bin/awk '{print $NF}' )
+	if [ "x" != "x${SERIAL}" ]; then
+		while [ ${#SERIAL} -lt 18 ]; do
+			SERIAL="${SERIAL} "
+		done
+		WWN=$( _getinfo $i | /usr/bin/grep -i 'WWN' | /usr/bin/awk '{print $NF}' )
+		while [ ${#WWN} -lt 18 ]; do
+			WWN="${WWN} "
+		done
+		echo "       | ${DISK} | ${SERIAL} | ${WWN} | $( /bin/date '+%Y-%m-%d %H:%M:%S %Z%z' )"
+	fi
+done

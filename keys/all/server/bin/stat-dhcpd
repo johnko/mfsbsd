@@ -1,0 +1,11 @@
+#!/bin/sh
+
+if [ -e "/var/log/dhcpd.log" ]; then
+	/usr/bin/grep dhcpd /var/log/dhcpd.log | /usr/bin/tail -1 | /usr/bin/sed -e 's/dhcpd.*dhcpd: //' -e 's/failover peer mygroup: //'
+fi
+
+dhcpdjaillog=$( /usr/bin/find /usr/jails/dhcpd*/var/log -name dhcpd.log 2>/dev/null | /usr/bin/head -1 )
+
+if [ "x" != "x${dhcpdjaillog}" ]; then
+	/usr/bin/grep dhcpd ${dhcpdjaillog} | /usr/bin/tail -1 | /usr/bin/sed -e 's/dhcpd.*dhcpd://' -e 's/failover peer mygroup: //'
+fi

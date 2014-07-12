@@ -1,0 +1,38 @@
+#!/bin/sh
+
+if [ ! -e /server/zfs/zl.txt ]; then
+	/server/bin/cron-zl-list || exit 1
+else
+	tens=$( /server/bin/date-d | /usr/bin/head -c15 | /usr/bin/tail -c3 )
+	if [ "000" = "$tens" ]; then
+		# try to refresh
+		/server/bin/cron-zl-list
+	fi
+fi
+
+case `/usr/bin/uname -s` in
+	"Darwin")
+		exit 1
+	;;
+	"FreeBSD")
+	/usr/sbin/jls | /usr/bin/grep -v 'JID.*IP Address.*Hostname.*Path' | /usr/bin/awk '{print $2,$3}' | while read line ; do
+		if echo "${line}" | /usr/bin/grep '100amd64-default' > /dev/null 2> /dev/null ; then
+			echo "${line}"
+		else
+			search=$( echo "${line}" | /usr/bin/awk '{print $2}' )
+			if [ "x" = "x${search}" ]; then
+				echo "${line}"
+			else
+				#zfslist=$( /sbin/zfs list -H -o name,used data/ezjail/${search} 2> /dev/null )
+				zfslist=$( /usr/bin/grep data/ezjail/${search} /server/zfs/zl.txt )
+				if [ "x" = "x${zfslist}" ]; then
+					echo "${line}"
+				else
+					used=$( echo "${zfslist}" | /usr/bin/awk '{print $2}' )
+					echo "${line} ${used}"
+				fi
+			fi
+		fi
+	done | /usr/bin/sort | /usr/bin/column -t
+    ;;
+esac

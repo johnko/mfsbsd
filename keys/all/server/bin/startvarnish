@@ -1,0 +1,230 @@
+#!/bin/sh
+
+if /sbin/sysctl security.jail.jailed | /usr/bin/grep 1 >/dev/null 2>&1 ; then
+	for i in `ifconfig -l` ; do
+		tempip=`net-ip $i`
+		if [ -n "$tempip" ]; then
+			ip=$tempip
+		fi
+	done
+else
+	ip=`net-ip $( net-nic )`
+fi
+
+/usr/sbin/sysrc -f /etc/rc.conf varnishd_enable="YES"
+/usr/sbin/sysrc -f /etc/rc.conf varnishd_config="/server/varnish/default.vcl"
+
+if [ ! -f "/usr/local/etc/rc.d/varnishd" ]; then
+	/usr/local/sbin/pkg-static install -y varnish
+fi
+
+/usr/bin/install -d -m 755 /server/varnish
+/bin/cat >/server/varnish/default.vcl <<EOF
+backend default {
+	# TODO add backend ip and port
+    .host = "127.0.0.1";
+    .port = "80";
+}
+
+acl purge {
+	"127.0.0.1";
+	"${ip}";
+	"localhost";
+	# TODO add upstream ip and domain
+}
+
+include "/server/varnish/purge.vcl";
+
+sub vcl_recv {
+
+	if (req.http.Accept-Encoding) {
+		if (req.http.Accept-Encoding ~ "gzip") {
+			# If the browser supports it, we'll use gzip.
+			set req.http.Accept-Encoding = "gzip";
+		}
+		else if (req.http.Accept-Encoding ~ "deflate") {
+			# Next, try deflate if it is supported.
+			set req.http.Accept-Encoding = "deflate";
+		}
+		else {
+			# Unknown algorithm. Remove it and send unencoded.
+			unset req.http.Accept-Encoding;
+		}
+	}
+
+    if (req.restarts == 0) {
+        if (req.http.x-forwarded-for) {
+            set req.http.X-Forwarded-For =
+            req.http.X-Forwarded-For + ", " + client.ip;
+        } else {
+            set req.http.X-Forwarded-For = client.ip;
+        }
+    }
+
+# Don't serve cached pages to logged in users
+	if ( req.http.cookie ~ "wordpress_logged_in" || req.url ~ "vaultpress=true" ) {
+			return( pass );
+	}
+
+
+    if (req.request != "GET" &&
+        req.request != "HEAD" &&
+        req.request != "PUT" &&
+        req.request != "POST" &&
+        req.request != "TRACE" &&
+        req.request != "OPTIONS" &&
+        req.request != "DELETE") {
+            return (pipe);
+    }
+
+    # Do not cache these paths
+    if (req.url ~ "^/wp-cron\.php\$" ||
+        req.url ~ "^/xmlrpc\.php\$" ||
+        req.url ~ "^/wp-admin/.*\$" ||
+        req.url ~ "^/wp-includes/.*\$" ||
+        req.url ~ "\?s=") {
+            return (pass);
+    }
+
+    if (req.request != "GET" && req.request != "HEAD") {
+        return (pass);
+    }
+    if (!(req.url ~ "wp-(login|admin)") &&
+        !(req.url ~ "&preview=true" ) ) {
+        unset req.http.cookie;
+    }
+
+    if (req.http.Authorization || req.http.Cookie) {
+        return (pass);
+    }
+    return (lookup);
+}
+
+
+sub vcl_fetch {
+  # remove some headers we never want to see
+    unset beresp.http.Server;
+    unset beresp.http.X-Powered-By;
+
+    if (!(req.url ~ "wp-(login|admin)")) {
+        unset beresp.http.set-cookie;
+        set beresp.ttl = 96h;
+    }
+
+    # don't cache response to posted requests or those with basic auth
+    if ( req.request == "POST" || req.http.Authorization ) {
+        return (hit_for_pass);
+    }
+
+    # don't cache search results
+    if( req.url ~ "\?s=" ){
+        return (hit_for_pass);
+    }
+
+    # only cache status ok
+    if ( beresp.status != 200 ) {
+        return (hit_for_pass);
+    }
+
+    if (beresp.ttl <= 0s ||
+        beresp.http.Set-Cookie ||
+        beresp.http.Vary == "*") {
+            set beresp.ttl = 120 s;
+            return (hit_for_pass);
+    }
+    return (deliver);
+}
+EOF
+/bin/ln -shf /server/varnish/default.vcl /usr/local/etc/varnish/default.vcl
+
+/bin/cat >/server/varnish/purge.vcl <<EOF
+# There are 3 possible behaviors of purging.
+
+# Regex purging
+# Treat the request URL as a regular expression.
+sub purge_regex {
+        ban("obj.http.X-Req-URL ~ " + req.url + " && obj.http.X-Req-Host == " + req.http.host);
+}
+
+# Exact purging
+# Use the exact request URL (including any query params)
+sub purge_exact {
+        ban("obj.http.X-Req-URL == " + req.url + " && obj.http.X-Req-Host == " + req.http.host);
+}
+
+# Page purging (default)
+# Use the exact request URL, but ignore any query params
+sub purge_page {
+        set req.url = regsub(req.url, "\?.*\$", "");
+        ban("obj.http.X-Req-URL-Base == " + req.url + " && obj.http.X-Req-Host == " + req.http.host);
+}
+
+
+# The purge behavior can be controlled with the X-Purge-Method header.
+#
+# Setting the X-Purge-Method header to contain "regex" or "exact" will use
+# those respective behaviors.  Any other value for the X-Purge header will
+# use the default ("page") behavior.
+#
+# The X-Purge-Method header is not case-sensitive.
+#
+# If no X-Purge-Method header is set, the request url is inspected to attempt
+# a best guess as to what purge behavior is expected.  This should work for
+# most cases, although if you want to guarantee some behavior you should
+# always set the X-Purge-Method header.
+
+sub vcl_recv {
+        if (req.request == "PURGE") {
+                if (client.ip !~ purge) {
+                        error 405 "Not allowed.";
+                }
+
+                if (req.http.X-Purge-Method) {
+                        if (req.http.X-Purge-Method ~ "(?i)regex") {
+                                call purge_regex;
+                        } elsif (req.http.X-Purge-Method ~ "(?i)exact") {
+                                call purge_exact;
+                        } else {
+                                call purge_page;
+                        }
+                } else {
+                        # No X-Purge-Method header was specified.
+                        # Do our best to figure out which one they want.
+                        if (req.url ~ "\.\*" || req.url ~ "^\^" || req.url ~ "\\$\$" || req.url ~ "\\\\[.?*+^\$|()]") {
+                                call purge_regex;
+                        } elsif (req.url ~ "\?") {
+                                call purge_exact;
+                        } else {
+                                call purge_page;
+                        }
+                }
+
+                error 200 "Purged.";
+        }
+}
+
+sub vcl_fetch {
+        set beresp.http.X-Req-Host = req.http.host;
+        set beresp.http.X-Req-URL = req.url;
+        set beresp.http.X-Req-URL-Base = regsub(req.url, "\?.*\$", "");
+}
+
+sub vcl_deliver {
+        unset resp.http.X-Req-Host;
+        unset resp.http.X-Req-URL;
+        unset resp.http.X-Req-URL-Base;
+}
+EOF
+
+if [ -x "/usr/local/etc/rc.d/varnishd" ]; then
+	/usr/local/etc/rc.d/varnishd onerestart || /usr/local/etc/rc.d/varnishd onestart
+fi
+
+if [ -x /server/bin/cron-varnishd-watchdog ]; then
+	if ! /usr/bin/egrep 'cron-varnishd-watchdog$' /etc/crontab > /dev/null 2>&1 ; then
+		/bin/cat >> /etc/crontab <<EOF
+# Added by /etc/rc.d/jcron
+*      *       *       *       *       root    /server/bin/cron-varnishd-watchdog
+EOF
+	fi
+fi

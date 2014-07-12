@@ -1,0 +1,31 @@
+#!/bin/sh
+if [ "$( id -u )" != "0" ]; then
+  echo "ERROR: Must be root!"
+  exit 1
+fi
+
+PATH=$PATH:/usr/libexec
+export PATH
+
+echo -n "Disabling unsecure programs:"
+for a in rlogin rsh rcp ruserok rcmd telnet rlogind rshd rup rusers rwall rwho rwhod rmt rmail
+do
+  if [ -e "`which $a`" ]; then
+    b=`which $a`
+    echo -n " $b"
+    chflags noschg $b
+    chmod 400 $b
+    mv $b ${b}_risk
+    chflags schg ${b}_risk
+  else
+    if [ -e "`which ${a}_risk`" ]; then
+      b=`which ${a}_risk`
+      echo -n " $b"
+      chflags noschg $b
+      chmod 400 $b
+      chflags schg $b
+    fi
+  fi
+done
+echo " ... done"
+

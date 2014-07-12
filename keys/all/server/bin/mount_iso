@@ -1,0 +1,32 @@
+#!/bin/sh
+
+usage() {
+	echo "usage: mount_iso file.iso folder"
+}
+
+if [ -z "$2" ]; then
+	usage
+	exit 1
+fi
+
+if [ ! -e "$2" ]; then
+	/usr/bin/install -d -m 700	"$2"
+fi
+
+if [ ! -d "$2" ]; then
+	echo "This is not a folder: $2"
+	exit 1
+fi
+
+memdev=`/sbin/mdconfig -a -t vnode -f "$1"`
+
+if [ ! -e "/dev/${memdev}" ]; then
+	echo "Error reading file: $1"
+	exit 1
+fi
+
+if ! /sbin/mount_cd9660 /dev/${memdev} "$2" ; then
+	echo "Error mounting /dev/${memdev} to $2"
+	exit 1
+fi
+

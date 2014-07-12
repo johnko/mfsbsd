@@ -1,0 +1,23 @@
+#!/bin/sh
+
+THISSCRIPT=`echo $0 | /usr/bin/awk '{print $1}'`
+THISFILE=`echo ${THISSCRIPT##*/} | /usr/bin/sed 's,cron-,,' | /usr/bin/sed 's,-list,,'`
+
+if /bin/pgrep -lf ${THISSCRIPT##*/} >/dev/null 2>&1 ; then
+	exit 1
+else
+	umask 077
+	if [ ! -d /server/zfs ]; then
+		/usr/bin/install -d -m 700	/server/zfs
+	fi
+	if ! /sbin/mount | /usr/bin/grep "/server/zfs" > /dev/null 2> /dev/null; then
+		/sbin/mount -t tmpfs tmpfs /server/zfs
+	fi
+	if [ -d /server/zfs ]; then
+		/sbin/zfs list -o name,used,available,refer,usedbychildren,usedbysnapshots,quota,mounted,mountpoint,creation > /server/zfs/.${THISFILE}.tmp || exit 1
+		/bin/mv /server/zfs/.${THISFILE}.tmp /server/zfs/${THISFILE}.txt || exit 1
+	fi
+	if [ ! -d /server/zfs ]; then
+		exit 1
+	fi
+fi

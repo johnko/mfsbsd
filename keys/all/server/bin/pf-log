@@ -1,0 +1,11 @@
+#!/bin/sh
+if [ "$( id -u )" != "0" ]; then
+	echo "ERROR: Must be root!"
+	exit 1
+fi
+
+if [ "${1}" = "live" ]; then
+	/usr/sbin/tcpdump -n -e -tttt -i pflog0 ip
+else
+	/usr/sbin/tcpdump -n -e -tttt -r /var/log/pflog ip
+fi

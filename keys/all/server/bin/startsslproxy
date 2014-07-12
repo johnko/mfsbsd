@@ -1,0 +1,28 @@
+#!/bin/sh
+
+/server/bin/startconfig nginx
+/usr/bin/install -d -m 755 /server/nginx/sites-enabled
+/bin/ln -shf ../sites-available/sslproxy.conf  /server/nginx/sites-enabled/
+
+FILE="/server/nginx/sites-available/sslproxy.conf"
+if [ -f "$FILE" ]; then
+	for ip in $@ ; do
+		if /usr/bin/grep "server ${ip};" "$FILE" >/dev/null 2>&1 ; then
+			SKIP=1
+		else
+			/server/bin/insertafterfirst "$FILE" 'ip_hash;' <<EOF
+server ${ip};
+EOF
+		fi
+	done
+fi
+
+MNT=/server/nginx/
+if [ ! -e "${MNT}cert.key" ]; then
+	openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 -subj "/C=CA/ST=Ontario/L=Toronto/O=Test/CN=*.home.local" -keyout ${MNT}cert.key  -out ${MNT}cert.crt >/dev/null 2>&1
+fi
+if [ ! -e "${MNT}dhparam.pem" ]; then
+	openssl dhparam -out ${MNT}dhparam.pem 2048 >/dev/null 2>&1
+fi
+
+/server/bin/startnginx

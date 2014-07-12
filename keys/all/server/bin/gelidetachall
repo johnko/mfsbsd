@@ -1,0 +1,5 @@
+#!/bin/sh
+
+/sbin/geli load > /dev/null 2> /dev/null
+
+for i in `/sbin/geli status -s | grep label | /usr/bin/awk '{print $1}'` ; do /sbin/geli detach $i ; done

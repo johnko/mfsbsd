@@ -1,0 +1,23 @@
+#!/bin/sh
+
+DELIM=,
+while getopts F: o; do
+	case "$o" in
+		F) DELIM="${OPTARG}" ;;
+	esac
+done
+shift $((OPTIND-1))
+NIC=$*
+
+if [ -z "${NIC}" ]; then
+  skiplocal='-e s/127.0.0.1//g'
+fi
+
+/sbin/ifconfig ${NIC} | \
+	/usr/bin/egrep inet | \
+	/usr/bin/egrep -v 'netmask 0xffffffff' | \
+	/usr/bin/sed -e 's/broadcast.*//g' -e 's/netmask.*//g' ${skiplocal} | \
+	/usr/bin/egrep -o "([0-9]{1,3}\.){3}[0-9]{1,3}" | \
+	/usr/bin/tr '\n' '~' | \
+	/usr/bin/sed -e "s/~/$DELIM/g" -e 's/, *$//g'
+

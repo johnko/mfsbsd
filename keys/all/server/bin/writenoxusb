@@ -1,0 +1,21 @@
+#!/bin/sh
+
+if [ "x" = "x$1" ]; then
+	echo "Usage: $0 [usb_drive]"
+	echo "Example:"
+	echo "$0 /dev/da0"
+	exit 1
+else
+	if ! /bin/ls -1 /usr/jails/mfsbsd*/root/mfsbsd-personal/NOX*img | /usr/bin/grep img > /dev/null 2> /dev/null ; then
+		echo "Can't find /usr/jails/mfsbsd*/root/mfsbsd-personal/NOX*img"
+		exit 1
+	else
+		imgfile=$( /bin/ls -1 /usr/jails/mfsbsd*/root/mfsbsd-personal/NOX*img | /usr/bin/grep img )
+		if [ ! -e "$1" ]; then
+			echo "Can't find $1"
+			exit 1
+		else
+			/bin/dd bs=1m if=${imgfile} of=$1 || exit 1
+		fi
+	fi
+fi

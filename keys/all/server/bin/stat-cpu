@@ -1,0 +1,5 @@
+#!/bin/sh
+
+/sbin/sysctl -n vm.loadavg | \
+  /usr/bin/sed -e 's/[^[:alnum:] .]//g' -e 's/^ *//g' -e 's/ *$//g'
+

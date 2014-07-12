@@ -1,0 +1,13 @@
+#!/bin/sh
+
+ommitcomments () {
+	/usr/bin/egrep -v '^\s*#'
+}
+
+/usr/bin/who -q | \
+  ommitcomments | \
+  /usr/bin/tr ' ' '\n' | \
+  /usr/bin/sort -u | \
+  /usr/bin/tr '\n' ' ' | \
+  /usr/bin/sed 's/^ *//g'
+

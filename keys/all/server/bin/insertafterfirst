@@ -1,0 +1,17 @@
+#!/bin/sh
+
+FILE="$1"
+SEARCH="$2"
+
+TMPBEFORE=`/usr/bin/mktemp -t ifab`
+TMPAFTER=`/usr/bin/mktemp -t ifaa`
+
+FOUNDLINE=$( /usr/bin/grep -n "${SEARCH}" "${FILE}" | /usr/bin/cut -d: -f1 | /usr/bin/head -1 )
+INSERTLINE=$(( FOUNDLINE + 1 ))
+/usr/bin/head -${FOUNDLINE} "${FILE}" >${TMPBEFORE}
+/usr/bin/tail +${INSERTLINE} "${FILE}" >${TMPAFTER}
+/bin/cat ${TMPBEFORE} >"${FILE}"
+/bin/cat >>"${FILE}" <&0
+/bin/cat ${TMPAFTER} >>"${FILE}"
+/bin/rm ${TMPBEFORE}
+/bin/rm ${TMPAFTER}

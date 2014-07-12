@@ -1,0 +1,26 @@
+#!/bin/sh
+
+if [ -n "$1" ]; then
+
+	case "$1" in
+		dhcpd)
+			break
+			;;
+		*)
+			/usr/bin/install -d -m 700 /server/$1/sites-available ;\
+			/usr/bin/install -d -m 700 /server/$1/sites-enabled ;\
+			;;
+	esac
+	case "$1" in
+		dhcpd|dnsmasq|mysql)
+			break
+			;;
+		*)
+			/usr/bin/install -d -m 755 /var/log/$1 ;\
+			;;
+	esac
+
+else
+	echo "Need a parameter."
+	exit 1
+fi

@@ -1,0 +1,56 @@
+#!/bin/sh
+
+
+if [ $# -lt 1 ]; then
+	echo "Usage: $0 git|svn [update]"
+fi
+
+
+case $1 in
+	git)
+		if [ ! -e /usr/local/bin/git ]; then
+			/usr/local/sbin/pkg-static install -y git
+		fi
+		;;
+	svn)
+		if [ ! -e /usr/local/bin/svn ]; then
+			/usr/local/sbin/pkg-static install -y subversion
+		fi
+		;;
+esac
+
+
+if [ "x$2" = "xupdate" ]; then
+	case $1 in
+		git)
+			cd /server/tftp/distro/gitreleng10
+			/usr/local/bin/git pull
+			;;
+		svn)
+			cd /server/tftp/distro/releng10
+			/usr/local/bin/svn update
+			;;
+	esac
+elif [ "x$2" = "x" ]; then
+	case $1 in
+		git)
+			/sbin/zfs create data/distro/gitreleng10
+			/sbin/zfs set compression=on data/distro/gitreleng10
+			/usr/local/bin/git clone -b releng/10.0 --single-branch https://github.com/freebsd/freebsd.git /server/tftp/distro/gitreleng10
+			;;
+		svn)
+			/sbin/zfs create data/distro/releng10
+			/sbin/zfs set compression=on data/distro/releng10
+			SKIP=0; while [ $SKIP -eq 0 ]; do
+				if ! /usr/local/bin/svn co https://svn0.us-east.FreeBSD.org/base/releng/10.0 /server/tftp/distro/releng10 ; then
+					/usr/local/bin/svn cleanup /server/tftp/distro/releng10
+				else
+					SKIP=1
+				fi
+			sleep 1; done
+			;;
+	esac
+else
+	echo "Don't know how to $2."
+	exit 1
+fi

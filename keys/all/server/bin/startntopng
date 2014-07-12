@@ -1,0 +1,17 @@
+#!/bin/sh
+
+/server/bin/startphp
+/usr/bin/install -d -m 755 /server/nginx/sites-enabled
+/usr/bin/install -d -m 700 /server/www/ntopng
+/bin/ln -shf ../sites-available/ntopng.conf  /server/nginx/sites-enabled/
+/server/bin/startnginx
+
+if [ ! -f "/usr/local/bin/ntopng" ]; then
+	/usr/local/sbin/pkg-static install -y ntopng GeoIP
+fi
+
+for i in /server/www/ntopng ; do
+	/usr/sbin/chown -R www:www $i
+	/usr/bin/find $i -type d -exec /bin/chmod 755 {} \;
+	/usr/bin/find $i -type f -exec /bin/chmod 644 {} \;
+done

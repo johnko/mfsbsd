@@ -1,0 +1,13 @@
+#!/bin/sh
+
+if [ -e /server/csv/ucarp ]; then
+	server=$( /bin/cat /server/csv/ucarp | /usr/bin/tr -d '\n' )
+	echo $server
+fi
+
+/bin/cat `ls -1tr /var/db/dhclient.leases.*` | \
+	/usr/bin/egrep "dhcp-server-identifier" | \
+	/usr/bin/awk '{ print $NF }' | \
+	/usr/bin/tail -1 | \
+	/usr/bin/tr -d ';'
+

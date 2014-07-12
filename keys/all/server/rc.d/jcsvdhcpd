@@ -1,0 +1,224 @@
+#!/bin/sh
+# $Id$
+# MFSBSD CUSTOM
+
+# PROVIDE: jcsvdhcpd
+# REQUIRE: FILESYSTEMS NETWORKING
+# BEFORE:  dnsmasq
+
+. /etc/rc.subr
+
+name="jcsvdhcpd"
+start_cmd="jcsvdhcpd_start"
+stop_cmd=":"
+
+
+
+omitcomments()
+{
+	/usr/bin/egrep -v '^\s*#'
+}
+
+
+
+dhcpoption()
+{
+	search=$1
+	if [ "routerip" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep 'option.router' | /usr/bin/head -1 | /usr/bin/awk -F, '$3{print $3}'
+	elif [ "router" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep 'option.router' | /usr/bin/head -1 | /usr/bin/awk -F, '$3{print $3}'
+	elif [ "domain-name" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep ${search} | /usr/bin/head -1 | /usr/bin/awk -F, '$3{print $3}'
+	elif [ "dns-server" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep ${search} | /usr/bin/head -1 | /usr/bin/awk -F, '{if($4)print "option domain-name-servers "$3", "$4";";else if($3)print "option domain-name-servers "$3";"}'
+	elif [ "static-routes" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep static-routes | /usr/bin/head -1 | /usr/bin/awk -F, '$3{print "option rfc3442-classless-static-routes "$3";"}' | /usr/bin/tr '_' ','
+	elif [ "ms-routes" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep static-routes | /usr/bin/head -1 | /usr/bin/awk -F, '$3{print "option ms-classless-static-routes "$3";"}' | /usr/bin/tr '_' ','
+	elif [ "dhcp-rangetime" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep dhcp-range | /usr/bin/head -1 | /usr/bin/awk -F, '$4{print $4}'
+	elif [ "dhcp-subnet" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep ${search} | /usr/bin/head -1 | /usr/bin/awk -F, '$3{print $2" "$3}'
+	elif [ "dhcp-range" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep ${search} | /usr/bin/awk -F, '$3{print "range "$2" "$3";"}'
+	elif [ "dhcp-host" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep ${search} | /usr/bin/awk -F, '$4{print "host "$3" {\nhardware ethernet "$2";\nfixed-address "$4";\n}\n"}' | /usr/bin/tr '[A-Z]' '[a-z]'
+	elif [ "dhcp-lagg" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep ${search} | /usr/bin/awk -F, '$4{split($2,a,"|");for (i in a) {split(a[i],b,"=");print "host "$3 i" {\nhardware ethernet "b[2]";\nfixed-address "$4";\n}\n"}}' | /usr/bin/tr '[A-Z]' '[a-z]'
+	elif [ "dhcp-boot" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep ${search} | /usr/bin/awk -F, '$4{print $3" "$4}'
+	elif [ "dhcp-failover.*primary" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep ${search} | /usr/bin/awk -F, '$3{print $3}'
+	elif [ "dhcp-failover.*secondary" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep ${search} | /usr/bin/awk -F, '$3{print $3}'
+	fi
+}
+
+
+
+jcsvdhcpd_start()
+{
+
+
+
+	unset finalfile
+	unset skip
+	jgw_target=${jgw_target:-`/usr/bin/netstat -nr | /usr/bin/grep default | /usr/bin/awk '{print $2}'`}
+	for csv in /server/csv/dhcpd/* ; do
+		if [ -z "${skip}" ]; then
+			if [ -r ${csv} ]; then
+				#echo -n "${csv##*/}... "
+				gw=$( /bin/cat ${csv} | dhcpoption routerip )
+				if [ "${gw}" = "${jgw_target}" ]; then
+					finalfile=${csv}
+					skip=1
+				fi
+			fi
+		fi
+	done
+
+	if [ -e "${finalfile}" ]; then
+		#no make csvdhcpd.conf
+		outfile=/server/dhcpd/include/master.conf
+		/usr/bin/install -d -m 700	${outfile%/*}
+		_router=$(     /bin/cat ${finalfile} | dhcpoption router )
+		_rangetime=$(  /bin/cat ${finalfile} | dhcpoption dhcp-rangetime )
+		_domain=$(     /bin/cat ${finalfile} | dhcpoption domain-name )
+		_subnet=$(     /bin/cat ${finalfile} | dhcpoption dhcp-subnet | /usr/bin/awk '{print $1}' )
+		_submask=$(    /bin/cat ${finalfile} | dhcpoption dhcp-subnet | /usr/bin/awk '{print $2}' )
+		_pxefile=$(    /bin/cat ${finalfile} | dhcpoption dhcp-boot   | /usr/bin/awk '{print $1}' )
+		_pxeserver=$(  /bin/cat ${finalfile} | dhcpoption dhcp-boot   | /usr/bin/awk '{print $2}' )
+		_primary=$(    /bin/cat ${finalfile} | dhcpoption "dhcp-failover.*primary"  | /usr/bin/awk '{print $1}' )
+		_secondary=$(  /bin/cat ${finalfile} | dhcpoption "dhcp-failover.*secondary"| /usr/bin/awk '{print $1}' )
+		if [ -z "${_rangetime}" ]; then
+			_rangetime=21600
+		fi
+		/bin/cat >${outfile} <<EOF
+# Added by /etc/rc.d/jcsvdhcpd
+allow booting;
+allow bootp;
+ddns-update-style none;
+log-facility local7;
+authoritative;
+option space gpxe;
+option gpxe-encap-opts code 175 = encapsulate gpxe;
+option gpxe.bus-id code 177 = string;
+
+omapi-port 7911;
+#omapi-key omapi_key;
+#key omapi_key
+#{
+#	algorithm hmac-md5;
+#	secret QyPSPaDEUqrTDokcGN;
+#}
+default-lease-time ${_rangetime};
+max-lease-time ${_rangetime};
+# Get WPAD to shutup
+option wpad code 252 = text;
+option wpad "\n";
+option rfc3442-classless-static-routes code 121 = array of unsigned integer 8;
+option ms-classless-static-routes code 249 = array of unsigned integer 8;
+subnet ${_subnet} netmask ${_submask}
+{
+	# PXE, ignore to advertise self in failover scenario
+	# next-server ${_pxeserver};
+	# TODO on RedHat
+	# next-server config-option dhcp-server-identifier;
+	if not exists gpxe.bus-id {
+		#filename "${_pxefile}";
+		filename "lpxelinux.0";
+	}
+	# Subnet Mask
+	option subnet-mask ${_submask};
+	# Default Gateway
+	option routers ${_router};
+	# DNS
+	option domain-name "${_domain}";
+EOF
+		/bin/cat ${finalfile} | dhcpoption static-routes >>${outfile}
+		/bin/cat ${finalfile} | dhcpoption ms-routes     >>${outfile}
+		/bin/cat ${finalfile} | dhcpoption dns-server >>${outfile}
+		/bin/cat >>${outfile} <<EOF
+	pool
+	{
+		failover peer "mygroup";
+		deny dynamic bootp clients;
+EOF
+		/bin/cat ${finalfile} | dhcpoption dhcp-range >>${outfile}
+/bin/cat >>${outfile} <<EOF
+	}
+}
+option space MSFT;
+option MSFT.release-on-shutdown code 2 = unsigned integer 32;
+class "win2k-clients" {
+   match if option vendor-class-identifier = "MSFT 5.0";
+   vendor-option-space MSFT;
+   option MSFT.release-on-shutdown 1;
+}
+include "/server/dhcpd/include/fixed.conf";
+EOF
+
+#------------------------------------------------------------------
+
+		outfile=/server/dhcpd/include/primary.conf
+		/bin/cat >${outfile} <<EOF
+failover peer "mygroup" 
+{
+	primary;
+	mclt 1800;  # only specified in the primary
+	split 128;  # only specified in the primary
+
+	address ${_primary};
+	port 647;
+	peer address ${_secondary};
+	peer port 647;
+	max-response-delay 30;
+	max-unacked-updates 10;
+	load balance max seconds 3;                
+}
+include "/server/dhcpd/include/master.conf";
+EOF
+		if /sbin/ifconfig | /usr/bin/egrep -o ${_primary} >/dev/null 2>&1; then
+			/bin/ln -shf include/primary.conf /server/dhcpd/dhcpd.conf
+		fi
+
+#------------------------------------------------------------------
+
+		outfile=/server/dhcpd/include/secondary.conf
+		/bin/cat >${outfile} <<EOF
+failover peer "mygroup" 
+{
+	secondary;
+
+	address ${_secondary};
+	port 647;
+	peer address ${_primary};
+	peer port 647;
+	max-response-delay 30;
+	max-unacked-updates 10;
+	load balance max seconds 3;                
+}
+include "/server/dhcpd/include/master.conf";
+EOF
+		if /sbin/ifconfig | /usr/bin/egrep -o ${_secondary} >/dev/null 2>&1; then
+			/bin/ln -shf include/secondary.conf /server/dhcpd/dhcpd.conf
+		fi
+
+#------------------------------------------------------------------
+
+		outfile=/server/dhcpd/include/fixed.conf
+		/bin/cat ${finalfile} | dhcpoption dhcp-host >${outfile}
+		/bin/cat ${finalfile} | dhcpoption dhcp-lagg >>${outfile}
+		/bin/cat >/dev/null <<EOF
+dhcp-option=vendor:MSFT,2,1i
+EOF
+	fi
+
+
+
+}
+
+load_rc_config $name
+run_rc_command "$1"
+

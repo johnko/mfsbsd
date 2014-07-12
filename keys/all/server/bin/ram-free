@@ -1,0 +1,13 @@
+#!/bin/sh
+
+case `uname -s` in
+  "Darwin")
+    echo $( ram-freepage ) | \
+      awk '{ printf "%.1f\n", $1 / 1000000000 }'
+    ;;
+  "FreeBSD")
+    echo $( ram-freepage ) | \
+      awk '{ printf "%.1f\n", $1 / 1073741824 }'
+    ;;
+esac
+

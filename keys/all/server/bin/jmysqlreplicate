@@ -1,0 +1,167 @@
+#!/bin/sh
+
+ACTION="$1"
+REPLICAPASS=$( /server/bin/pwgen | /usr/bin/head -1 )
+
+
+if [ ! -e /usr/local/bin/screen ]; then
+	/usr/local/sbin/pkg-static install -y screen
+fi
+SCREENCMD="/usr/local/bin/screen -c /dev/null"
+SSHCMD="/usr/bin/ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+
+usage (){
+	echo "Usage: $0 oneway|twoway first_master second_master database offset"
+	echo "Example:"
+	echo "       $0 status 10.123.234.3 10.123.234.4"
+	echo "       $0 oneway 10.123.234.3 10.123.234.4 wordpress 1"
+	echo "       $0 twoway 10.123.234.3 10.123.234.4 wordpress 1"
+}
+
+
+
+
+if [ "oneway" = "$ACTION" -o "twoway" = "$ACTION" ]; then
+
+
+
+
+	MASTER1="$2"
+	MASTER2="$3"
+	DATABASE="$4"
+	OFFSET="$5"
+
+	${SCREENCMD} -dmS mysqlmaster1
+	${SCREENCMD} -dmS mysqlmaster2
+
+	/bin/sleep 1
+
+	echo "---  Connect via SSH  ---"
+	${SCREENCMD} -S   mysqlmaster1 -X -p0 eval "stuff '${SSHCMD} root@${MASTER1}'^M"
+	${SCREENCMD} -S   mysqlmaster2 -X -p0 eval "stuff '${SSHCMD} root@${MASTER2}'^M"
+
+	/bin/sleep 1
+
+	echo "---  Running mysql  ---"
+	${SCREENCMD} -S   mysqlmaster1 -X -p0 eval "stuff 'mysql'^M"
+	${SCREENCMD} -S   mysqlmaster2 -X -p0 eval "stuff 'mysql'^M"
+
+	/bin/sleep 1
+
+	echo "---  Grant repl permissions  ---"
+	${SCREENCMD} -S   mysqlmaster1 -X -p0 eval "stuff 'GRANT REPLICATION SLAVE ON *.* TO replication_user@"'"'%'"'" IDENTIFIED BY "'"'${REPLICAPASS}'"'";'^M"
+	${SCREENCMD} -S   mysqlmaster2 -X -p0 eval "stuff 'GRANT REPLICATION SLAVE ON *.* TO replication_user@"'"'%'"'" IDENTIFIED BY "'"'${REPLICAPASS}'"'";'^M"
+
+	/bin/sleep 1
+
+	echo "---  Stop slave  ---"
+	${SCREENCMD} -S   mysqlmaster1 -X -p0 eval "stuff 'STOP SLAVE;'^M"
+	${SCREENCMD} -S   mysqlmaster2 -X -p0 eval "stuff 'STOP SLAVE;'^M"
+
+	/bin/sleep 1
+
+	echo "---  Lock Tables and do a dump  ---"
+	${SCREENCMD} -S   mysqlmaster1 -X -p0 eval "stuff 'FLUSH TABLES WITH READ LOCK;'^M"
+	/bin/sleep 1
+	M1File=$( ${SSHCMD} root@${MASTER1} "mysql -Bse 'SHOW MASTER STATUS\G'" | /usr/bin/grep File     | /usr/bin/awk '{ print $2 }' )
+	M1Pos=$(  ${SSHCMD} root@${MASTER1} "mysql -Bse 'SHOW MASTER STATUS\G'" | /usr/bin/grep Position | /usr/bin/awk '{ print $2 }' )
+	TMPSQL="/root/jmysqlreplicate-`date-d`.sql"
+	${SSHCMD} root@${MASTER1} "mysqldump --skip-dump-date --skip-extended-insert --hex-blob --order-by-primary --quick $DATABASE" >${TMPSQL}
+	# Import into master2
+	${SSHCMD} root@${MASTER2} "mysql" <${TMPSQL}
+	${SCREENCMD} -S   mysqlmaster1 -X -p0 eval "stuff 'UNLOCK TABLES;'^M"
+
+	/bin/sleep 1
+
+	echo "---  Tell master2 about master1  ---"
+	OFFSET2=$(( $OFFSET + 1 ))
+	${SCREENCMD} -S   mysqlmaster2 -X -p0 eval "stuff 'CHANGE MASTER TO MASTER_HOST="'"'${MASTER1}'"'", MASTER_USER="'"'replication_user'"'", MASTER_PASSWORD="'"'${REPLICAPASS}'"'", MASTER_PORT=3306, MASTER_LOG_FILE="'"'${M1File}'"'", MASTER_LOG_POS=${M1Pos}, MASTER_CONNECT_RETRY=10;'^M"
+	${SSHCMD} root@${MASTER2} "cat >>/server/mysql/sites-enabled/replication-offset.cnf" <<EOF 
+[mysqld]
+auto_increment_increment  = 10
+auto_increment_offset     = ${OFFSET2}
+EOF
+	${SSHCMD} root@${MASTER2} "chown mysql /server/mysql/sites-enabled/replication.cnf"
+	/bin/sleep 1
+	${SCREENCMD} -S   mysqlmaster2 -X -p0 eval "stuff 'SET GLOBAL auto_increment_increment = 10;'^M"
+	/bin/sleep 1
+	${SCREENCMD} -S   mysqlmaster2 -X -p0 eval "stuff 'SET GLOBAL auto_increment_offset    = ${OFFSET2};'^M"
+	/bin/sleep 1
+	${SCREENCMD} -S   mysqlmaster2 -X -p0 eval "stuff 'START SLAVE;'^M"
+
+
+
+
+	if [ "twoway" = "$ACTION" ]; then
+
+	echo "---  Tell master1 about master2  ---"
+	${SCREENCMD} -S   mysqlmaster1 -X -p0 eval "stuff 'CHANGE MASTER TO MASTER_HOST="'"'${MASTER2}'"'", MASTER_USER="'"'replication_user'"'", MASTER_PASSWORD="'"'${REPLICAPASS}'"'", MASTER_PORT=3306, MASTER_LOG_FILE="'"'${M1File}'"'", MASTER_LOG_POS=${M1Pos}, MASTER_CONNECT_RETRY=10;'^M"
+	${SSHCMD} root@${MASTER1} "cat >>/server/mysql/sites-enabled/replication-offset.cnf" <<EOF 
+[mysqld]
+auto_increment_increment  = 10
+auto_increment_offset     = ${OFFSET}
+EOF
+	${SSHCMD} root@${MASTER1} "chown mysql /server/mysql/sites-enabled/replication.cnf"
+	/bin/sleep 1
+	${SCREENCMD} -S   mysqlmaster1 -X -p0 eval "stuff 'SET GLOBAL auto_increment_increment = 10;'^M"
+	/bin/sleep 1
+	${SCREENCMD} -S   mysqlmaster1 -X -p0 eval "stuff 'SET GLOBAL auto_increment_offset    = ${OFFSET};'^M"
+	/bin/sleep 1
+	${SCREENCMD} -S   mysqlmaster1 -X -p0 eval "stuff 'START SLAVE;'^M"
+
+	fi
+
+
+
+
+	/bin/sleep 1
+
+	echo "---  Close mysql  ---"
+	${SCREENCMD} -S   mysqlmaster1 -X -p0 eval "stuff 'quit;'^M"
+	${SCREENCMD} -S   mysqlmaster2 -X -p0 eval "stuff 'quit;'^M"
+
+	/bin/sleep 1
+
+	echo "---  Close ssh  ---"
+	${SCREENCMD} -S   mysqlmaster1 -X -p0 eval "stuff 'exit'^M"
+	${SCREENCMD} -S   mysqlmaster2 -X -p0 eval "stuff 'exit'^M"
+
+	/bin/sleep 1
+
+	echo "---  Close screeen  ---"
+	${SCREENCMD} -S   mysqlmaster1 -X -p0 eval "stuff 'exit'^M"
+	${SCREENCMD} -S   mysqlmaster2 -X -p0 eval "stuff 'exit'^M"
+
+	umask 077
+	/bin/cat >>~/.my.cnf <<EOF
+#replicapass='${REPLICAPASS}'
+EOF
+
+
+
+
+elif [ "status" = "$ACTION" ]; then
+
+
+
+
+	MASTER1="$2"
+	MASTER2="$3"
+	if [ -n "${MASTER1}" ]; then
+		echo "---  ${MASTER1} ---"
+		${SSHCMD} root@${MASTER1} "mysql -Bse 'SHOW SLAVE STATUS\G'" 2>/dev/null | /usr/bin/awk '$2{print}' # | /usr/bin/egrep -i '(Slave.*Running|Seconds_Behind_Master)'
+		${SSHCMD} root@${MASTER1} "mysql -Bse 'SHOW GLOBAL VARIABLES LIKE "'"'%auto_increment%'"'";'" 2>/dev/null 
+	fi
+	if [ -n "${MASTER2}" ]; then
+		echo "---  ${MASTER2} ---"
+		${SSHCMD} root@${MASTER2} "mysql -Bse 'SHOW SLAVE STATUS\G'" 2>/dev/null | /usr/bin/awk '$2{print}' # | /usr/bin/egrep -i '(Slave.*Running|Seconds_Behind_Master)'
+		${SSHCMD} root@${MASTER2} "mysql -Bse 'SHOW GLOBAL VARIABLES LIKE "'"'%auto_increment%'"'";'" 2>/dev/null 
+	fi
+
+
+
+
+else
+	usage
+	exit 1
+fi

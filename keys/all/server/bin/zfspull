@@ -1,0 +1,48 @@
+#!/bin/sh
+
+if [ -z "${3}" ]; then
+  echo "Usage: $0  snapshot  remote_server:remote_port target_pool [last_snapshot]"
+  echo "use - as remote_server for localhost"
+  exit 1
+fi
+
+if [ "${4}x" = "x" ]; then
+	unset LASTSNAP
+else
+	LASTSNAP="${4}"
+fi
+
+if [ "${2}" = "-" ]; then
+	REMOTE_CONNECTION=""
+else
+	if echo "${2}" | /usr/bin/grep ':' >/dev/null 2>&1 ; then
+		REMOTE_HOST=$( echo "${2}" | /usr/bin/cut -f1 -d: )
+		REMOTE_PORT=$( echo "${2}" | /usr/bin/cut -f2 -d: )
+	else
+		REMOTE_HOST="${2}"
+		REMOTE_PORT=22
+	fi
+	REMOTE_CONNECTION="/usr/bin/ssh -p ${REMOTE_PORT} ${REMOTE_HOST}"
+fi
+
+FIRSTSNAP="${1}"
+
+case `uname` in
+	FreeBSD)
+		FIRSTSENDOPT="send -pvR"
+		FIRSTRECVOPT="recv -vudF"
+		RECVPOOL="${3}"
+		INCREMENTSEND="send -pvR -I"
+		INCREMENTRECV="recv -vud"
+		;;
+	SmartOS)
+		;;
+esac
+
+if [ -n "$LASTSNAP" ]; then
+	echo "${REMOTE_CONNECTION} zfs ${INCREMENTSEND} ${FIRSTSNAP} ${LASTSNAP} | zfs ${INCREMENTRECV} ${RECVPOOL}"
+	      ${REMOTE_CONNECTION} zfs ${INCREMENTSEND} ${FIRSTSNAP} ${LASTSNAP} | zfs ${INCREMENTRECV} ${RECVPOOL} || exit 1
+else
+	echo "${REMOTE_CONNECTION} zfs ${FIRSTSENDOPT} ${FIRSTSNAP} | zfs ${FIRSTRECVOPT} ${RECVPOOL}"
+		  ${REMOTE_CONNECTION} zfs ${FIRSTSENDOPT} ${FIRSTSNAP} | zfs ${FIRSTRECVOPT} ${RECVPOOL} || exit 1
+fi

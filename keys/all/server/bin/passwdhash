@@ -1,0 +1,4 @@
+#!/bin/sh
+
+openssl passwd -1
+

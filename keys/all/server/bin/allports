@@ -1,0 +1,51 @@
+#!/bin/sh
+
+if [ ! -e /poudriere/ports/default ]; then
+	: ${RELEASE:="10.0-RELEASE"}
+	: ${ARCH:="amd64"}
+	POUDIR=/poudriere
+
+	/sbin/zfs mount data${POUDIR} > /dev/null 2> /dev/null
+	/sbin/zfs mount data/distfiles > /dev/null 2> /dev/null
+
+	/bin/cat >/usr/local/etc/poudriere.conf <<EOF
+ZPOOL=data
+ZROOTFS=${POUDIR}
+BASEFS=${POUDIR}
+#FREEBSD_HOST=ftp://ftp.freebsd.org
+FREEBSD_HOST=http://10.7.7.4/freebsd-dist
+RESOLV_CONF=/etc/resolv.conf
+USE_PORTLINT=no
+USE_TMPFS=yes
+#PKG_REPO_SIGNING_KEY=/server/pkg/key
+EOF
+
+	if /sbin/sysctl security.jail.jailed | /usr/bin/grep 1 > /dev/null 2> /dev/null ; then
+		/bin/cat >>/usr/local/etc/poudriere.conf <<EOF
+DISTFILES_CACHE=${POUDIR}/distfiles
+EOF
+	else
+		/bin/cat >>/usr/local/etc/poudriere.conf <<EOF
+DISTFILES_CACHE=/usr/ports/distfiles
+EOF
+	fi
+
+
+	if [ ! -e "/usr/local/bin/poudriere" ]; then
+		/usr/local/sbin/pkg-static install -y poudriere > /dev/null 2> /dev/null
+	fi
+
+	/usr/local/bin/poudriere ports -c > /dev/null 2> /dev/null
+	/sbin/zfs set mountpoint=none data${POUDIR} > /dev/null 2> /dev/null
+	/sbin/zfs set mountpoint=none data${POUDIR}/ports > /dev/null 2> /dev/null
+
+fi
+
+
+
+
+
+
+if [ -e /poudriere/ports/default ]; then
+	/usr/bin/find /poudriere/ports/default/ -type d -maxdepth 2 | /usr/bin/egrep `cat /poudriere/ports/default/Makefile | grep SUBDIR | awk '{print $NF}' | tr '\n' '|' | sed 's/|$//'` | /usr/bin/sed 's;/poudriere/ports/default/;;' | /usr/bin/grep '/'
+fi

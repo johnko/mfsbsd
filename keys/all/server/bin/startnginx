@@ -1,0 +1,43 @@
+#!/bin/sh
+
+/server/bin/startconfig nginx
+
+/usr/sbin/sysrc -f /etc/rc.conf nginx_enable="YES"
+/usr/sbin/sysrc -f /etc/rc.conf nginx_profiles=""
+/usr/sbin/sysrc -f /etc/rc.conf nginx_pid_prefix=""
+/usr/sbin/sysrc -f /etc/rc.conf nginxlimits_enable="NO"
+/usr/sbin/sysrc -f /etc/rc.conf nginx_flags="-c /server/nginx/nginx.conf"
+/usr/sbin/sysrc -f /etc/rc.conf nginxlimits_args="-e -U www"
+
+if [ ! -f "/usr/local/etc/rc.d/nginx" ]; then
+	/usr/local/sbin/pkg-static install -y nginx
+fi
+
+/usr/bin/install -m 644 /usr/local/etc/nginx/mime.types /server/nginx/mime.types
+/usr/bin/install -m 644 /usr/local/etc/nginx/koi-utf    /server/nginx/koi-utf
+/usr/bin/install -m 644 /usr/local/etc/nginx/koi-win    /server/nginx/koi-win
+/usr/bin/install -m 644 /usr/local/etc/nginx/win-utf    /server/nginx/win-utf
+
+if [ ! -h /usr/local/etc/nginx ]; then
+	/usr/bin/install -d -m 755     /server/nginx
+	/bin/mv /usr/local/etc/nginx/nginx.conf /server/nginx/nginx.conf-bkp
+	/bin/mv /usr/local/etc/nginx/* /server/nginx/
+	/bin/rmdir /usr/local/etc/nginx
+	/bin/ln -shf /server/nginx     /usr/local/etc/
+fi
+
+/usr/bin/install -d -m 755 /server
+/usr/bin/install -d -m 755 /server/www
+
+if [ -x "/usr/local/etc/rc.d/nginx" ]; then
+	/usr/local/etc/rc.d/nginx onereload || /usr/local/etc/rc.d/nginx onestart
+fi
+
+if [ -x /server/bin/cron-nginx-watchdog ]; then
+	if ! /usr/bin/egrep 'cron-nginx-watchdog$' /etc/crontab > /dev/null 2>&1 ; then
+		/bin/cat >> /etc/crontab <<EOF
+# Added by /etc/rc.d/jcron
+*      *       *       *       *       root    /server/bin/cron-nginx-watchdog
+EOF
+	fi
+fi

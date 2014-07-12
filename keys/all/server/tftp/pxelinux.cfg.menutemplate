@@ -1,0 +1,68 @@
+ui menu.c32
+menu title Utilities
+timeout 60
+
+label reboot
+  menu default
+  menu label Reboot
+  kernel reboot.c32
+
+label localboot
+  menu label Boot from internal HDD with localboot.c32
+  kernel localboot.c32
+  append 0
+
+label localchain
+  menu label Boot from internal HDD with chain.c32
+  kernel chain.c32
+  append hd0 0
+
+label mfsbsd
+  menu label mfsBSD (FreeBSD 10.0 amd64)
+  kernel memdisk
+  append iso initrd=distro/mfsbsd/mfsbsd.iso raw
+
+label smartos
+  menu label SmartOS amd64
+  kernel memdisk
+  append iso initrd=distro/smartos/smartos.iso raw
+
+label clone64
+  menu label Clonezilla amd64 - password clonezilla
+  kernel distro/clone64/vmlinuz
+  append initrd=distro/clone64/initrd.img boot=live username=user usercrypted=$6$4lXGkjrO$yTocPA9bFM5N0d26Gq3IOxgcyKqmSXXR6F4ERnmn1gQUCEuVdixz4RAc9Xcw8OCXC5GZ4JqBzEh1ZpVNUg4aU/ ocs_daemonon="ssh" hostname=clonezilla config union=aufs noswap vga=788 keyboard-layouts=NONE locales=en_US.UTF-8 nosplash fetch=http://MYIP4ADDRESS:8080/distro/clone64/filesystem.squashfs
+
+label clone32
+  menu label Clonezilla i386 - password clonezilla
+  kernel distro/clone32/vmlinuz
+  append initrd=distro/clone32/initrd.img boot=live username=user usercrypted=$6$4lXGkjrO$yTocPA9bFM5N0d26Gq3IOxgcyKqmSXXR6F4ERnmn1gQUCEuVdixz4RAc9Xcw8OCXC5GZ4JqBzEh1ZpVNUg4aU/ ocs_daemonon="ssh" hostname=clonezilla config union=aufs noswap vga=788 keyboard-layouts=NONE locales=en_US.UTF-8 nosplash fetch=http://MYIP4ADDRESS:8080/distro/clone32/filesystem.squashfs
+
+label freedosl
+  menu label FreeDOS 1.1 i386 LiveCD
+  kernel memdisk
+  append iso initrd=distro/freedos/fd11src_live.iso raw
+
+label hiren
+  menu label Hiren's Boot CD 12
+  kernel memdisk
+  append iso initrd=distro/hiren/hiren.iso raw
+
+label w7p
+  menu label Windows 7 Pro 32/64
+  kernel default/startrom.0
+
+label freedosi
+  menu label FreeDOS 1.1 i386 Installer
+  kernel memdisk
+  append iso initrd=distro/freedos/fd11src.iso raw
+
+label precise32
+  menu label precise32 QUICK INSTALL
+  kernel distro/precise32/i386/linux
+  append vga=788 initrd=distro/precise32/i386/initrd.gz locale=en_US auto priority=critical url=http://johnko.github.io/preseed/precise/./preseed.cfg -- vga=normal fb=false
+
+label precise64
+  menu label precise64 QUICK INSTALL
+  kernel distro/precise64/amd64/linux
+  append vga=788 initrd=distro/precise64/amd64/initrd.gz locale=en_US auto priority=critical url=http://johnko.github.io/preseed/precise/./preseed.cfg -- vga=normal fb=false
+

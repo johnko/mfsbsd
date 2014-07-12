@@ -1,0 +1,18 @@
+#!/bin/sh
+
+THISSCRIPT=`echo $0 | /usr/bin/awk '{print $1}'`
+THISFILE=`echo ${THISSCRIPT##*/} | /usr/bin/sed 's,cron-,,' | /usr/bin/sed 's,-list,,'`
+
+if /bin/pgrep -lf ${THISSCRIPT##*/} >/dev/null 2>&1 ; then
+	exit 1
+else
+	if ! /usr/sbin/sysrc -f /etc/rc.conf mysql_enable | /usr/bin/egrep "YES" >/dev/null 2>&1 ; then
+		if /bin/pgrep -lf '/usr/local/libexec/mysqld' >/dev/null 2>&1 ; then
+			exit
+		else
+			if [ -x "/usr/local/etc/rc.d/mysql-server" ]; then
+				/usr/local/etc/rc.d/mysql-server onestart
+			fi
+		fi
+	fi
+fi

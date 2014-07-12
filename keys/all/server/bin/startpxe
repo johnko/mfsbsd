@@ -1,0 +1,77 @@
+#!/bin/sh
+
+DHCP=$1
+
+/usr/bin/install -d -m 755 /server/dnsmasq/sites-enabled
+/bin/ln -shf ../sites-available/pxe.conf  /server/dnsmasq/sites-enabled/
+/server/bin/startdnsmasq
+
+
+/usr/bin/install -d -m 755 /server/nginx/sites-enabled
+/bin/ln -shf ../sites-available/pxe.conf /server/nginx/sites-enabled/
+/server/bin/startnginx
+
+
+if /sbin/sysctl security.jail.jailed | /usr/bin/grep 1 >/dev/null 2>&1 ; then
+	for i in `ifconfig -l` ; do
+		tempip=`net-ip $i`
+		if [ -n "$tempip" ]; then
+			ip=$tempip
+		fi
+	done
+else
+	ip=`net-ip $( net-nic )`
+fi
+
+#cat /server/dnsmasq/sites-available/pxe.conf | sed "s#MYIP4ADDRESS#${ip}#" > /server/dnsmasq/sites-enabled/pxe.conf
+#chmod 644 /server/dnsmasq/sites-enabled/pxe.conf
+
+/usr/bin/install -d -m 755 /server/tftp/distro
+/usr/bin/install -d -m 755 /server/tftp/pxelinux.cfg
+/bin/cat /server/tftp/pxelinux.cfg.menutemplate | /usr/bin/sed "s#MYIP4ADDRESS#${ip}#" > /server/tftp/pxelinux.cfg/reboot
+/bin/ln -shf reboot       /server/tftp/pxelinux.cfg/default
+
+for FILE in localboot localchain mfsbsd smartos clone64 clone32 freedosl hiren ; do
+	/bin/cat /server/tftp/pxelinux.cfg.menutemplate | /usr/bin/sed "s#MYIP4ADDRESS#${ip}#" | /usr/bin/sed "s#initrd=distro#initrd=http://${DHCP}/distro#" | /usr/bin/grep -v 'menu default' | /usr/bin/sed "s#label ${FILE}#local ${FILE}%  menu default#g" | /usr/bin/tr '%' '\n' > /server/tftp/pxelinux.cfg/${FILE}
+done
+
+if [ ! -e /server/tftp/pxelinux.cfg/localchain2 ]; then
+	/bin/mv    /server/tftp/pxelinux.cfg/localchain /server/tftp/pxelinux.cfg/localchain2
+fi
+/bin/cp -a /server/tftp/pxelinux.cfg/localboot  /server/tftp/pxelinux.cfg/localchain
+
+/usr/sbin/sysrc -f /etc/rc.conf newsyslog_enable="YES"
+
+##### INSTALL
+if [ ! -f "/usr/local/share/syslinux/bios/memdisk/memdisk" ]; then
+	/usr/local/sbin/pkg-static install -y syslinux
+fi
+
+
+find /usr/local/share/syslinux/bios -type f -name '*.c32' -exec cp -av {} /server/tftp/ \;
+find /usr/local/share/syslinux/bios -type f -name '*.0'   -exec cp -av {} /server/tftp/ \;
+find /usr/local/share/syslinux/bios -type f -name 'memdisk' -exec cp -av {} /server/tftp/ \;
+find /usr/local/share/syslinux/bios/mtools -type f -name '*.c32' -exec cp -av {} /server/tftp/ \;
+find /usr/local/share/syslinux/bios/mtools -type f -name '*.0'   -exec cp -av {} /server/tftp/ \;
+find /usr/local/share/syslinux/bios/mtools -type f -name 'memdisk'   -exec cp -av {} /server/tftp/ \;
+
+find /server/tftp -type d -exec /usr/sbin/chown    nobody {} \;
+find /server/tftp -type f -exec /usr/sbin/chown    nobody {} \;
+find /server/tftp -type l -exec /usr/sbin/chown -h nobody {} \;
+
+find /server/tftp -type d -exec /bin/chmod    555 {} \;
+find /server/tftp -type f -exec /bin/chmod    444 {} \;
+find /server/tftp -type l -exec /bin/chmod -h 555 {} \;
+
+cat <<EOF
+For full PXE menu, see /server/tftp/pxelinux.cfg/default
+EOF
+
+if [ -x /server/bin/cron-csv-detect-diff ]; then
+	if ! /usr/bin/egrep 'cron-csv-detect-diff$' /etc/crontab > /dev/null 2>&1 ; then
+		/bin/cat >> /etc/crontab <<EOF
+# Added by /etc/rc.d/jcron
+*       *       *       *       *       root    /server/bin/cron-csv-detect-diff
+EOF
+	fi
+fi

@@ -1,0 +1,164 @@
+#!/bin/sh
+# # #
+#     (c) 2013 John Ko
+#     This may not work...
+#
+#     GnuPG wrapper used to sign files in mfsBSD
+# # #
+#     Set _DEBUG to see debug info, comment to hide
+_DEBUG=1
+
+_OLDUMASK=`umask`
+MKDIR=/bin/mkdir
+CAT=/bin/cat
+TOUCH=/usr/bin/touch
+GREP=/usr/bin/egrep
+GPG=/usr/local/bin/gpg
+RM=/bin/rm
+
+_usage()
+{
+  echo "This tool is meant to be run automatically on a trusted build machine."
+  echo "  1) It will generate a key pair."
+  echo "  2) It will walk through the current directory and generate .sig files."
+  echo "  3) It will export the pubkey of the keypair to tmp/disk."
+  echo "You should be able to then verify file integrity from a live mfsBSD system."
+  echo "Generate a key:"
+  echo "  ${0##*/}  key"
+  echo "Sign all files in current directory and subdirectories:"
+  echo "  ${0##*/}  sign"
+  echo "Export the public key:"
+  echo "  ${0##*/}  export"
+  echo "Import the public key:"
+  echo "  ${0##*/}  import  filename"
+  echo "Verify all files in current directory and subdirectories:"
+  echo "  ${0##*/}  verify"
+}
+
+_gpg_create()
+{
+  if ! $GPG --batch --no-default-keyring --secret-keyring ~/.gnupg/builder.sec \
+    --keyring ~/.gnupg/builder.pub --list-keys \
+    | $GREP "mfsbsd builder.*mfsbsd@builder.local" > /dev/null 2>&1 ; then
+      $MKDIR ~/.gnupg > /dev/null 2>&1
+      $CAT >>~/.gnupg/gpg.conf <<EOF
+no-secmem-warning
+EOF
+      $CAT >~/.gnupg-genkey.cfg <<EOF
+%echo Generating a default key
+Key-Type: default
+Subkey-Type: default
+Name-Real: mfsbsd builder
+Name-Comment: with BIGNKPT
+Name-Email: mfsbsd@builder.local
+Expire-Date: 0
+Passphrase: builder
+# Do a commit here, so that we can later print "done" :-)
+%commit
+%echo done
+EOF
+      $GPG --batch --no-default-keyring --secret-keyring ~/.gnupg/builder.sec \
+        --keyring ~/.gnupg/builder.pub --gen-key ~/.gnupg-genkey.cfg
+  fi
+}
+
+_gpg_sign()
+{
+  if ! $GPG --batch --no-default-keyring --secret-keyring ~/.gnupg/builder.sec \
+    --keyring ~/.gnupg/builder.pub --list-keys \
+    | $GREP "mfsbsd builder.*mfsbsd@builder.local" > /dev/null 2>&1 ; then
+    _gpg_create
+  fi
+  echo -n "Signing everything in current directory ..."
+  find . -type f -exec gpgsign "{}" \;
+  echo " done"
+}
+
+_gpg_export()
+{
+  if ! $GPG --batch --no-default-keyring --secret-keyring ~/.gnupg/builder.sec \
+    --keyring ~/.gnupg/builder.pub --list-keys \
+    | $GREP "mfsbsd builder.*mfsbsd@builder.local" > /dev/null 2>&1 ; then
+    _gpg_create
+  fi
+  echo -n "Exporting builder-pubkey.asc ..."
+  if [ -d tmp/mfs ]; then
+    $RM tmp/mfs/builder-pubkey.asc > /dev/null 2>&1
+    $GPG --batch --no-default-keyring --secret-keyring ~/.gnupg/builder.sec \
+      --keyring ~/.gnupg/builder.pub \
+      --armor --output tmp/mfs/builder-pubkey.asc --export mfsbsd@builder.local \
+        && echo " done"
+  fi
+  if [ -d tmp/disk ]; then
+    $RM tmp/disk/builder-pubkey.asc > /dev/null 2>&1
+    $GPG --batch --no-default-keyring --secret-keyring ~/.gnupg/builder.sec \
+      --keyring ~/.gnupg/builder.pub \
+      --armor --output tmp/disk/builder-pubkey.asc --export mfsbsd@builder.local \
+        && echo " done"
+  fi
+  if [ -d /tmp/dwmpkg ]; then
+    $RM /tmp/dwmpkg/builder-pubkey.asc > /dev/null 2>&1
+    $GPG --batch --no-default-keyring --secret-keyring ~/.gnupg/builder.sec \
+      --keyring ~/.gnupg/builder.pub \
+      --armor --output /tmp/dwmpkg/builder-pubkey.asc --export mfsbsd@builder.local \
+        && echo " done"
+  fi
+  if [ ! -d tmp/mfs -a ! -d tmp/disk ]; then
+    $RM builder-pubkey.asc > /dev/null 2>&1
+    $GPG --batch --no-default-keyring --secret-keyring ~/.gnupg/builder.sec \
+      --keyring ~/.gnupg/builder.pub \
+      --armor --output builder-pubkey.asc --export mfsbsd@builder.local \
+        && echo " done"
+  fi
+}
+
+_gpg_list()
+{
+  $GPG --batch --no-default-keyring --secret-keyring ~/.gnupg/builder.sec \
+    --keyring ~/.gnupg/builder.pub --list-keys
+  $GPG --batch --list-keys
+}
+
+_gpg_import()
+{
+  if [ -f "$2" ]; then
+    $GPG --batch --no-default-keyring --secret-keyring ~/.gnupg/builder.sec \
+      --keyring ~/.gnupg/builder.pub --import $2
+  fi
+}
+
+_gpg_verify()
+{
+  if ! $GPG --batch --no-default-keyring --secret-keyring ~/.gnupg/builder.sec \
+    --keyring ~/.gnupg/builder.pub --list-keys \
+    | $GREP "mfsbsd builder.*mfsbsd@builder.local" > /dev/null 2>&1 ; then
+    _gpg_import import builder-pubkey.asc
+  fi
+  echo -n "Verifying everything in current directory ..."
+  find . -type f -iregex '.*[^s][^i][^g]$' -exec gpgverify "{}" \; && echo " done"
+}
+
+case "$1" in
+  k|key)
+    _gpg_create $@
+    ;;
+  si|sign)
+    _gpg_sign $@
+    ;;
+  e|export)
+    _gpg_export $@
+    ;;
+  i|import)
+    _gpg_import $@
+    ;;
+  v|verify)
+    _gpg_verify $@
+    ;;
+  l|list)
+    _gpg_list $@
+    ;;
+  *)
+    _usage
+    ;;
+esac
+

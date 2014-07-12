@@ -1,0 +1,63 @@
+#!/bin/sh
+
+if [ "$1" = "block" -o "$1" = "black" ]; then
+	# block
+	for i in $( /server/bin/pf-sshinvaliduserip toblacklist | omitcomments | awk '{print $2}' ) ; do
+		/server/bin/pf-table-add blacklist $i
+	done
+	exit
+fi
+
+IGNORELIST=$(/server/bin/pf-table-show whitelist | tr '\n' '|' | tr -d ' ' )
+if [ "x${IGNORELIST}" = "x" ]; then
+	IGNORELIST="randomstringofdatahere"
+fi
+if [ "x" != "x${SSH_CLIENT%% *}" ]; then
+	IGNORELIST="${IGNORELIST%|}|${SSH_CLIENT%% *}|"
+fi
+BLACKLIST=$( /server/bin/pf-table-show blacklist | tr '\n' '|' | tr -d ' ' )
+if [ "x${BLACKLIST}" = "x" ]; then
+	BLACKLIST="randomstringofdatahere"
+fi
+SSHBANLIST=$( /server/bin/pf-table-show sshbanlist | tr '\n' '|' | tr -d ' ' )
+if [ "x${SSHBANLIST}" = "x" ]; then
+	SSHBANLIST="randomstringofdatahere"
+fi
+
+LASTCMD='$1 > 20 {print $0}'
+if [ "$1" = "-a" -o "$2" = "-a" ]; then
+	# Show all if -a
+	LASTCMD='{print $0}'
+fi
+
+
+if [ "$1" = "toblacklist" ]; then
+	IGNORESSH="randomstringofdatahere"
+else
+	IGNORESSH="(${SSHBANLIST%|})"
+fi
+echo /bin/cat /var/log/auth.log  \
+	/usr/bin/egrep -v "(${IGNORELIST%|})"  \
+	/usr/bin/egrep -v "(${BLACKLIST%|})"  \
+	/usr/bin/egrep -v "${IGNORESSH}"  \
+	/usr/bin/grep Invalid  \
+	/usr/bin/awk '{print $10}'  \
+	/usr/bin/sort  /usr/bin/uniq -c  /usr/bin/sort  \
+	/usr/bin/awk "${LASTCMD}"
+/bin/cat /var/log/auth.log | \
+	/usr/bin/egrep -v "(${IGNORELIST%|})" | \
+	/usr/bin/egrep -v "(${BLACKLIST%|})" | \
+	/usr/bin/egrep -v "${IGNORESSH}" | \
+	/usr/bin/grep Invalid | \
+	/usr/bin/awk '{print $10}' | \
+	/usr/bin/sort | /usr/bin/uniq -c | /usr/bin/sort | \
+	/usr/bin/awk "${LASTCMD}"
+
+/bin/cat <<EOF
+# !!!!! WARNING !!!!!
+# If there are IP addresses listed above the WARNNG line, they may have 
+# attempted to login via SSH with an invalid user over 20 times!
+# You can probably ban or blacklist them with your firewall.
+# Example:
+# $0 block
+EOF

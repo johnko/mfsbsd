@@ -1,0 +1,7 @@
+#!/bin/sh
+
+##### WORDPRESS
+mysql <<EOF
+create database wordpress;
+GRANT CREATE,SELECT,INSERT,UPDATE,DELETE ON wordpress.* TO 'username'@'%' IDENTIFIED BY 'password';
+EOF

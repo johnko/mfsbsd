@@ -1,0 +1,3 @@
+#!/bin/sh
+
+/sbin/zfs list -o name,used,available,refer,usedbychildren,usedbysnapshots,quota,mounted,mountpoint,creation $*

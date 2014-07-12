@@ -1,0 +1,1926 @@
+#!/bin/sh
+
+umask 077
+
+: ${RELEASE:="10.0-RELEASE"}
+: ${ARCH:="amd64"}
+BASEJAIL=/usr/jails/basejail
+
+if [ -e /server/csv/csv ]; then
+	CSV=$( /bin/cat /server/csv/csv | /usr/bin/tr -d '\n' )
+else
+	CSV=''
+fi
+
+TMPFILE=$( /usr/bin/mktemp -t jrole )
+NIC=$( /usr/bin/netstat -nr | /usr/bin/egrep default | /usr/bin/awk '{ print $NF }' | /usr/bin/head -1 )
+PUBLICIP=$( /sbin/ifconfig ${NIC} | /usr/bin/egrep inet | /usr/bin/egrep -v 'netmask 0xffffffff' | /usr/bin/sed -e 's/broadcast.*//g' -e 's/netmask.*//g' ${skiplocal} | /usr/bin/egrep -o "([0-9]{1,3}\.){3}[0-9]{1,3}" | /usr/bin/tr '\n' '~' | /usr/bin/sed -e "s/~/$DELIM/g" -e 's/, *$//g' )
+IP=$( echo ${PUBLICIP} | /usr/bin/cut -d. -f1-3 )
+IPCOUNT=$( echo ${PUBLICIP} | /usr/bin/cut -d. -f4 )
+LOCALNIC=lo1
+PRODIP=10.7.7
+LOCALIP=10.123.234
+LOCALIPCOUNT=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep -v "JID.*IP.*Hostname.*Directory" | /usr/bin/grep -v "\-\-\-" | /usr/bin/wc -l )
+
+/usr/bin/touch /var/log/jrolebgstart.log
+
+# ---------------------------------------------------------
+
+jroleautoclean () {
+	echo > /var/log/jrolebgstart.log
+
+	/server/bin/pf-anchor-clear jails
+	echo > /server/savepf/jails.anchor
+
+	jroledhcpdjails clean
+
+	local releaseftp=$( /sbin/mount | /usr/bin/grep "release.*builder.local/scratch/R/ftp" | /usr/bin/awk '{print $1}' )
+	if [ "x" != "x${releaseftp}" ]; then
+		/sbin/umount ${releaseftp}
+		/bin/chflags -R noschg ${releaseftp}
+	fi
+	local scratchdir=$( /usr/bin/find /usr/jails/release*builder.local -name scratch | /usr/bin/head -1 )
+	if [ "x" != "x${scratchdir}" ]; then
+		/bin/chflags -R noschg ${scratchdir}
+	fi
+
+	#/sbin/zfs destroy -r data/poudriere
+	jrolebuilderjails clean
+
+	#jrolewordpressjails clean
+
+}
+
+# ---------------------------------------------------------
+
+jroleautostart () {
+	jroledhcpdjails
+	jrolebuilderjails
+	#jrolemariadbclusterjails
+	#jrolewordpressjails
+	#jrolepostfixjails
+}
+
+# ---------------------------------------------------------
+
+jrolemailstart () {
+	jrolemariadbclusterjails
+	jroledbmailjails
+	jrolehordejails
+}
+
+# ---------------------------------------------------------
+
+jrolemailclean () {
+	jrolemariadbclusterjails clean
+	jroledbmailjails clean
+	jrolehordejails clean
+}
+
+# ---------------------------------------------------------
+
+jrolehordejails () {
+	local arg=$1
+	local jailname=""
+	local standalone="horde"
+	local upstream=""
+	local proxies=""
+	local roles="${standalone} ${upstream} ${proxies}"
+	local clustercount=0
+	local nodes=""
+	local mydomain="group.local"
+	local realjailhostnames=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep "${mydomain}" | /usr/bin/awk '{print $4}' )
+	local hostname=""
+	case $arg in
+		clean|remove|delete|destroy|reinstall)
+			for hostname in ${realjailhostnames} ; do
+				echo jroledestroy ${hostname}
+				jroledestroy ${hostname}
+			done
+			for role in ${roles} ; do
+				echo jroleflavourdestroy ${role}
+				jroleflavourdestroy ${role}
+			done
+			;;
+	esac
+	if [ "$arg" = "clean" -o "$arg" = "remove" -o "$arg" = "delete" -o "$arg" = "destroy" ]; then
+		# return nothing
+		echo
+	else
+		jrolesetupbasejail
+		for role in ${standalone} ; do
+			LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
+			local hostname="${role}${localcount}.${mydomain}"
+			jrolenatcreate ${role} ${hostname} "${LOCALNIC}|${LOCALIP}.${LOCALIPCOUNT}"
+			echo "${role} ${hostname}" >>${TMPFILE}
+		done
+		for role in ${upstream} ; do
+			LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
+			local hostname="${role}${LOCALIPCOUNT}.${mydomain}"
+			jrolenatcreate ${role} ${hostname} "${LOCALNIC}|${LOCALIP}.${LOCALIPCOUNT}"
+			echo "${role} ${hostname}" >>${TMPFILE}
+		done
+		for role in ${proxies} ; do
+			LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
+			local hostname="${role}${LOCALIPCOUNT}.${mydomain}"
+			jrolenatcreate ${role} ${hostname} "${LOCALNIC}|${LOCALIP}.${LOCALIPCOUNT}"
+			echo "${role} ${hostname}" >>${TMPFILE}
+		done
+		local realjailhostnames=$( /usr/bin/awk '{print $2}' ${TMPFILE} )
+		for hostname in ${realjailhostnames} ; do
+			local role=$( /usr/bin/grep "${hostname}" ${TMPFILE} | /usr/bin/awk '{print $1}' )
+			if ! /usr/bin/grep "${hostname}" /var/log/jrolebgstart.log >/dev/null 2>&1 ; then
+				echo "${role} ${hostname}" >> /var/log/jrolebgstart.log
+				jrolebgstart ${role} ${hostname}
+				/bin/sleep 1
+			fi
+		done
+	fi
+}
+
+# ---------------------------------------------------------
+
+jrolepostfixjails () {
+	local arg=$1
+	local jailname=""
+	local standalone=""
+	local upstream="postfix"
+	local proxies=""
+	local roles="${standalone} ${upstream} ${proxies}"
+	local clustercount=0
+	local nodes=""
+	local mydomain="lan.local"
+	local realjailhostnames=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep postfix | /usr/bin/awk '{print $4}' )
+	local hostname=""
+	case $arg in
+		clean|remove|delete|destroy|reinstall)
+			for hostname in ${realjailhostnames} ; do
+				echo jroledestroy ${hostname}
+				jroledestroy ${hostname}
+			done
+			for role in ${roles} ; do
+				echo jroleflavourdestroy ${role}
+				jroleflavourdestroy ${role}
+			done
+			;;
+	esac
+	if [ "$arg" = "clean" -o "$arg" = "remove" -o "$arg" = "delete" -o "$arg" = "destroy" ]; then
+		# return nothing
+		echo
+	else
+		jrolesetupbasejail
+		for role in ${upstream} ; do
+			# Global vars for duration of script run for setting loadbalancer and sslproxy
+			LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
+			MAILUPSTREAM="${MAILUPSTREAM},${LOCALIP}.${LOCALIPCOUNT}"
+			local hostname="${role}${LOCALIPCOUNT}.${mydomain}"
+			jrolenatcreate ${role} ${hostname} "${LOCALNIC}|${LOCALIP}.${LOCALIPCOUNT}"
+			echo "${role} ${hostname}" >>${TMPFILE}
+		done
+		local realjailhostnames=$( /usr/bin/awk '{print $2}' ${TMPFILE} )
+		for hostname in ${realjailhostnames} ; do
+			local role=$( /usr/bin/grep "${hostname}" ${TMPFILE} | /usr/bin/awk '{print $1}' )
+			if ! /usr/bin/grep "${hostname}" /var/log/jrolebgstart.log >/dev/null 2>&1 ; then
+				echo "${role} ${hostname}" >> /var/log/jrolebgstart.log
+				( jrolebgstart ${role} ${hostname} ) &
+				/bin/sleep 1
+			fi
+		done
+	fi
+}
+
+# ---------------------------------------------------------
+
+# auto start all roles
+jroleall () {
+
+	jrolesetupbasejail
+
+	LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
+	WORDPRESSAIO=${LOCALIP}.${LOCALIPCOUNT}
+
+	LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
+	VARNISH=${LOCALIP}.${LOCALIPCOUNT}
+	LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
+	STUNNELHTTPS=${LOCALIP}.${LOCALIPCOUNT}
+
+	LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
+	RIAK=${LOCALIP}.${LOCALIPCOUNT}
+	LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
+	NODEJS=${LOCALIP}.${LOCALIPCOUNT}
+	LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
+	COUCHDB=${LOCALIP}.${LOCALIPCOUNT}
+
+
+	#jrolenatcreate wordpressaio wordpressaio "${LOCALNIC}|${WORDPRESSAIO}"
+	#( jrolebgstart wordpressaio wordpressaio ) &
+
+	# TODO Varnish is broken
+	#jrolenatcreate varnish      "${LOCALNIC}|${VARNISH}"
+	#( jrolebgstart varnish      ) &
+	# TODO STUNNEL is broken
+
+	jrolenatcreate riak   riak      "${LOCALNIC}|${RIAK}"
+	#( jrolebgstart riak   riak      ) &
+	jrolenatcreate nodejs  nodejs     "${LOCALNIC}|${NODEJS}"
+	#( jrolebgstart nodejs  nodejs     ) &
+	jrolenatcreate couchdb   couchdb   "${LOCALNIC}|${COUCHDB}"
+	#( jrolebgstart couchdb   couchdb   ) &
+
+
+}
+
+# ---------------------------------------------------------
+
+# firewall redirection and NAT
+jrolenat () {
+	[ $# -lt 3 ] && echo "Usage: `basename $0` role hostname 'nic|ip'" && exit 1
+	local role=$1
+	local hostname=$2
+	local nicip=$3
+	local ip=$( echo $nicip | /usr/bin/awk -F'|' '{print $2}' )
+	if [ -e /server/csv/ucarp ]; then
+		local server=$( /bin/cat /server/csv/ucarp | /usr/bin/tr -d '\n' )
+	else
+		local server=${DHCP}
+	fi
+	/usr/bin/egrep "nat on ${NIC} from ${LOCALIP}" /server/savepf/jails.anchor >/dev/null 2>&1 || \
+		/bin/cat >>/server/savepf/jails.anchor <<EOF
+nat on ${NIC} from ${LOCALIP}.0/24 to any -> (${NIC})
+EOF
+	/server/bin/pf-anchor-load jails
+############################################
+	if [ "$role" = "pxe" ]; then
+		local newip="${PRODIP}.${ip##*.}"
+		/usr/bin/egrep "nat on ${NIC} from ${ip}" /server/savepf/jails.anchor >/dev/null 2>&1 || \
+			/bin/cat >>/server/savepf/jails.anchor <<EOF
+nat on ${NIC} from ${newip} to any -> ${DHCP}
+rdr pass on ${NIC} proto udp from any to ${DHCP} port 69 -> ${newip}
+rdr pass on ${NIC} proto udp from any to ${DHCP} port 124:65535 -> ${newip}
+rdr pass on ${NIC} proto tcp from any to ${server} port 80 -> ${newip}
+EOF
+		/server/bin/pf-anchor-load jails
+	else
+		local newip="${PRODIP}.${ip##*.}"
+		/usr/bin/egrep "nat on ${NIC} from ${newip}" /server/savepf/jails.anchor >/dev/null 2>&1 || \
+			/bin/cat >>/server/savepf/jails.anchor <<EOF
+nat on ${NIC} from ${newip} to any -> (${NIC})
+EOF
+	fi
+}
+
+# ---------------------------------------------------------
+
+# Start jail in bg
+jrolebgstart () {
+	[ $# -lt 2 ] && echo "Usage: `basename $0` role hostname" && exit 1
+	local role=$1
+	local hostname=$2
+	local safehostname=$( echo -n $hostname | /usr/bin/tr -c '[:alnum:]' _ )
+	/usr/local/bin/ezjail-admin console -e "/bin/mv /etc/pkg/FreeBSD.conf /etc/pkg.FreeBSD.conf.bkp" ${hostname}
+	/usr/local/bin/ezjail-admin console -e "/usr/local/sbin/pkg-static info" ${hostname} | /usr/bin/grep 'pkg-' || \
+		/usr/local/bin/ezjail-admin console -e "/usr/local/sbin/pkg-static install -y pkg" ${hostname}
+############################################
+	if [ "$role" = "dhcpd" ]; then
+		/usr/local/bin/ezjail-admin console -e /server/bin/startdhcpd ${hostname}
+############################################
+	elif [ "$role" = "pxe" ]; then
+		if [ -e /server/csv/ucarp ]; then
+			local server=$( /bin/cat /server/csv/ucarp | /usr/bin/tr -d '\n' )
+		else
+			local server=${DHCP}
+		fi
+		/usr/local/bin/ezjail-admin console -e "/server/bin/start$role ${server}" ${hostname}
+		jroleproductionip $( /usr/local/bin/ezjail-admin list | /usr/bin/grep pxe | /usr/bin/awk '{print $4}' )
+############################################
+	elif [ "$role" = "pkgng" -o "$role" = "freebsd-dist" -o "$role" = "ntopng" ]; then
+		/usr/local/bin/ezjail-admin console -e /server/bin/start$role ${hostname}
+############################################
+	elif [ "$role" = "mysql" -o "$role" = "percona" -o "$role" = "mariadb" ]; then
+		/usr/local/bin/ezjail-admin console -e "/bin/cp /usr/share/zoneinfo/America/Toronto /etc/localtime" ${hostname}
+		/usr/local/bin/ezjail-admin console -e "/server/bin/start$role" ${hostname}
+############################################
+	elif [ "$role" = "perconacluster" -o "$role" = "mariadbcluster" ]; then
+		/usr/local/bin/ezjail-admin console -e "/bin/cp /usr/share/zoneinfo/America/Toronto /etc/localtime" ${hostname}
+		/usr/local/bin/ezjail-admin console -e "/server/bin/start$role $3 $4" ${hostname}
+############################################
+	elif [ "$role" = "wordpress" -o "$role" = "wordpressaio" ]; then
+		/usr/local/bin/ezjail-admin console -e "/bin/cp /usr/share/zoneinfo/America/Toronto /etc/localtime" ${hostname}
+		/usr/local/bin/ezjail-admin console -e "/server/bin/start$role ssl-watchdog" ${hostname}
+############################################
+	elif [ "$role" = "sslproxy" -o "$role" = "sslproxywordpress" -o "$role" = "varnish" ]; then
+		/usr/local/bin/ezjail-admin console -e "/server/bin/start$role ${HTTPUPSTREAM}" ${hostname}
+############################################
+	elif [ "$role" = "postfix" -o "$role" = "iredmail" -o "$role" = "dbmail" ]; then
+		/usr/local/bin/ezjail-admin console -e /server/bin/start$role ${hostname}
+############################################
+	elif [ "$role" = "horde" ]; then
+		/usr/local/bin/ezjail-admin console -e /server/bin/start$role ${hostname}
+############################################
+	elif [ "$role" = "riak" -o "$role" = "nodejs" -o "$role" = "couchdb" ]; then
+		/usr/local/bin/ezjail-admin console -e "/bin/cp /usr/share/zoneinfo/America/Toronto /etc/localtime" ${hostname}
+		/usr/local/bin/ezjail-admin console -e /server/bin/start$role ${hostname}
+############################################
+	elif [ "$role" = "poudriere" ]; then
+		/usr/local/bin/ezjail-admin console -e "/server/bin/start$role unattended" ${hostname}
+		#/server/bin/pf-anchor-load ftpout
+		/usr/local/bin/ezjail-admin console -e "/usr/local/bin/poudriere jail -c -j 100amd64 -v ${RELEASE} -a ${ARCH}" ${hostname}
+		#/server/bin/pf-anchor-clear ftpout
+		/usr/local/bin/ezjail-admin console -e "/server/bin/start$role unattended" ${hostname}
+############################################
+	elif [ "$role" = "qemu" ]; then
+		/usr/local/bin/ezjail-admin console -e /server/bin/start$role ${hostname}
+############################################
+	elif [ "$role" = "release" ]; then
+		/usr/local/bin/ezjail-admin console -e /server/bin/start$role ${hostname}
+		jrolelinkrelease
+		/usr/local/bin/ezjail-admin list | /usr/bin/grep mfsbsd || jrolemfsbsdjails
+############################################
+	elif [ "$role" = "mfsbsd" ]; then
+		/server/bin/buildports
+		#local releaseroot=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep release | /usr/bin/awk '{print $5}' )
+		local distroot=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep freebsd-dist | /usr/bin/awk '{print $5}' )
+		local mfsbsdroot=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep mfsbsd | /usr/bin/awk '{print $5}' )
+		local mfsbsdjail=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep mfsbsd | /usr/bin/awk '{print $4}' )
+		local pkgngroot=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep pkgng | /usr/bin/awk '{print $5}' )
+		# allow unlink
+		/usr/bin/find ${mfsbsdroot}/root/mfsbsd-personal -type l -exec /bin/chflags -h nosunlink {} \;
+		/server/bin/r -ctp --delete /server/root/mfsbsd-personal/  ${mfsbsdroot}/root/mfsbsd-personal/
+		/server/bin/r -ctp --delete /server/root/mfsbsd-personal/  ${mfsbsdroot}/root/mfsbsd-personal/keys/all/server/root/mfsbsd-personal/
+		/bin/mkdir -p ${mfsbsdroot}/root/mfsbsd-personal/packages/noauto
+		/bin/mkdir -p ${mfsbsdroot}/root/mfsbsd-personal/pkginstall
+		/usr/local/bin/ezjail-admin console -e '/usr/local/sbin/pkg-static clean -y -a -q' ${mfsbsdjail}
+		/usr/local/bin/ezjail-admin console -e '/usr/local/sbin/pkg-static update' ${mfsbsdjail} || exit 1
+		/usr/local/bin/ezjail-admin console -e '/usr/local/sbin/pkg-static upgrade -y' ${mfsbsdjail} || exit 1
+		for i in $( /usr/local/sbin/pkg-static info | /usr/bin/awk '{print $1}' | /usr/bin/sed 's#-[[:digit:]]*\.*[[:digit:]]*\.*[[:digit:]]*\.*[[:digit:]]*\.*[[:digit:]]*\.*[[:digit:]]*_*[[:digit:]]*,*[[:digit:]]*$##' | /usr/bin/tr '\n' ' ' ) ; do
+			/usr/local/bin/ezjail-admin console -e "/usr/local/sbin/pkg-static fetch -y -d -q ${i}" ${mfsbsdjail} || exit 1
+			#/bin/cp -av ${pkgngroot}/server/www/pkgng/All/${i}*     ${mfsbsdroot}/root/mfsbsd-personal/packages/
+		done
+		/usr/bin/find ${mfsbsdroot}/var/cache/pkg -type f -name '*txz' -exec /bin/cp -av {} ${mfsbsdroot}/root/mfsbsd-personal/packages/ \;
+		/usr/local/bin/ezjail-admin console -e '/usr/local/sbin/pkg-static clean -y -a -q' ${mfsbsdjail}
+		for i in dnsmasq syslinux nginx isc-dhcp43-server ; do
+			/usr/local/bin/ezjail-admin console -e "/usr/local/sbin/pkg-static fetch -y -d -q ${i}" ${mfsbsdjail} || exit 1
+		done
+		/usr/bin/find ${mfsbsdroot}/var/cache/pkg -type f -name '*txz' -exec /bin/cp -av {} ${mfsbsdroot}/root/mfsbsd-personal/packages/noauto/ \;
+		for i in $( /usr/bin/find ${mfsbsdroot}/root/mfsbsd-personal/packages/noauto/ -type f ); do
+			if [ -e "${mfsbsdroot}/root/mfsbsd-personal/packages/${i##*/}" ]; then
+				/bin/rm "${mfsbsdroot}/root/mfsbsd-personal/packages/noauto/${i##*/}"
+			fi
+		done
+		/usr/local/bin/ezjail-admin console -e '/usr/local/sbin/pkg-static clean -y -a -q' ${mfsbsdjail}
+		/usr/local/bin/ezjail-admin console -e '/usr/local/sbin/pkg-static fetch -y -d -q pkg' ${mfsbsdjail} || exit 1
+		/usr/bin/find ${mfsbsdroot}/var/cache/pkg -type f -name '*txz' -exec /bin/cp -av {} ${mfsbsdroot}/root/mfsbsd-personal/pkginstall/ \;
+		#local releaseiso=$( /bin/ls -1tr ${releaseroot}/scratch/R/FreeBSD*${RELEASE}*${ARCH}*disc1.iso | /usr/bin/head -1 )
+		local distftp="${distroot}/server/www/freebsd-dist/10.0-RELEASE-amd64/"
+		#/server/bin/mount_iso ${releaseiso} ${mfsbsdroot}/cdrom
+		/bin/mkdir -p ${mfsbsdroot}/cdrom/usr/freebsd-dist
+		/server/bin/r -ct ${distftp} ${mfsbsdroot}/cdrom/usr/freebsd-dist/
+		#/bin/ls -1 /boot/kernel/ | /usr/bin/sed 's#.ko$##' | /usr/bin/sort -u | /usr/bin/tr '\n' ' '
+		MFSMODULES="aac aacraid accf_data accf_dns accf_http acl_nfs4 acl_posix1e acpi_asus acpi_asus_wmi acpi_dock acpi_fujitsu acpi_hp acpi_ibm acpi_panasonic acpi_sony acpi_toshiba acpi_video acpi_wmi aesni agp aha ahc ahc_eisa ahc_isa ahc_pci ahci ahd aibs aio alias_cuseeme alias_dummy alias_ftp alias_irc alias_nbt alias_pptp alias_skinny alias_smedia alpm alq amdpm amdsbwd amdsmb amdtemp amr amr_cam amr_linux aout arcmsr asmc ata ataacard ataacerlabs ataadaptec ataahci ataamd ataati atacard atacenatek atacypress atacyrix atahighpoint ataintel ataisa ataite atajmicron atamarvell atamicron atanational atanetcell atanvidia atapci atapromise ataserverworks atasiliconimage atasis atavia atp beastie_saver bktr bktr_mem blank_saver bridgestp cam cardbus carp cbb cc_cdg cc_chd cc_cubic cc_hd cc_htcp cc_vegas cd9660 cd9660_iconv ciss cmx coretemp cpuctl cpufreq crypto cryptodev ctl cxgb_t3fw cyclic daemon_saver dcons dcons_crom dpms dragon_saver drm drm2 dtio dtmalloc dtnfscl dtnfsclient dtrace dtrace_test dtraceall dummynet ehci esp exca ext2fs fade_saver fasttrap fbt fdc fdescfs filemon fire_saver firewire firmware fuse geom_bde geom_bsd geom_cache geom_ccd geom_concat geom_eli geom_fox geom_gate geom_journal geom_label geom_linux_lvm geom_mbr geom_md geom_mirror geom_mountver geom_multipath geom_nop geom_part_apm geom_part_bsd geom_part_ebr geom_part_gpt geom_part_ldm geom_part_mbr geom_part_pc98 geom_part_vtoc8 geom_pc98 geom_raid geom_raid3 geom_sched geom_shsec geom_stripe geom_sunlabel geom_uzip geom_vinum geom_virstor geom_vol_ffs geom_zero green_saver gsched_rr h_ertt hifn hpt27xx hptiop hptmv hptnr hptrr hv_ata_pci_disengage hv_netvsc hv_storvsc hv_utils hv_vmbus hwpmc i915 i915kms ichsmb ichwd ida if_ae if_age if_alc if_ale if_an if_ath if_ath_pci if_aue if_axe if_bce if_bfe if_bge if_bridge if_bwi if_bwn if_bxe if_cas if_cdce if_cue if_cxgb if_cxgbe if_dc if_de if_disc if_ed if_edsc if_ef if_em if_en if_epair if_et if_faith if_fatm if_fwe if_fwip if_fxp if_gem if_gif if_gre if_hatm if_hme if_ic if_igb if_ipheth if_ipw if_iwi if_iwn if_ixgb if_ixgbe if_jme if_kue if_lagg if_le if_lge if_lmc if_malo if_mos if_msk if_mwl if_mxge if_my if_ndis if_nfe if_nge if_ntb if_nve if_nxge if_patm if_pcn if_qlxgb if_qlxgbe if_qlxge if_ral if_re if_rl if_rsu if_rue if_rum if_run if_sf if_sge if_sis if_sk if_smsc if_sn if_ste if_stf if_stge if_tap if_ti if_tl if_tun if_tx if_txp if_uath if_udav if_upgt if_ural if_urtw if_urtwn if_vge if_vlan if_vmx if_vr if_vte if_vtnet if_vx if_wb if_wi if_wpi if_xl if_zyd iic iicbb iicbus iicsmb iir intpm io ip6_mroute ip_mroute ipdivert ipfw ipfw_nat ipmi ipmi_linux ips ipw_bss ipw_ibss ipw_monitor isci iscsi iscsi_initiator isp isp_1040 isp_1040_it isp_1080 isp_1080_it isp_12160 isp_12160_it isp_2100 isp_2200 isp_2300 isp_2322 isp_2400 isp_2400_multi isp_2500 isp_2500_multi ispfw iw_cxgb iw_cxgbe iwi_bss iwi_ibss iwi_monitor iwn1000fw iwn2030fw iwn4965fw iwn5000fw iwn5150fw iwn6000fw iwn6000g2afw iwn6000g2bfw iwn6050fw joy kbdmux kernel kgssapi kgssapi_krb5 krpc krping ksyms libalias libiconv libmbpool libmchain lindev linker.hints linprocfs linsysfs linux lockstat logo_saver lpbb lpt mac_biba mac_bsdextended mac_ifoff mac_lomac mac_mls mac_none mac_partition mac_portacl mac_seeotheruids mac_stub mac_test mach64 mcd mem mfi mfi_linux mfip mga miibus mlx mly mmc mmcsd mps mpt mqueuefs msdosfs msdosfs_iconv mvs mw88W8363fw mxge_eth_z8e mxge_ethp_z8e mxge_rss_eth_z8e mxge_rss_ethp_z8e ndis netgraph nfs_common nfscl nfsclient nfscommon nfsd nfslock nfslockd nfsmb nfsserver nfssvc ng_UI ng_async ng_atm ng_atmllc ng_bpf ng_bridge ng_car ng_ccatm ng_cisco ng_deflate ng_device ng_echo ng_eiface ng_etf ng_ether ng_ether_echo ng_fec ng_frame_relay ng_gif ng_gif_demux ng_hole ng_hub ng_iface ng_ip_input ng_ipfw ng_ksocket ng_l2tp ng_lmi ng_mppc ng_nat ng_netflow ng_one2many ng_patch ng_pipe ng_ppp ng_pppoe ng_pptpgre ng_pred1 ng_rfc1490 ng_socket ng_source ng_split ng_sppp ng_sscfu ng_sscop ng_tag ng_tcpmss ng_tee ng_tty ng_uni ng_vjc ng_vlan ngatmbase nmdm ntb_hw nullfs nvd nvme nvram oce ohci opensolaris padlock pccard pcf pf pflog pfsync plip ppbus ppc ppi pps procfs profile prototype pseudofs pty puc r128 radeon radeonkms radeonkmsfw_ARUBA_me radeonkmsfw_ARUBA_pfp radeonkmsfw_ARUBA_rlc radeonkmsfw_BARTS_mc radeonkmsfw_BARTS_me radeonkmsfw_BARTS_pfp radeonkmsfw_BTC_rlc radeonkmsfw_CAICOS_mc radeonkmsfw_CAICOS_me radeonkmsfw_CAICOS_pfp radeonkmsfw_CAYMAN_mc radeonkmsfw_CAYMAN_me radeonkmsfw_CAYMAN_pfp radeonkmsfw_CAYMAN_rlc radeonkmsfw_CEDAR_me radeonkmsfw_CEDAR_pfp radeonkmsfw_CEDAR_rlc radeonkmsfw_CYPRESS_me radeonkmsfw_CYPRESS_pfp radeonkmsfw_CYPRESS_rlc radeonkmsfw_JUNIPER_me radeonkmsfw_JUNIPER_pfp radeonkmsfw_JUNIPER_rlc radeonkmsfw_PALM_me radeonkmsfw_PALM_pfp radeonkmsfw_PITCAIRN_ce radeonkmsfw_PITCAIRN_mc radeonkmsfw_PITCAIRN_me radeonkmsfw_PITCAIRN_pfp radeonkmsfw_PITCAIRN_rlc radeonkmsfw_R100_cp radeonkmsfw_R200_cp radeonkmsfw_R300_cp radeonkmsfw_R420_cp radeonkmsfw_R520_cp radeonkmsfw_R600_me radeonkmsfw_R600_pfp radeonkmsfw_R600_rlc radeonkmsfw_R700_rlc radeonkmsfw_REDWOOD_me radeonkmsfw_REDWOOD_pfp radeonkmsfw_REDWOOD_rlc radeonkmsfw_RS600_cp radeonkmsfw_RS690_cp radeonkmsfw_RS780_me radeonkmsfw_RS780_pfp radeonkmsfw_RV610_me radeonkmsfw_RV610_pfp radeonkmsfw_RV620_me radeonkmsfw_RV620_pfp radeonkmsfw_RV630_me radeonkmsfw_RV630_pfp radeonkmsfw_RV635_me radeonkmsfw_RV635_pfp radeonkmsfw_RV670_me radeonkmsfw_RV670_pfp radeonkmsfw_RV710_me radeonkmsfw_RV710_pfp radeonkmsfw_RV730_me radeonkmsfw_RV730_pfp radeonkmsfw_RV770_me radeonkmsfw_RV770_pfp radeonkmsfw_SUMO2_me radeonkmsfw_SUMO2_pfp radeonkmsfw_SUMO_me radeonkmsfw_SUMO_pfp radeonkmsfw_SUMO_rlc radeonkmsfw_TAHITI_ce radeonkmsfw_TAHITI_mc radeonkmsfw_TAHITI_me radeonkmsfw_TAHITI_pfp radeonkmsfw_TAHITI_rlc radeonkmsfw_TURKS_mc radeonkmsfw_TURKS_me radeonkmsfw_TURKS_pfp radeonkmsfw_VERDE_ce radeonkmsfw_VERDE_mc radeonkmsfw_VERDE_me radeonkmsfw_VERDE_pfp radeonkmsfw_VERDE_rlc rain_saver random rc4 reiserfs rsu-rtl8712fw rt2561fw rt2561sfw rt2661fw rt2860fw runfw s3 safe savage sbp sbp_targ scc scd scsi_low sdhci sdhci_pci sdt sem send sfxge siba_bwn siftr siis sis smb smbfs smbus snake_saver snd_ad1816 snd_als4000 snd_atiixp snd_cmi snd_cs4281 snd_csa snd_driver snd_ds1 snd_emu10k1 snd_emu10kx snd_envy24 snd_envy24ht snd_es137x snd_ess snd_fm801 snd_hda snd_hdspe snd_ich snd_maestro snd_maestro3 snd_mss snd_neomagic snd_sb16 snd_sb8 snd_sbc snd_solo snd_spicds snd_t4dwave snd_uaudio snd_via8233 snd_via82c686 snd_vibes snp sound speaker splash_bmp splash_pcx splash_txt sppp star_saver sym systrace systrace_freebsd32 systrace_linux32 sysvmsg sysvsem sysvshm t3_tom t4_tom t4fw_cfg t5fw_cfg tdfx tmpfs toecore tpm trm twa twe tws u3g uark uart ubsa ubsec ubser uchcom ucom ucycom udbp udf udf_iconv uep uether ufm ufoma ufs uftdi ugensa uhci uhid uhso uipaq ukbd ulpt umass umcs umct umodem umoscom ums unionfs uplcom urio urtwn-rtl8192cfwT urtwn-rtl8192cfwU usb usb_quirk usb_template usfs usie uslcom utopia uvisor uvscom vesa via viapm viawd virtio virtio_balloon virtio_blk virtio_pci virtio_scsi vkbd vmm vpo vxge warp_saver wbwd wlan wlan_acl wlan_amrr wlan_ccmp wlan_rssadapt wlan_tkip wlan_wep wlan_xauth wpifw x86bios xhci zfs zlib"
+		/usr/local/bin/ezjail-admin console ${mfsbsdjail} <<EOF
+cd ~/mfsbsd-personal && chmod a+x tools/doFS.sh && chmod a+x build.sh && ./build.sh nox all $CSV "$MFSMODULES"
+EOF
+		jrolelinkmfsbsd
+		cd ${mfsbsdroot}/root/mfsbsd-personal
+		if [ -e NOX-${RELEASE}-${ARCH}.iso ]; then
+			local DOFSSIZE=$(( `/bin/ls -l NOX-${RELEASE}-${ARCH}.iso | /usr/bin/awk '{print $5}'` / 1000 ))
+			if [ -n "${DOFSSIZE}" ]; then
+				/usr/bin/make encimage \
+					RELEASE=${RELEASE}  ARCH=${ARCH} \
+					IMAGE_PREFIX=NOX \
+					MFSMODULES="$MFSMODULES" \
+					MFSROOT_MAXSIZE=999m \
+					DOFSSIZE=${DOFSSIZE} \
+					KEYCFG="mfsbsdonly all $CSV" \
+					PKGNG=1 \
+					SE=1
+			fi
+			cd -
+			jrolelinkmfsbsd
+		fi
+		#/sbin/umount ${mfsbsdroot}/cdrom
+		jrolebgstart pxe $( /usr/local/bin/ezjail-admin list | /usr/bin/grep pxe | /usr/bin/awk '{print $4}' )
+############################################
+	else
+		echo "Not implemented: jrolebgstart ${role} ${hostname}"
+		exit 1
+	fi
+}
+
+# ---------------------------------------------------------
+
+# Creat role, but don't start
+jrolecreate () {
+	[ $# -lt 3 ] && echo "Usage: `basename $0` role hostname 'nic|ip'" && exit 1
+	local role=$1
+	local hostname=$2
+	local safehostname=$( echo -n $hostname | /usr/bin/tr -c '[:alnum:]' _ )
+	local nicip=$3
+	jrolesetupbasejail
+	jrolesetupflavours ${role}
+############################################
+	if [ "$role" = "dhcpd" ]; then
+		if ! /usr/sbin/jls -j ${safehostname} >/dev/null 2>&1 ; then
+			jrolejailcreate ${role} ${hostname} ${nicip}
+			/usr/bin/egrep "jrolecreate" /usr/local/etc/ezjail/${safehostname} >/dev/null 2>&1 || \
+				/bin/cat >>/usr/local/etc/ezjail/${safehostname} <<EOF
+# Added by jrolecreate
+export jail_${safehostname}_fdescfs_enable="NO"
+export jail_${safehostname}_devfs_ruleset="5"
+export jail_${safehostname}_parameters="allow.raw_sockets=1"
+# End of addition
+EOF
+			/usr/local/bin/ezjail-admin onestart ${hostname}
+		fi
+############################################
+	elif [ "$role" = "pxe" -o "$role" = "pkgng" -o "$role" = "freebsd-dist" -o \
+			"$role" = "mysql" -o "$role" = "percona" -o "$role" = "mariadb" -o "$role" = "perconacluster" -o "$role" = "mariadbcluster" -o \
+			"$role" = "wordpress" -o "$role" = "sslproxy" -o "$role" = "sslproxywordpress" -o "$role" = "varnish" -o "$role" = "horde" -o \
+			"$role" = "postfix" -o "$role" = "ntopng" -o "$role" = "dbmail" -o \
+			"$role" = "riak" -o "$role" = "nodejs" -o "$role" = "couchdb" ]; then
+		if ! /usr/sbin/jls -j ${safehostname} >/dev/null 2>&1 ; then
+			jrolejailcreate ${role} ${hostname} ${nicip}
+			/usr/bin/egrep "jrolecreate" /usr/local/etc/ezjail/${safehostname} >/dev/null 2>&1 || \
+				/bin/cat >>/usr/local/etc/ezjail/${safehostname} <<EOF
+# Added by jrolecreate
+export jail_${safehostname}_fdescfs_enable="NO"
+# End of addition
+EOF
+			/usr/local/bin/ezjail-admin onestart ${hostname}
+		fi
+############################################
+	elif [ "$role" = "wordpressaio" ]; then
+		if ! /usr/sbin/jls -j ${safehostname} >/dev/null 2>&1 ; then
+			jrolejailcreate ${role} ${hostname} ${nicip}
+			/usr/bin/egrep "jrolecreate" /usr/local/etc/ezjail/${safehostname} >/dev/null 2>&1 || \
+				/bin/cat >>/usr/local/etc/ezjail/${safehostname} <<EOF
+# Added by jrolecreate
+export jail_${safehostname}_fdescfs_enable="NO"
+# End of addition
+EOF
+			if ! /usr/bin/egrep "wordpressaio" /etc/rctl.conf >/dev/null 2>&1 ; then
+				/bin/cat >>/etc/rctl.conf <<EOF
+# Added by jrolecreate
+jail:wordpressaio:vmemoryuse:deny=512M/jail
+# End of addition
+EOF
+				/usr/bin/rctl -a jail:wordpressaio:vmemoryuse:deny=512M/jail
+			fi
+			/usr/local/bin/ezjail-admin onestart ${hostname}
+		fi
+############################################
+	elif [ "$role" = "iredmail" ]; then
+		if ! /usr/sbin/jls -j ${safehostname} >/dev/null 2>&1 ; then
+			jrolejailcreate ${role} ${hostname} ${nicip}
+			/usr/bin/egrep "jrolecreate" /usr/local/etc/ezjail/${safehostname} >/dev/null 2>&1 || \
+				/bin/cat >>/usr/local/etc/ezjail/${safehostname} <<EOF
+# Added by jrolecreate
+# End of addition
+EOF
+			/usr/local/bin/ezjail-admin onestart ${hostname}
+		fi
+############################################
+	elif [ "$role" = "poudriere" ]; then
+		if ! /usr/sbin/jls -j ${safehostname} >/dev/null 2>&1 ; then
+			jrolejailcreate ${role} ${hostname} ${nicip}
+			/sbin/kldload tmpfs linux linprocfs nullfs procfs fdescfs linsysfs sem >/dev/null 2>&1
+			/usr/bin/egrep "jrolecreate" /usr/local/etc/ezjail/${safehostname} >/dev/null 2>&1 || \
+				/bin/cat >>/usr/local/etc/ezjail/${safehostname} <<EOF
+# Added by jrolecreate
+export jail_${safehostname}_devfs_ruleset="6"
+export jail_${safehostname}_parameters="allow.mount allow.mount.devfs enforce_statfs=1 allow.mount.nullfs allow.mount.procfs allow.mount.zfs allow.mount.tmpfs allow.socket_af allow.raw_sockets allow.chflags allow.sysvipc children.max=10"
+export jail_${safehostname}_exec_start="zfs mount -a ; /bin/sh /etc/rc"
+# End of addition
+EOF
+			/sbin/zfs create -u -o mountpoint=/poudriere data/poudriere
+			/sbin/zfs create -u data/poudriere/distfiles
+			/sbin/zfs set jailed=on data/poudriere
+			/usr/local/bin/ezjail-admin onestart ${hostname}
+			/sbin/zfs jail ${safehostname} data/poudriere
+		fi
+############################################
+	elif [ "$role" = "qemu" ]; then
+		if ! /usr/sbin/jls -j ${safehostname} >/dev/null 2>&1 ; then
+			jrolejailcreate ${role} ${hostname} ${nicip}
+			/usr/bin/egrep "jrolecreate" /usr/local/etc/ezjail/${safehostname} >/dev/null 2>&1 || \
+				/bin/cat >>/usr/local/etc/ezjail/${safehostname} <<EOF
+# Added by jrolecreate
+export jail_${safehostname}_devfs_ruleset="9"
+export jail_${safehostname}_parameters="allow.socket_af allow.raw_sockets"
+# End of addition
+EOF
+			/usr/local/bin/ezjail-admin onestart ${hostname}
+		fi
+############################################
+	elif [ "$role" = "release" ]; then
+		if ! /usr/sbin/jls -j ${safehostname} >/dev/null 2>&1 ; then
+			jrolejailcreate ${role} ${hostname} ${nicip}
+			/usr/bin/egrep "jrolecreate" /usr/local/etc/ezjail/${safehostname} >/dev/null 2>&1 || \
+				/bin/cat >>/usr/local/etc/ezjail/${safehostname} <<EOF
+# Added by jrolecreate
+export jail_${safehostname}_fdescfs_enable="NO"
+export jail_${safehostname}_parameters="allow.chflags allow.mount allow.mount.devfs enforce_statfs=1"
+# End of addition
+EOF
+			/usr/local/bin/ezjail-admin onestart ${hostname}
+		fi
+############################################
+	elif [ "$role" = "mfsbsd" ]; then
+		if ! /usr/sbin/jls -j ${safehostname} >/dev/null 2>&1 ; then
+			jrolejailcreate ${role} ${hostname} ${nicip}
+			/usr/bin/egrep "jrolecreate" /usr/local/etc/ezjail/${safehostname} >/dev/null 2>&1 || \
+				/bin/cat >>/usr/local/etc/ezjail/${safehostname} <<EOF
+# Added by jrolecreate
+export jail_${safehostname}_fdescfs_enable="NO"
+export jail_${safehostname}_devfs_ruleset="7"
+export jail_${safehostname}_parameters="allow.chflags allow.mount allow.mount.devfs enforce_statfs=1"
+# End of addition
+EOF
+			/usr/local/bin/ezjail-admin onestart ${hostname}
+		fi
+############################################
+	else
+		echo "Not implemented: jrolecreate $role"
+		exit 1
+	fi
+}
+
+# ---------------------------------------------------------
+
+# Setup the jail flavours
+jrolesetupflavours () {
+	[ $# -lt 1 ] && echo "Usage: `basename $0` role" && exit 1
+
+		local localrole=$1
+		local MNT=/usr/jails/flavours/${localrole}
+		if [ ! -e "${MNT}" ]; then
+			/usr/bin/install -d -m 755 ${MNT}
+
+#####		ETC			#####
+
+			/usr/bin/install -d -m 755 ${MNT}/etc
+			/usr/bin/install    -m 644 /etc/resolv.conf ${MNT}/etc/resolv.conf
+			for fil in make.conf periodic.conf rc.conf ; do
+				/usr/bin/install    -m 644 /usr/jails/flavours/example/etc/${fil} ${MNT}/etc/${fil}
+			done
+			jrolesetuprc   ${MNT}
+
+			/usr/bin/install -d -m 755 ${MNT}/etc/rc.d
+			for fil in jcron jsshdnohostname ; do
+				/usr/bin/install    -m 755 /etc/rc.d/${fil} ${MNT}/etc/rc.d/${fil}
+			done
+
+			/usr/bin/install -d -m 755 ${MNT}/etc/ssh
+			/bin/cat /etc/ssh/sshd_config > ${MNT}/etc/ssh/sshd_config
+			/bin/chmod 644 ${MNT}/etc/ssh/sshd_config
+			/usr/bin/sed -i .bkp 's/ListenAddress.*//g' ${MNT}/etc/ssh/sshd_config
+
+			/usr/bin/install -d -m 755 ${MNT}/usr
+
+			if [ ! -e ${MNT}/usr/local/sbin/pkg-static ]; then
+				/usr/bin/install -d -m 755 ${MNT}/usr/local/sbin
+				/usr/bin/install    -m 755 /usr/local/sbin/pkg-static ${MNT}/usr/local/sbin/pkg-static
+			fi
+			/usr/bin/install -d -m 755 ${MNT}/usr/local/etc/pkg/repos
+			/bin/cat /usr/local/etc/pkg/repos/myrepo.conf > ${MNT}/usr/local/etc/pkg/repos/myrepo.conf
+			/bin/chmod 644 ${MNT}/usr/local/etc/pkg/repos/myrepo.conf
+
+#####		SERVER		#####
+
+			/usr/bin/install -d -m 755 ${MNT}/server
+			/usr/bin/install -d -m 700 ${MNT}/server/pkg
+			/usr/bin/install    -m 644 /server/pkg/key.pub ${MNT}/server/pkg/key.pub
+
+			/usr/bin/install -d -m 700 ${MNT}/server/bin
+			for fil in /server/bin/* ; do
+				/usr/bin/install    -m 700 ${fil} ${MNT}${fil}
+			done
+
+##### 		ROOT		#####
+
+			/usr/bin/install -d -m 755 ${MNT}/root
+			for dir in .ssh .vim .vim/autoload .vim/syntax .vim/colors .vim/swaps .vim/undo .vim/backups .rtorrent.session ; do
+				/usr/bin/install -d -m 700 ${MNT}/root/${dir}
+			done
+			for fil in .csh_aliases .cshrc .curlrc .extra .functions .gen.cfg .gitconfig .gitignore .hushlogin .inputrc .mbsyncrc .rtorrent.rc .screenrc .vim/autoload/togglebg.vim .vim/syntax/json.vim .vim/colors/railscat.vim .vim/colors/molokai.vim .vim/colors/solarized.vim .vimrc .wgetrc ; do
+				/usr/bin/install    -m 600 /server/root/${fil} ${MNT}/root/${fil}
+			done
+
+			/usr/bin/install -d -m 755 ${MNT}/root/.ssh
+			/bin/cat /root/.ssh/authorized_keys > ${MNT}/root/.ssh/authorized_keys
+			/bin/chmod 600 ${MNT}/root/.ssh/authorized_keys
+
+#####		SPECIFIC	#####
+
+			if [ "$localrole" = "dhcpd"  ]; then
+				jrolesetupservice dhcpd ${MNT}
+			elif [ "$localrole" = "pxe" ]; then
+				jrolesetupservice nginx ${MNT}
+				jrolesetupservice pxe ${MNT}
+			elif [ "$localrole" = "pkgng" ]; then
+				jrolesetupservice nginx ${MNT}
+				jrolesetupservice pkgng ${MNT}
+			elif [ "$localrole" = "freebsd-dist" ]; then
+				jrolesetupservice nginx ${MNT}
+				jrolesetupservice freebsd-dist ${MNT}
+			elif [ "$localrole" = "ntopng" ]; then
+				jrolesetupservice nginx ${MNT}
+				jrolesetupservice ntopng ${MNT}
+			elif [ "$localrole" = "mysql" -o "$localrole" = "percona" -o "$localrole" = "mariadb" -o "$localrole" = "perconacluster" -o "$localrole" = "mariadbcluster" ]; then
+				jrolesetupservice $localrole ${MNT}
+			elif [ "$localrole" = "wordpress" ]; then
+				jrolesetupservice nginx ${MNT}
+				jrolesetupservice wordpress ${MNT}
+			elif [ "$localrole" = "wordpressaio" ]; then
+				jrolesetupservice nginx ${MNT}
+				jrolesetupservice mariadb ${MNT}
+				jrolesetupservice wordpress ${MNT}
+			elif [ "$localrole" = "sslproxy" -o "$localrole" = "sslproxywordpress" ]; then
+				jrolesetupservice nginx ${MNT}
+				jrolesetupservice $localrole ${MNT}
+			elif [ "$localrole" = "postfix" ]; then
+				jrolesetupservice $localrole ${MNT}
+			elif [ "$role" = "iredmail" ]; then
+				jrolesetupservice $localrole ${MNT}
+			elif [ "$role" = "dbmail" ]; then
+				jrolesetupservice $localrole ${MNT}
+			elif [ "$role" = "horde" ]; then
+				jrolesetupservice nginx ${MNT}
+				jrolesetupservice $localrole ${MNT}
+			elif [ "$localrole" = "riak" -o "$localrole" = "nodejs" -o "$localrole" = "couchdb" ]; then
+				jrolesetupservice $localrole ${MNT}
+			elif [ "$localrole" = "poudriere" ]; then
+				jrolesetupservice nginx ${MNT}
+				jrolesetupservice poudriere ${MNT}
+			elif [ "$localrole" = "qemu" -o "$localrole" = "release" -o "$localrole" = "mfsbsd" ]; then
+				jrolesetupservice $localrole ${MNT}
+			else
+				echo "Not implemented: jrolesetupflavours $role"
+				exit 1
+			fi
+
+		fi
+}
+
+# ---------------------------------------------------------
+
+# Setup service
+jrolesetupservice () {
+	[ $# -lt 2 ] && echo "Usage: `basename $0` role mount" && exit 1
+	local service=$1
+	local MNT=$2
+	if [ "$service" = "dhcpd" ]; then
+		/usr/bin/install -d -m 700 ${MNT}/server/csv/dhcpd
+		for fil in /server/csv/dhcpd/* ; do
+			/usr/bin/install    -m 600 ${fil} ${MNT}${fil}
+		done
+		/usr/bin/install -d -m 755 ${MNT}/server/dhcpd
+		for fil in jcsvdhcpd ; do
+			/usr/bin/install    -m 755 /server/rc.d/${fil} ${MNT}/etc/rc.d/${fil}
+		done
+	elif [ "$service" = "pxe" ]; then
+		/usr/bin/install -d -m 755 ${MNT}/server/nginx/sites-available
+		/usr/bin/install    -m 644 /server/nginx/sites-available/pxe.conf			${MNT}/server/nginx/sites-available/pxe.conf
+		/usr/bin/install -d -m 700 ${MNT}/server/csv/dhcpd
+		for fil in /server/csv/dhcpd/* ; do
+			/usr/bin/install    -m 600 ${fil} ${MNT}${fil}
+		done
+		/usr/bin/install -d -m 755 ${MNT}/server/dnsmasq/sites-available
+		/usr/bin/install -d -m 755 ${MNT}/server/tftp
+		/usr/bin/install    -m 644 /server/dnsmasq/dnsmasq.conf 			${MNT}/server/dnsmasq/dnsmasq.conf
+		/usr/bin/install    -m 644 /server/dnsmasq/sites-available/pxe.conf ${MNT}/server/dnsmasq/sites-available/pxe.conf
+		/usr/bin/install    -m 644 /server/tftp/pxelinux.cfg.menutemplate 	${MNT}/server/tftp/pxelinux.cfg.menutemplate
+		for fil in jcsvpxelinuxcfg ; do
+			/usr/bin/install    -m 755 /server/rc.d/${fil} ${MNT}/etc/rc.d/${fil}
+		done
+	elif [ "$service" = "pkgng" ]; then
+		/usr/bin/install -d -m 755 ${MNT}/server/nginx/sites-available
+		/usr/bin/install -d -m 700 ${MNT}/server/www
+		/usr/bin/install -d -m 700 ${MNT}/server/www/pkgng
+		/usr/bin/install    -m 644 /server/nginx/sites-available/pkgng.conf			${MNT}/server/nginx/sites-available/pkgng.conf
+	elif [ "$service" = "freebsd-dist" ]; then
+		/usr/bin/install -d -m 755 ${MNT}/server/nginx/sites-available
+		/usr/bin/install -d -m 700 ${MNT}/server/www
+		/usr/bin/install -d -m 700 ${MNT}/server/www/freebsd-dist
+		/usr/bin/install -d -m 700 ${MNT}/server/www/freebsd-dist/${RELEASE}-${ARCH}
+		/usr/bin/install -d -m 700 ${MNT}/server/www/mfsbsd
+		/usr/bin/install -d -m 700 ${MNT}/server/www/mfsbsd/${RELEASE}-${ARCH}
+		/usr/bin/install    -m 644 /server/nginx/sites-available/freebsd-dist.conf	${MNT}/server/nginx/sites-available/freebsd-dist.conf
+	elif [ "$service" = "ntopng" ]; then
+		/usr/bin/install -d -m 755 ${MNT}/server/nginx/sites-available
+		/usr/bin/install -d -m 700 ${MNT}/server/www
+		/usr/bin/install -d -m 700 ${MNT}/server/www/ntopng
+		/usr/bin/install    -m 644 /server/nginx/sites-available/ntopng.conf	${MNT}/server/nginx/sites-available/ntopng.conf
+	elif [ "$service" = "postfix" ]; then
+		/usr/bin/install -d -m 755 ${MNT}/server/postfix
+		/usr/bin/install -d -m 755 ${MNT}/server/postfix/db
+	elif [ "$service" = "iredmail" ]; then
+		/usr/bin/install -d -m 755 ${MNT}/server/iredmail
+		if [ ! -e /server/iredmail/iRedMail-0.8.7.tar.bz2 ]; then
+			/usr/bin/fetch --no-verify-peer -o /server/iredmail/iRedMail-0.8.7.tar.bz2 https://bitbucket.org/zhb/iredmail/downloads/iRedMail-0.8.7.tar.bz2
+		fi
+		if [ -e /server/iredmail/iRedMail-0.8.7.tar.bz2 ]; then
+			/bin/ln -shf iRedMail-0.8.7.tar.bz2 /server/iredmail/iredmail-latest.tar.bz2
+		fi
+		/usr/bin/install    -m 644 /server/iredmail/iredmail-latest.tar.bz2			${MNT}/server/iredmail/iredmail-latest.tar.bz2
+	elif [ "$service" = "dbmail" ]; then
+		/usr/bin/install -d -m 755 ${MNT}/server/dbmail
+	elif [ "$service" = "horde" ]; then
+		/usr/bin/install -d -m 755 ${MNT}/server/nginx/sites-available
+		/usr/bin/install    -m 644 /server/nginx/sites-available/horde.conf	${MNT}/server/nginx/sites-available/horde.conf
+	elif [ "$service" = "riak" ]; then
+		/usr/bin/install -d -m 755 ${MNT}/server/riak
+		/usr/bin/install -d -m 755 ${MNT}/server/riak/data
+		/usr/bin/install -d -m 755 ${MNT}/server/riak/tmp
+	elif [ "$service" = "nodejs" ]; then
+		/usr/bin/install -d -m 755 ${MNT}/server/nodejs
+	elif [ "$service" = "couchdb" ]; then
+		/usr/bin/install -d -m 755 ${MNT}/server/couchdb
+		/usr/bin/install -d -m 755 ${MNT}/server/couchdb/data
+		/usr/bin/install -d -m 755 ${MNT}/server/couchdb/tmp
+	elif [ "$service" = "mysql" -o "$service" = "percona" -o "$service" = "mariadb" -o "$service" = "perconacluster" -o "$service" = "mariadbcluster" ]; then
+		/usr/bin/install -d -m 755 ${MNT}/server/mysql
+		/usr/bin/install -d -m 755 ${MNT}/server/mysql/data
+		/usr/bin/install -d -m 755 ${MNT}/server/mysql/tmp
+	elif [ "$service" = "wordpress" -o "$service" = "wordpressaio" ]; then
+		/usr/bin/install -d -m 755 ${MNT}/server/nginx/sites-available
+		/usr/bin/install -d -m 755 ${MNT}/server/www
+		/usr/bin/install    -m 644 /server/nginx/sites-available/wordpress.conf 	${MNT}/server/nginx/sites-available/wordpress.conf
+		if [ ! -e /server/www/wordpress-latest.tar.gz ]; then
+			/usr/bin/fetch -o /server/www/wordpress-latest.tar.gz http://wordpress.org/latest.tar.gz
+		fi
+		/usr/bin/install    -m 644 /server/www/wordpress-latest.tar.gz			${MNT}/server/www/wordpress-latest.tar.gz
+	elif [ "$service" = "nginx" ]; then
+		/usr/bin/install -d -m 755 ${MNT}/server/nginx
+		/usr/bin/install -d -m 755 ${MNT}/server/nginx/global
+		/usr/bin/install -d -m 755 ${MNT}/server/nginx/sites-available
+		/usr/bin/install -d -m 755 ${MNT}/server/nginx/sites-enabled
+		/usr/bin/install -d -m 755 ${MNT}/server/www
+		/usr/bin/install    -m 644 /server/nginx/nginx.conf 						${MNT}/server/nginx/nginx.conf
+		/usr/bin/install    -m 644 /server/nginx/sites-available/wordpress.conf 	${MNT}/server/nginx/sites-available/wordpress.conf
+		for fil in /server/nginx/global/* ; do
+			/usr/bin/install    -m 644 ${fil} ${MNT}${fil}
+		done
+	elif [ "$service" = "sslproxy" -o "$service" = "sslproxywordpress" ]; then
+		/usr/bin/install -d -m 755 ${MNT}/server/nginx/sites-available
+		/usr/bin/install    -m 644 /server/nginx/sites-available/sslproxy.conf 			${MNT}/server/nginx/sites-available/sslproxy.conf
+		/usr/bin/install    -m 644 /server/nginx/sites-available/sslproxywordpress.conf 	${MNT}/server/nginx/sites-available/sslproxywordpress.conf
+	elif [ "$service" = "poudriere" ]; then
+		/usr/bin/install -d -m 755 ${MNT}/server/aslr
+		/usr/bin/install -d -m 755 ${MNT}/server/nginx/sites-available
+		/usr/bin/install -d -m 755 ${MNT}/server/patch
+		/usr/bin/install -d -m 755 ${MNT}/server/pkg
+		/usr/bin/install -d -m 755 ${MNT}/usr/local/etc
+		/usr/bin/install    -m 644 /server/nginx/sites-available/poudriere.conf ${MNT}/server/nginx/sites-available/poudriere.conf
+		/usr/bin/install    -m 644 /server/pkg/portlist 						${MNT}/server/pkg/portlist
+		for fil in /server/patch/* ; do
+			/usr/bin/install    -m 644 ${fil} ${MNT}${fil}
+		done
+		for fil in /server/aslr/* ; do
+			/usr/bin/install    -m 644 ${fil} ${MNT}${fil}
+		done
+	elif [ "$service" = "mfsbsd" ]; then
+		echo
+	elif [ "$service" = "qemu" ]; then
+		echo
+	elif [ "$service" = "release" ]; then
+		if /sbin/zfs list data/distro/releng10 ; then
+			/sbin/zfs mount data/distro/releng10
+		fi
+		if /sbin/zfs list data/distro/gitreleng10 ; then
+			/sbin/zfs mount data/distro/gitreleng10
+		fi
+		if [ -e /server/tftp/distro/releng10 ]; then
+			if [ -e /server/tftp/distro/gitreleng10 -a "xyes" = "x$INTERACTIVE" ]; then
+				/usr/bin/diff -r -x .git -x .svn /server/tftp/distro/releng10/ /server/tftp/distro/gitreleng10/ | /server/bin/less
+				echo "Press Enter to continue or ^C to abort."
+				read oktogo
+			fi
+			/server/bin/r -lc --delete --exclude .svn --exclude svn.core /server/tftp/distro/releng10/ ${BASEJAIL}/usr/src/
+		elif [ -e /server/tftp/distro/gitreleng10 ]; then
+			/server/bin/r -lc --delete --exclude .git --exclude svn.core /server/tftp/distro/gitreleng10/ ${BASEJAIL}/usr/src/
+		else
+			if ! /usr/bin/egrep 'sm_close_on_exec\(lowest' ${BASEJAIL}/usr/src/contrib/sendmail/src/conf.c >/dev/null 2>&1 ; then
+				#/server/bin/aslr-patch
+				/usr/bin/patch -Np1 -d ${BASEJAIL}/usr/src < /server/aslr/randomize-stack-and-mmap.bin
+				##### Reference http://www.freebsd.org/security/advisories/FreeBSD-SA-14:01.bsnmpd.asc
+				/usr/bin/patch -N -d ${BASEJAIL}/usr/src < /server/patch/bsnmpd.patch
+				##### Reference http://www.freebsd.org/security/advisories/FreeBSD-SA-14:02.ntpd.asc
+				/usr/bin/patch -N -d ${BASEJAIL}/usr/src < /server/patch/ntpd.patch
+				##### Reference http://www.freebsd.org/security/advisories/FreeBSD-SA-14:03.openssl.asc
+				/usr/bin/patch -N -d ${BASEJAIL}/usr/src < /server/patch/openssl.patch
+				##### Reference http://www.freebsd.org/security/advisories/FreeBSD-SA-14:05.nfsserver.asc
+				/usr/bin/patch -N -d ${BASEJAIL}/usr/src < /server/patch/nfsserver.patch
+				##### Reference http://www.freebsd.org/security/advisories/FreeBSD-SA-14:06.openssl.asc
+				/usr/bin/patch -N -d ${BASEJAIL}/usr/src < /server/patch/openssl-10.patch
+				##### Reference http://www.freebsd.org/security/advisories/FreeBSD-SA-14:07.devfs.asc
+				/usr/bin/patch -N -d ${BASEJAIL}/usr/src < /server/patch/devfs.patch
+				/usr/bin/install -o root -g wheel -m 444 ${BASEJAIL}/usr/src/etc/defaults/rc.conf /etc/defaults/
+				/usr/bin/install -o root -g wheel -m 444 ${BASEJAIL}/usr/src/etc/defaults/rc.conf ${BASEJAIL}/etc/defaults/
+				##### Reference http://www.freebsd.org/security/advisories/FreeBSD-SA-14:08.tcp.asc
+				/usr/bin/patch -N -d ${BASEJAIL}/usr/src < /server/patch/tcp.patch
+				##### Reference http://www.freebsd.org/security/advisories/FreeBSD-SA-14:09.openssl.asc
+				/usr/bin/patch -N -d ${BASEJAIL}/usr/src < /server/patch/openssl-10-1409.patch
+				# Replaced by openssl-10-1409.patch ##### Reference http://ftp.openbsd.org/pub/OpenBSD/patches/5.5/common/004_openssl.patch.sig
+				# Replaced by openssl-10-1409.patch /usr/bin/patch -N -d ${BASEJAIL}/usr/src < /server/patch/004_openssl-openbsd.patch
+				##### Reference http://www.freebsd.org/security/advisories/FreeBSD-SA-14:10.openssl.asc
+				/usr/bin/patch -N -d ${BASEJAIL}/usr/src < /server/patch/openssl-1410.patch
+				##### Reference http://www.freebsd.org/security/advisories/FreeBSD-SA-14:13.pam.asc
+				/usr/bin/patch -N -d ${BASEJAIL}/usr/src < /server/patch/pam-freebsd10.patch
+				##### Reference http://www.freebsd.org/security/advisories/FreeBSD-SA-14:11.sendmail.asc
+				/usr/bin/patch -N -d ${BASEJAIL}/usr/src < /server/patch/sendmail.patch
+				##### Reference http://www.freebsd.org/security/advisories/FreeBSD-SA-14:14.openssl.asc
+				/usr/bin/patch -N -d ${BASEJAIL}/usr/src < /server/patch/openssl-10-1414.patch
+			fi
+		fi
+		/bin/cp /server/release/release2.sh   ${BASEJAIL}/usr/src/release/release2.sh
+		/bin/cp /server/release/BIGNKPT       ${BASEJAIL}/usr/src/sys/amd64/conf/BIGNKPT
+		/bin/cp /server/release/src.conf      ${MNT}/etc/src.conf
+		/bin/cp /server/release/release.conf  ${MNT}/release.conf
+		/usr/bin/egrep "DOPENSSL_NO_HEARTBEATS" ${MNT}/etc/make.conf >/dev/null 2>&1 || \
+			/bin/cat >>${MNT}/etc/make.conf <<EOF
+CFLAGS+=-DOPENSSL_NO_HEARTBEATS
+#CFLAGS=    -O3 -pipe -fno-strict-aliasing -fstack-protector # -fPIE -pie -fPIC
+#COPTFLAGS= -O3 -pipe -fno-strict-aliasing -fstack-protector # -fPIE -pie -fPIC
+#CXXFLAGS+= -O3 -pipe -fno-strict-aliasing -fstack-protector # -fPIE -pie -fPIC
+#KERNCONF= BIGNKPT
+#CPUTYPE?= nocona
+#OPTIMIZED_CFLAGS= YES
+#BUILD_OPTIMIZED= YES
+#WITH_CPUFLAGS= YES
+#WITH_OPTIMIZED_CFLAGS= YES
+#BUILD_STATIC= YES
+#CC= clang
+#CXX= clang++
+#CPP= clang-cpp
+EOF
+	else
+		echo "Not implemented: jrolesetupservice $role"
+		exit 1
+	fi
+}
+
+# ---------------------------------------------------------
+
+jrolejailcreate () {
+	[ $# -lt 3 ] && echo "Usage: `basename $0` role hostname 'nic|ip'" && exit 1
+	local role=$1
+	local hostname=$2
+	local nicip=$3
+	local ip=$( echo $nicip | /usr/bin/awk -F'|' '{print $2}' )
+	local safehostname=$( echo -n $hostname | /usr/bin/tr -c '[:alnum:]' _ )
+	if ! /usr/local/bin/ezjail-admin list | /usr/bin/awk "\$4 ~ /$role/ {print \$4}" | /usr/bin/egrep "^${role}\$" >/dev/null 2>&1 ; then
+		/usr/local/bin/ezjail-admin create -f "${role}" "${hostname}" "${nicip}"
+	fi
+	/usr/bin/egrep "fstab" /usr/local/etc/ezjail/${safehostname} >/dev/null 2>&1 || \
+		/bin/cat >>/usr/local/etc/ezjail/${safehostname} <<EOF
+export jail_${safehostname}_fstab="/usr/local/etc/ezjail/fstab.${safehostname}"
+EOF
+	local FIXMNT=/usr/jails/${hostname}
+	/bin/chmod -h 755 ${FIXMNT}/bin
+	/bin/chmod -h 755 ${FIXMNT}/boot
+	/bin/chmod -h 755 ${FIXMNT}/lib
+	/bin/chmod -h 755 ${FIXMNT}/libexec
+	/bin/chmod -h 755 ${FIXMNT}/rescue
+	/bin/chmod -h 755 ${FIXMNT}/sbin
+	/bin/chmod -h 755 ${FIXMNT}/sys
+	/bin/chmod -h 755 ${FIXMNT}/usr/bin
+	/bin/chmod -h 755 ${FIXMNT}/usr/include
+	/bin/chmod -h 755 ${FIXMNT}/usr/lib
+	/bin/chmod -h 755 ${FIXMNT}/usr/lib32
+	/bin/chmod -h 755 ${FIXMNT}/usr/libdata
+	/bin/chmod -h 755 ${FIXMNT}/usr/libexec
+	/bin/chmod -h 755 ${FIXMNT}/usr/ports
+	/bin/chmod -h 755 ${FIXMNT}/usr/sbin
+	/bin/chmod -h 755 ${FIXMNT}/usr/share
+	/bin/chmod -h 755 ${FIXMNT}/usr/src
+	/bin/cat >${FIXMNT}/etc/hosts <<EOF
+${ip} localhost localhost.my.domain ${hostname}
+EOF
+	
+}
+
+# ---------------------------------------------------------
+
+# Setup the host to only listen on real ip
+jrolesetuphost () {
+	if [ ! -e /usr/local/bin/ezjail-admin ]; then
+		/usr/local/sbin/pkg-static install -y ezjail
+	fi
+	for ip in $( /server/bin/net-ipreal -F ' ' ) ; do
+		if ! /usr/bin/egrep "ListenAddress $ip" /etc/ssh/sshd_config >/dev/null 2>&1 ; then
+			/bin/cat >>/etc/ssh/sshd_config <<EOF
+##### Added by jrolesetuphost
+ListenAddress $ip
+##### End of addition
+EOF
+			/bin/chflags schg /etc/ssh/sshd_config
+			/etc/rc.d/sshd onereload 2> /dev/null
+		fi
+	done
+	/usr/bin/sed -i '' 's#etc/fstab\.#usr/local/etc/ezjail/fstab.#' /usr/local/bin/ezjail-admin
+	/usr/bin/sed -i '' 's#ls -A | xargs#ls -A | egrep -v "(fstab\.|ezjail\.conf|\.sig$)" | xargs#' /usr/local/bin/ezjail-admin
+	/usr/bin/sed -i '' 's#ls | xargs rcorder#ls | egrep -v "(fstab\.|ezjail\.conf|\.sig$)" | xargs#' /usr/local/etc/rc.d/ezjail
+	if ! /usr/bin/grep '^ezjail_jailzfs="data/ezjail"' /usr/local/etc/ezjail.conf > /dev/null 2> /dev/null; then
+		/bin/cat >/usr/local/etc/ezjail.conf <<EOF
+ezjail_use_zfs="YES"
+ezjail_use_zfs_for_jails="YES"
+ezjail_jailzfs="data/ezjail"
+EOF
+	fi
+	/usr/sbin/sysrc -f /etc/rc.conf ezjail_enable="NO"
+	/usr/sbin/sysrc -f /etc/rc.conf devfs_load_rulesets="YES"
+	##### Host Routing
+	/usr/sbin/sysrc -f /etc/rc.conf gateway_enable="YES"
+	/usr/sbin/sysrc -f /etc/rc.conf ipv6_gateway_enable="YES"
+	/sbin/sysctl net.inet.ip.forwarding=1 > /dev/null 2> /dev/null
+	/sbin/sysctl net.inet.ip.fastforwarding=1 > /dev/null 2> /dev/null
+	/sbin/sysctl net.inet6.ip6.forwarding=1 > /dev/null 2> /dev/null
+	/usr/bin/grep "net.inet.ip.forwarding=1" /etc/sysctl.conf > /dev/null 2> /dev/null || \
+		echo "net.inet.ip.forwarding=1" >> /etc/sysctl.conf
+	/usr/bin/grep "net.inet.ip.fastforwarding=1" /etc/sysctl.conf > /dev/null 2> /dev/null || \
+		echo "net.inet.ip.fastforwarding=1" >> /etc/sysctl.conf
+	/usr/bin/grep "net.inet6.ip6.forwarding=1" /etc/sysctl.conf > /dev/null 2> /dev/null || \
+		echo "net.inet6.ip6.forwarding=1" >> /etc/sysctl.conf
+	/usr/bin/grep "net.link.tap.user_open=1" /etc/sysctl.conf > /dev/null 2> /dev/null || \
+		echo "net.link.tap.user_open=1" >> /etc/sysctl.conf
+	/usr/bin/grep "net.link.tap.up_on_open=1" /etc/sysctl.conf > /dev/null 2> /dev/null || \
+		echo "net.link.tap.up_on_open=1" >> /etc/sysctl.conf
+	/bin/chflags schg /etc/sysctl.conf
+
+}
+
+# ---------------------------------------------------------
+
+# Setup the basejail with ezjail-admin
+jrolesetupbasejail () {
+	jrolesetuphost
+	if [ ! -d /usr/jails/basejail ]; then
+		/usr/bin/install -d -m 755 /usr/local/etc/ezjail
+		if [ -e ~/FreeBSD-${RELEASE}-${ARCH}-disc1.iso ]; then
+			/server/bin/mount_iso ~/FreeBSD-${RELEASE}-${ARCH}-disc1.iso /cdrom
+			# port?
+			#/usr/local/bin/ezjail-admin install -s -p -h file:///cdrom/usr/freebsd-dist
+			# no port
+			# no -s for source since we have a svn in data/distro/releng10
+			/usr/local/bin/ezjail-admin install -h file:///cdrom/usr/freebsd-dist
+			/sbin/umount /cdrom
+			for md in $( /sbin/mdconfig -lv | /usr/bin/grep "/root/FreeBSD-${RELEASE}-${ARCH}-disc1.iso" | /usr/bin/awk '{print $1}' ); do
+				/sbin/mdconfig -d -u {$md}
+			done
+		else
+			if /usr/bin/fetch -o /dev/null -T 10 "http://${PRODIP}.4/freebsd-dist/pub/FreeBSD/releases/amd64/amd64/10.0-RELEASE/base.txz" ; then
+				# no -s for source since we have a svn in data/distro/releng10
+				/usr/local/bin/ezjail-admin install -h http://${PRODIP}.4/freebsd-dist -r ${RELEASE}
+			fi
+		fi
+		if [ ! -d /usr/jails/basejail ]; then
+			# last try with /bootdir
+			/usr/local/bin/ezjail-admin install -h file:///bootdir/${RELEASE}-${ARCH}
+		fi
+		/bin/chmod 755 /usr/jails/basejail
+		/bin/chmod 755 /usr/jails/basejail/usr
+		if [ ! -d /usr/jails/basejail ]; then
+			echo "Error: base jail does not exist."
+			exit 1
+		else
+			if [ "xyes" = "x${continueyesno}" -o "xYES" = "x${continueyesno}" ]; then
+				#update if using standard
+				/usr/local/bin/ezjail-admin update -u
+			fi
+		fi
+	fi
+	# New Freebsd 10 uses these options
+	/usr/sbin/sysrc -f /usr/jails/flavours/example/etc/periodic.conf security_status_ipfwlimit_enable="NO"
+	/usr/sbin/sysrc -f /usr/jails/flavours/example/etc/periodic.conf security_status_ipfwdenied_enable="NO"
+
+}
+
+# ---------------------------------------------------------
+
+# Set up a jail/flavour rc.conf
+jrolesetuprc () {
+	[ $# -lt 1 ] && echo "Usage: `basename $0` mount" && exit 1
+	local MNT=$1
+	if [ -d "${MNT}" ]; then
+
+
+	##### NETWORK ALIAS, replace MYIP4ADDRESS
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf ifconfig_eth0_alias0="inet MYIP4ADDRESS netmask 255.255.255.255"
+	##### NETWORKING FOR HYPER-V
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf ifconfig_de0="SYNCDHCP media 100baseTX mediaopt full-duplex"
+	##### Set dumpdev to "AUTO" to enable crash dumps, "NO" to disable
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf dumpdev="NO"
+	##### NTP
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf ntpdate_enable="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf ntpdate_hosts=""
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf ntpd_enable="YES"
+	##### ZFS
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf zfs_enable="YES"
+	##### audit events, maybe for file sync
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf auditd_enable="YES"
+	##### Wait for dhcp before continue (needed by pf, carp)
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf synchronous_dhclient="YES"
+	##### SSH
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf sshd_enable="NO"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf sshd_rsa1_enable="NO"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf sshd_rsa_enable="YES"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf sshd_dsa_enable="NO"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf sshd_ecdsa_enable="YES"
+	##### Cron
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf cron_enable="YES"
+	##### Firewalls
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf firewall_enable="NO"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf firewall_logging="NO"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf pf_enable="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf pf_rules="/server/pf/pf.conf"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf pflog_enable="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf pflog_logfile="/var/log/pflog"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf ftpproxy_enable="YES"
+	##### Sysylogs
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf syslogd_enable="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf syslogd_flags="-s -b127.0.0.1"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf syslogd_flags="-ss"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf newsyslog_enable="YES"
+	##### Mail, Groupware
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf sendmail_enable="NO"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf sendmail_submit_enable="NO"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf sendmail_outbound_enable="NO"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf sendmail_msp_queue_enable="NO"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf postfix_enable="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf postfix_pidfile="/var/run/master.pid"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf postfix_procname="/usr/local/libexec/postfix/master"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf postfix_flags=""
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf saslauthd_enable="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf postfwd_enable="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf postfwd_config="/server/postfix/postfwd.conf"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf dovecot_enable="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf dovecot_config="/server/dovecot/dovecot.conf"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf slapd_enable="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf slapd_flags="-h 'ldapi://%2fvar%2frun%2fopenldap%2fldapi/ ldap://0.0.0.0/'"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf slapd_sockets="/var/run/openldap/ldapi"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf slapd_owner="DEFAULT"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf slapd_cn_config="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf slapd_krb5_ktname="/path/to/ldap.keytab"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf kerberos5_server_enable="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf kadmind5_server_enable="YES"
+	##### Xorg
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf dbus_enable="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf hald_enable="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf slim_enable="YES"
+	##### Routing
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf gateway_enable="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf ipv6_gateway_enable="YES"
+	##### IPSEC
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf ipsec_enable="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf ipsec_program="/usr/local/sbin/setkey"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf ipsec_file="/server/racoon/setkey.conf"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf racoon_enable="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf racoon_flags="-l /var/log/racoon.log"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf mpd_enable="YES"
+	##### Streaming DLNA
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf minidlna_enable="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf firefly_enable="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf avahi_daemon_enable="YES"
+	##### AFP/Netatalk/Apple Timemachine
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf avahi_daemon_enable="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf avahi_dnsconfd_enable="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf netatalk_enable="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf afpd_enable="YES"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf cnid_metad_enable="YES"
+	##### Jails prevent shared memory
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf jail_sysvipc_allow="NO"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf ezjail_enable="NO"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf rpcbind_enable="NO"
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf devfs_load_rulesets="YES"
+	##### LAGG workaround for lagg not sending ARP to refresh switch table
+##	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf jping_enable="YES"
+	##### Virt drivers
+	# DO NOT REMOVE LOADING OF VIRTIO DRIVERS BELOW
+	# YOUR SYSTEM WON'T BE ABLE TO BOOT WITHOUT THEM
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf virtio_load="YES"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf virtio_pci_load="YES"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf virtio_blk_load="YES"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf if_vtnet_load="YES"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf virtio_balloon_load="YES"
+	##### etc
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf linux_enable="YES"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf timed_enable="NO"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf update_motd="NO"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf virecover_enable="YES"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf rsyncd_enable="NO"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf ftp_enable="NO"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf tcp_extensions="YES"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf ppp_enable="NO"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf pppoed_enable="NO"
+	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf local_enable="YES"
+
+
+	fi
+}
+
+# ---------------------------------------------------------
+
+# nat AND create start
+jrolenatcreate () {
+	[ $# -lt 3 ] && echo "Usage: `basename $0` role hostname 'nic|ip'" && exit 1
+	local role=$1
+	local hostname=$2
+	local nicip=$3
+	jrolenat     ${role} ${hostname} ${nicip}
+	jrolecreate  ${role} ${hostname} ${nicip}
+}
+
+# ---------------------------------------------------------
+
+# nat AND create start
+jrolenatstart () {
+	[ $# -lt 3 ] && echo "Usage: `basename $0` role hostname 'nic|ip'" && exit 1
+	local role=$1
+	local hostname=$2
+	local nicip=$3
+	jrolenat     ${role} ${hostname} ${nicip}
+	jrolestart   ${role} ${hostname} ${nicip}
+}
+
+# ---------------------------------------------------------
+
+# Calls jrolecreate, and then jrolebgstart
+jrolestart () {
+	[ $# -lt 3 ] && echo "Usage: `basename $0` role hostname 'nic|ip'" && exit 1
+	local role=$1
+	local hostname=$2
+	local nicip=$3
+	jrolecreate  ${role} ${hostname} ${nicip}
+	jrolebgstart ${role} ${hostname}
+}
+
+# ---------------------------------------------------------
+
+# Send jail to another server
+jrolesendjail () {
+	# params: role, host:port
+	[ $# -lt 2 ] && echo "Usage: `basename $0` hostname host:port" && exit 1
+	local timestamp=$( /bin/date '+%Y%m%dT%H%M%S%Z' )
+	local hostname=$1
+	local safename=$( echo -n "${hostname}" | /usr/bin/tr -c '[:alnum:]' _ )
+	local jailip=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep "${hostname}" | /usr/bin/awk '{print $2}' )
+	if echo "${2}" | /usr/bin/grep ':' >/dev/null 2>&1 ; then
+		local REMOTE_HOST=$( echo "${2}" | /usr/bin/cut -d: -f1 )
+		local REMOTE_PORT=$( echo "${2}" | /usr/bin/cut -d: -f2 )
+	else
+		local REMOTE_HOST="${2}"
+		local REMOTE_PORT=22
+	fi
+	local REMOTE_CONNECTION="/usr/bin/ssh -p ${REMOTE_PORT} ${REMOTE_HOST}"
+	# Catch unknown host key
+	if ! ${REMOTE_CONNECTION} echo ; then
+		exit 1
+	fi
+	if /sbin/zfs list data/ezjail/${hostname} ; then
+		# Send jail filesystem
+		/sbin/zfs snapshot						data/ezjail/${hostname}@${timestamp}
+		/server/bin/zfssend						data/ezjail/${hostname}@${timestamp}      ${2} data || exit 1
+		${REMOTE_CONNECTION} /sbin/zfs mount	data/ezjail/${hostname}
+	else
+		# Send jail archive
+		/usr/local/bin/ezjail-admin onestop	${hostname}
+		/usr/local/bin/ezjail-admin archive ${hostname}
+		/usr/local/bin/ezjail-admin onestart	${hostname}
+		local thisarchive=$( /bin/ls -1tr /usr/jails/ezjail_archives/${safename}* | /usr/bin/tail -1 )
+		${REMOTE_CONNECTION} /bin/mkdir -p	/usr/jails/ezjail_archives
+		/usr/bin/scp -P ${REMOTE_PORT}		${thisarchive} ${REMOTE_HOST}:${thisarchive}
+		echo "ON THE REMOTE SYSTEM, RECREATE THE JAIL:"
+		echo "ezjail-admin create -a ${thisarchive} ${hostname} ${jailip}"
+	fi
+	# Send jail fstab
+	/usr/bin/scp -P ${REMOTE_PORT}		/usr/local/etc/ezjail/fstab.${safename} ${REMOTE_HOST}:/usr/local/etc/ezjail/
+	# Send jail options
+	${REMOTE_CONNECTION} /bin/mkdir -p	/usr/local/etc/ezjail
+	/usr/bin/scp -P ${REMOTE_PORT}		/usr/local/etc/ezjail/${safename} ${REMOTE_HOST}:/usr/local/etc/ezjail/
+	# Notify how to restore
+	echo "ON THE REMOTE SYSTEM, YOU CAN RESTORE THE JAIL WITH:"
+	echo "ezjail-admin onestart ${hostname}"
+}
+
+# ---------------------------------------------------------
+
+# Send old data to another server
+jrolesenddata () {
+	# params: role, host:port
+	[ $# -lt 2 ] && echo "Usage: `basename $0` role host:port" && exit 1
+	local timestamp=$( /bin/date '+%Y%m%dT%H%M%S%Z' )
+	local role=$1
+	if echo "${2}" | /usr/bin/grep ':' >/dev/null 2>&1 ; then
+		local REMOTE_HOST=$( echo "${2}" | /usr/bin/cut -d: -f1 )
+		local REMOTE_PORT=$( echo "${2}" | /usr/bin/cut -d: -f2 )
+	else
+		local REMOTE_HOST="${2}"
+		local REMOTE_PORT=22
+	fi
+	local REMOTE_CONNECTION="/usr/bin/ssh -p ${REMOTE_PORT} ${REMOTE_HOST}"
+	# Catch unknown host key
+	if ! ${REMOTE_CONNECTION} echo ; then
+		exit 1
+	fi
+	if [ "$role" = "poudriere" ]; then
+		/sbin/zfs snapshot			-r	data/distfiles@${timestamp}
+		/server/bin/zfssend				data/distfiles@${timestamp}      ${2} data || exit 1
+		${REMOTE_CONNECTION} zfs mount	data/distfiles
+		/sbin/zfs snapshot			-r	data/poudriere/data@${timestamp}
+		/server/bin/zfssend				data/poudriere/data@${timestamp} ${2} data || exit 1
+		${REMOTE_CONNECTION} zfs mount	data/poudriere/data
+	elif [ "$role" = "pxe" ]; then
+		/sbin/zfs snapshot			-r	data/distro@${timestamp}
+		/server/bin/zfssend				data/distro@${timestamp}         ${2} data || exit 1
+		${REMOTE_CONNECTION} zfs mount	data/distro
+	else
+		echo "Not implemented"
+		exit 1
+	fi
+}
+
+# ---------------------------------------------------------
+
+jroleperconaclusterjails (){
+	local arg=$1
+	local jailname=""
+	local standalone=""
+	local upstream="perconacluster perconacluster perconacluster"
+	local proxies=""
+	local roles="${standalone} ${upstream} ${proxies}"
+	local clustercount=0
+	local nodes=""
+	local mydomain="lan.local"
+	local realjailhostnames=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep perconacluster | /usr/bin/awk '{print $4}' )
+	local hostname=""
+	case $arg in
+		clean|remove|delete|destroy|reinstall)
+			for hostname in ${realjailhostnames} ; do
+				echo jroledestroy ${hostname}
+				jroledestroy ${hostname}
+			done
+			for role in ${roles} ; do
+				echo jroleflavourdestroy ${role}
+				jroleflavourdestroy ${role}
+			done
+			;;
+	esac
+	if [ "$arg" = "clean" -o "$arg" = "remove" -o "$arg" = "delete" -o "$arg" = "destroy" ]; then
+		# return nothing
+		echo
+	else
+		jrolesetupbasejail
+		for role in ${upstream} ; do
+			# Global vars for duration of script run for setting loadbalancer and sslproxy
+			LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
+			DBUPSTREAM="${DBUPSTREAM},${LOCALIP}.${LOCALIPCOUNT}"
+			local hostname="${role}${LOCALIPCOUNT}.${mydomain}"
+			jrolenatcreate ${role} ${hostname} "${LOCALNIC}|${LOCALIP}.${LOCALIPCOUNT}"
+			echo "${role} ${hostname}" >>${TMPFILE}
+		done
+		local realjailhostnames=$( /usr/bin/awk '{print $2}' ${TMPFILE} )
+		for hostname in ${realjailhostnames} ; do
+			local clustercount=$(( clustercount + 1 ))
+			if [ $clustercount -eq 1 ]; then
+				local nodes="gcomm://"
+				# Don't strip first comma, configmysql will do it
+				local nodes="gcomm://${DBUPSTREAM}"
+				# Wait for first to start
+				if ! /usr/bin/grep "${hostname}" /var/log/jrolebgstart.log >/dev/null 2>&1 ; then
+					echo "perconacluster ${hostname} ${clustercount} ${nodes}" >> /var/log/jrolebgstart.log
+					jrolebgstart perconacluster ${hostname} ${clustercount} ${nodes}
+					/bin/sleep 1
+				fi
+			else
+				# Don't strip first comma, configmysql will do it
+				local nodes="gcomm://${DBUPSTREAM}"
+				# Now others can start in background
+				if ! /usr/bin/grep "${hostname}" /var/log/jrolebgstart.log >/dev/null 2>&1 ; then
+					echo "perconacluster ${hostname} ${clustercount} ${nodes}" >> /var/log/jrolebgstart.log
+					( jrolebgstart perconacluster ${hostname} ${clustercount} ${nodes} ) &
+					/bin/sleep 1
+				fi
+			fi
+		done
+	fi
+}
+
+# ---------------------------------------------------------
+
+jrolewordpressjails () {
+	#jrolemariadbclusterjails $1
+	local arg=$1
+	local jailname=""
+	local standalone="mariadb"
+	local upstream="wordpress"
+	local proxies="sslproxywordpress"
+	local roles="${standalone} ${upstream} ${proxies}"
+	local mydomain="wp.local"
+	local realjailhostnames=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep "${mydomain}" | /usr/bin/awk '{print $4}' )
+	local hostname=""
+	case $arg in
+		clean|remove|delete|destroy|reinstall)
+			for hostname in ${realjailhostnames} ; do
+				echo jroledestroy ${hostname}
+				jroledestroy ${hostname}
+			done
+			for role in ${roles} ; do
+				echo jroleflavourdestroy ${role}
+				jroleflavourdestroy ${role}
+			done
+			;;
+	esac
+	if [ "$arg" = "clean" -o "$arg" = "remove" -o "$arg" = "delete" -o "$arg" = "destroy" ]; then
+		# return nothing
+		echo
+	else
+		jrolesetupbasejail
+		for role in ${upstream} ; do
+			# Global vars for duration of script run for setting loadbalancer and sslproxy
+			LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
+			HTTPUPSTREAM="${HTTPUPSTREAM}${LOCALIP}.${LOCALIPCOUNT} "
+			local hostname="${role}${LOCALIPCOUNT}.${mydomain}"
+			jrolenatcreate ${role} ${hostname} "${LOCALNIC}|${LOCALIP}.${LOCALIPCOUNT}"
+			echo "${role} ${hostname}" >>${TMPFILE}
+		done
+		for role in ${standalone} ; do
+			# Global vars for ipcount
+			LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
+			local hostname="${role}${LOCALIPCOUNT}.${mydomain}"
+			jrolenatcreate ${role} ${hostname} "${LOCALNIC}|${LOCALIP}.${LOCALIPCOUNT}"
+			echo "${role} ${hostname}" >>${TMPFILE}
+		done
+		for role in ${proxies} ; do
+			# Global vars for ipcount
+			LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
+			local hostname="${role}${LOCALIPCOUNT}.${mydomain}"
+			jrolenatcreate ${role} ${hostname} "${LOCALNIC}|${LOCALIP}.${LOCALIPCOUNT}"
+			echo "${role} ${hostname}" >>${TMPFILE}
+		done
+		local realjailhostnames=$( /usr/bin/awk '{print $2}' ${TMPFILE} )
+		for hostname in ${realjailhostnames} ; do
+			local role=$( /usr/bin/grep "${hostname}" ${TMPFILE} | /usr/bin/awk '{print $1}' )
+			if ! /usr/bin/grep "${hostname}" /var/log/jrolebgstart.log >/dev/null 2>&1 ; then
+				echo "${role} ${hostname}" >> /var/log/jrolebgstart.log
+				( jrolebgstart ${role} ${hostname} ) &
+				/bin/sleep 1
+			fi
+		done
+	fi
+}
+
+# ---------------------------------------------------------
+
+jrolepxejails () {
+	local arg=$1
+	local jailname=""
+	local standalone="pxe pkgng freebsd-dist"
+	local upstream=""
+	local proxies=""
+	local roles="${standalone} ${upstream} ${proxies}"
+	local mydomain="lanctl.local"
+	local realjailhostnames=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep "${mydomain}" | /usr/bin/awk '{print $4}' )
+	local hostname=""
+	local mynic=""
+	local myip=""
+	local localcount=0
+	case $arg in
+		clean|remove|delete|destroy|reinstall)
+			for hostname in ${realjailhostnames} ; do
+				echo jroledestroy ${hostname}
+				jroledestroy ${hostname}
+			done
+			for role in ${roles} ; do
+				echo jroleflavourdestroy ${role}
+				jroleflavourdestroy ${role}
+			done
+			;;
+		nostart)
+			local nostart=1
+			;;
+	esac
+	if [ "$arg" = "clean" -o "$arg" = "remove" -o "$arg" = "delete" -o "$arg" = "destroy" ]; then
+		# return nothing
+		echo
+	else
+		jrolesetupbasejail
+		for role in ${standalone} ; do
+			if [ ${LOCALIPCOUNT} -eq 0 ]; then
+				# Global vars for ipcount
+				LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
+				local myip="${LOCALIP}.${LOCALIPCOUNT}"
+				local mynic="${LOCALNIC}"
+				local localcount=$(( localcount + 1 ))
+				jrolenatcreate sslproxy "test${LOCALIPCOUNT}.${mydomain}" "${mynic}|${myip}"
+			fi
+			if [ "$role" = "dhcpd" ]; then
+				# Global vars for ipcount
+				IPCOUNT=$(( IPCOUNT + 1 ))
+				LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
+				local myip="${IP}.${IPCOUNT}"
+				local mynic="${NIC}"
+			else
+				# Global vars for ipcount
+				LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
+				local myip="${LOCALIP}.${LOCALIPCOUNT}"
+				local mynic="${LOCALNIC}"
+			fi
+			local localcount=$(( localcount + 1 ))
+			# Global vars for duration of script run for setting firewall
+			NETCONTROL="${NETCONTROL}${myip} "
+			DHCP=$( echo $NETCONTROL | /usr/bin/cut -d' ' -f1 )
+			local hostname="${role}${LOCALIPCOUNT}.${mydomain}"
+			jrolenatcreate ${role} ${hostname} "${mynic}|${myip}"
+			echo "${role} ${hostname}" >>${TMPFILE}
+		done
+		if [ "x" = "x${nostart}" ]; then
+			local realjailhostnames=$( /usr/bin/awk '{print $2}' ${TMPFILE} )
+			for hostname in ${realjailhostnames} ; do
+				local role=$( /usr/bin/grep "${hostname}" ${TMPFILE} | /usr/bin/awk '{print $1}' )
+				if ! /usr/bin/grep "${hostname}" /var/log/jrolebgstart.log >/dev/null 2>&1 ; then
+					echo "${role} ${hostname}" >> /var/log/jrolebgstart.log
+					jrolebgstart ${role} ${hostname}
+					/bin/sleep 1
+				fi
+			done
+		fi
+	fi
+}
+
+# ---------------------------------------------------------
+
+jroledhcpdjails () {
+	local arg=$1
+	local jailname=""
+	local standalone="dhcpd"
+	local upstream=""
+	local proxies=""
+	local roles="${standalone} ${upstream} ${proxies}"
+	local mydomain="lanctl.local"
+	local realjailhostnames=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep "${mydomain}" | /usr/bin/awk '{print $4}' )
+	local hostname=""
+	local mynic=""
+	local myip=""
+	local localcount=0
+	case $arg in
+		clean|remove|delete|destroy|reinstall)
+			for hostname in ${realjailhostnames} ; do
+				echo jroledestroy ${hostname}
+				jroledestroy ${hostname}
+			done
+			for role in ${roles} ; do
+				echo jroleflavourdestroy ${role}
+				jroleflavourdestroy ${role}
+			done
+			;;
+		nostart)
+			local nostart=1
+			;;
+	esac
+	if [ "$arg" = "clean" -o "$arg" = "remove" -o "$arg" = "delete" -o "$arg" = "destroy" ]; then
+		# return nothing
+		echo
+	else
+		jrolesetupbasejail
+		for role in ${standalone} ; do
+			if [ "$role" = "dhcpd" ]; then
+				# Global vars for ipcount
+				IPCOUNT=$(( IPCOUNT + 1 ))
+				LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
+				local myip="${IP}.${IPCOUNT}"
+				local mynic="${NIC}"
+			else
+				# Global vars for ipcount
+				LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
+				local myip="${LOCALIP}.${LOCALIPCOUNT}"
+				local mynic="${LOCALNIC}"
+			fi
+			local localcount=$(( localcount + 1 ))
+			# Global vars for duration of script run for setting firewall
+			NETCONTROL="${NETCONTROL}${myip} "
+			DHCP=$( echo $NETCONTROL | /usr/bin/cut -d' ' -f1 )
+			local hostname="${role}${localcount}.${mydomain}"
+			jrolenatcreate ${role} ${hostname} "${mynic}|${myip}"
+			echo "${role} ${hostname}" >>${TMPFILE}
+		done
+		if [ "x" = "x${nostart}" ]; then
+			local realjailhostnames=$( /usr/bin/awk '{print $2}' ${TMPFILE} )
+			for hostname in ${realjailhostnames} ; do
+				local role=$( /usr/bin/grep "${hostname}" ${TMPFILE} | /usr/bin/awk '{print $1}' )
+				if ! /usr/bin/grep "${hostname}" /var/log/jrolebgstart.log >/dev/null 2>&1 ; then
+					echo "${role} ${hostname}" >> /var/log/jrolebgstart.log
+					jrolebgstart ${role} ${hostname}
+					/bin/sleep 1
+				fi
+			done
+			jrolepxejails
+		else
+			jrolepxejails nostart
+		fi
+	fi
+}
+
+# ---------------------------------------------------------
+
+jrolebuilderjails () {
+	local arg=$1
+	local jailname=""
+	local standalone="release"
+	local upstream=""
+	local proxies=""
+	local roles="${standalone} ${upstream} ${proxies}"
+	local clustercount=0
+	local nodes=""
+	local mydomain="builder.local"
+	local realjailhostnames=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep "${mydomain}" | /usr/bin/awk '{print $4}' )
+	local hostname=""
+	case $arg in
+		clean|remove|delete|destroy|reinstall)
+			for hostname in ${realjailhostnames} ; do
+				echo jroledestroy ${hostname}
+				jroledestroy ${hostname}
+			done
+			for role in ${roles} ; do
+				echo jroleflavourdestroy ${role}
+				jroleflavourdestroy ${role}
+			done
+			;;
+	esac
+	if [ "$arg" = "clean" -o "$arg" = "remove" -o "$arg" = "delete" -o "$arg" = "destroy" ]; then
+		# return nothing
+		echo
+	else
+		jrolesetupbasejail
+		for role in ${standalone} ; do
+			# Global vars for ipcount
+			LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
+			local hostname="${role}${LOCALIPCOUNT}.${mydomain}"
+			jrolenatcreate ${role} ${hostname} "${LOCALNIC}|${LOCALIP}.${LOCALIPCOUNT}"
+			echo "${role} ${hostname}" >>${TMPFILE}
+		done
+		local realjailhostnames=$( /usr/bin/awk '{print $2}' ${TMPFILE} )
+		for hostname in ${realjailhostnames} ; do
+			local role=$( /usr/bin/grep "${hostname}" ${TMPFILE} | /usr/bin/awk '{print $1}' )
+			if ! /usr/bin/grep "${hostname}" /var/log/jrolebgstart.log >/dev/null 2>&1 ; then
+				echo "${role} ${hostname}" >> /var/log/jrolebgstart.log
+				jrolebgstart ${role} ${hostname}
+				/bin/sleep 1
+			fi
+		done
+	fi
+}
+
+# ---------------------------------------------------------
+
+jrolemfsbsdjails () {
+	local arg=$1
+	local jailname=""
+	local standalone="mfsbsd"
+	local upstream=""
+	local proxies=""
+	local roles="${standalone} ${upstream} ${proxies}"
+	local clustercount=0
+	local nodes=""
+	local mydomain="builder.local"
+	local realjailhostnames=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep mfsbsd | /usr/bin/awk '{print $4}' )
+	local hostname=""
+	case $arg in
+		clean|remove|delete|destroy|reinstall)
+			for hostname in ${realjailhostnames} ; do
+				echo jroledestroy ${hostname}
+				jroledestroy ${hostname}
+			done
+			for role in ${roles} ; do
+				echo jroleflavourdestroy ${role}
+				jroleflavourdestroy ${role}
+			done
+			;;
+	esac
+	if [ "$arg" = "clean" -o "$arg" = "remove" -o "$arg" = "delete" -o "$arg" = "destroy" ]; then
+		# return nothing
+		echo
+	else
+		jrolesetupbasejail
+		for role in ${standalone} ; do
+			# Global vars for ipcount
+			LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
+			local hostname="${role}${LOCALIPCOUNT}.${mydomain}"
+			jrolenatcreate ${role} ${hostname} "${LOCALNIC}|${LOCALIP}.${LOCALIPCOUNT}"
+			echo "${role} ${hostname}" >>${TMPFILE}
+		done
+		local realjailhostnames=$( /usr/bin/awk '{print $2}' ${TMPFILE} )
+		for hostname in ${realjailhostnames} ; do
+			local role=$( /usr/bin/grep "${hostname}" ${TMPFILE} | /usr/bin/awk '{print $1}' )
+			if ! /usr/bin/grep "${hostname}" /var/log/jrolebgstart.log >/dev/null 2>&1 ; then
+				echo "${role} ${hostname}" >> /var/log/jrolebgstart.log
+				jrolebgstart ${role} ${hostname}
+				/bin/sleep 1
+			fi
+		done
+	fi
+}
+
+# ---------------------------------------------------------
+
+jrolemariadbclusterjails () {
+	local mynic="${LOCALNIC}"
+	if [ "x" = "x${IPS}" ]; then
+		local mynic="${NIC}"
+	fi
+	local arg=$1
+	local jailname=""
+	local standalone=""
+	local upstream="mariadbcluster mariadbcluster"
+	local proxies=""
+	local roles="${standalone} ${upstream} ${proxies}"
+	local clustercount=0
+	local nodes=""
+	local mydomain="lan.local"
+	local realjailhostnames=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep mariadbcluster | /usr/bin/awk '{print $4}' )
+	local hostname=""
+	case $arg in
+		clean|remove|delete|destroy|reinstall)
+			for hostname in ${realjailhostnames} ; do
+				echo jroledestroy ${hostname}
+				jroledestroy ${hostname}
+			done
+			for role in ${roles} ; do
+				echo jroleflavourdestroy ${role}
+				jroleflavourdestroy ${role}
+			done
+			;;
+	esac
+	if [ "$arg" = "clean" -o "$arg" = "remove" -o "$arg" = "delete" -o "$arg" = "destroy" ]; then
+		# return nothing
+		echo
+	else
+		jrolesetupbasejail
+		local mylist="${upstream}"
+		if [ "x" = "x${IPS}" ]; then
+			local mylist="${IPS}"
+		fi
+		for myitem in ${mylist} ; do
+			# Global vars for duration of script run for setting loadbalancer and sslproxy
+			LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))			
+			if [ "x" = "x${IPS}" ]; then
+				DBUPSTREAM="${DBUPSTREAM},${myitem}"
+			else
+				DBUPSTREAM="${DBUPSTREAM},${LOCALIP}.${LOCALIPCOUNT}"
+			fi
+			local hostname="mariadbcluster${LOCALIPCOUNT}.${mydomain}"
+			local myip="${LOCALIP}.${LOCALIPCOUNT}"
+			if [ "x" = "x${IPS}" ]; then
+				local myip="${myitem}"
+			fi
+			jrolenatcreate mariadbcluster ${hostname} "${mynic}|${myip}"
+			echo "mariadbcluster ${hostname}" >>${TMPFILE}
+		done
+		local realjailhostnames=$( /usr/bin/awk '{print $2}' ${TMPFILE} )
+		for hostname in ${realjailhostnames} ; do
+			local clustercount=$(( clustercount + 1 ))
+			local nodes="gcomm://${DBUPSTREAM}"
+			if [ $clustercount -eq 1 ]; then
+				# Wait for first to start
+				if ! /usr/bin/grep "${hostname}" /var/log/jrolebgstart.log >/dev/null 2>&1 ; then
+					echo "mariadbcluster ${hostname} ${clustercount} ${nodes}" >> /var/log/jrolebgstart.log
+					jrolebgstart mariadbcluster ${hostname} ${clustercount} ${nodes}
+					/bin/sleep 1
+				fi
+			else
+				# Now others can start in background
+				if ! /usr/bin/grep "${hostname}" /var/log/jrolebgstart.log >/dev/null 2>&1 ; then
+					echo "mariadbcluster ${hostname} ${clustercount} ${nodes}" >> /var/log/jrolebgstart.log
+					( jrolebgstart mariadbcluster ${hostname} ${clustercount} ${nodes} ) &
+					/bin/sleep 1
+				fi
+			fi
+		done
+	fi
+}
+
+# ---------------------------------------------------------
+
+jroleflavourdestroy () {
+	local role=$1
+	if [ "x" != "${role}x" ]; then
+		/bin/rm -r /usr/jails/flavours/$role
+	fi
+}
+
+# ---------------------------------------------------------
+
+jroledestroy () {
+	local jailname=$1
+	if [ "x" != "${jailname}x" ]; then
+		/usr/local/bin/ezjail-admin onestop $jailname
+		/usr/local/bin/ezjail-admin delete -w $jailname
+		sleep 5
+		/sbin/umount /usr/jails/$jailname
+		/bin/rm -r /usr/jails/$jailname
+		/sbin/zfs destroy -f data/ezjail/$jailname
+	fi
+}
+
+# ---------------------------------------------------------
+
+jrolerecover () {
+	local service=$1
+	if [ "xdhcp" = "x${service}" -o "xdhcpd" = "x${service}" ]; then
+		jroledhcpdjails nostart
+	else
+		jrolepxejails nostart
+	fi
+	jrolelinkmedia
+	local pkghostname=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep pkgng | /usr/bin/awk '{print $4}' )
+	local pkgfile=$( /usr/local/bin/ezjail-admin console -e 'find /server/www/pkgng' ${pkghostname} | /usr/bin/grep "openssl-.*txz" )
+	/usr/local/bin/ezjail-admin console -e "pkg-static add ${pkgfile}" ${pkghostname}
+	local pkgfile=$( /usr/local/bin/ezjail-admin console -e 'find /server/www/pkgng' ${pkghostname} | /usr/bin/grep "pcre-.*txz" )
+	/usr/local/bin/ezjail-admin console -e "pkg-static add ${pkgfile}" ${pkghostname}
+	local pkgfile=$( /usr/local/bin/ezjail-admin console -e 'find /server/www/pkgng' ${pkghostname} | /usr/bin/grep "nginx-.*txz" )
+	/usr/local/bin/ezjail-admin console -e "pkg-static add ${pkgfile}" ${pkghostname}
+	local pkgfile=$( /usr/local/bin/ezjail-admin console -e 'find /server/www/pkgng' ${pkghostname} | /usr/bin/grep "pkg-.*txz" )
+	/usr/local/bin/ezjail-admin console -e "pkg-static add ${pkgfile}" ${pkghostname}
+	jrolebgstart pkgng ${pkghostname}
+	jrolebgstart freebsd-dist $( /usr/local/bin/ezjail-admin list | /usr/bin/grep freebsd-dist | /usr/bin/awk '{print $4}' )
+	jrolebgstart pxe $( /usr/local/bin/ezjail-admin list | /usr/bin/grep pxe | /usr/bin/awk '{print $4}' )
+	if [ "xdhcp" = "x${service}" -o "xdhcpd" = "x${service}" ]; then
+		jrolebgstart dhcpd $( /usr/local/bin/ezjail-admin list | /usr/bin/grep dhcpd | /usr/bin/awk '{print $4}' )
+	fi
+}
+
+# ---------------------------------------------------------
+
+jrolelinkmedia () {
+	local releasedir=$( /usr/bin/find /bootdir -name base.txz | /usr/bin/head -1 )
+	if [ "x" != "x${releasedir}" ]; then
+		local distdir=$( /usr/bin/find /usr/jails/freebsd-dist*/server/www -name freebsd-dist | /usr/bin/head -1 )
+		if [ "x" != "x${distdir}" ]; then
+			#/sbin/umount ${distdir}/${RELEASE}-${ARCH}
+			/server/bin/r -tcW ${releasedir%/*}/ ${distdir}/${RELEASE}-${ARCH}/
+
+			/bin/ln -shf /server/www/freebsd-dist/${RELEASE}-${ARCH} ${distdir}/${RELEASE}-${ARCH}/FreeBSD
+			/bin/ln -shf /server/www/freebsd-dist/${RELEASE}-${ARCH} ${distdir}/${RELEASE}-${ARCH}/releases
+			/bin/ln -shf /server/www/freebsd-dist/${RELEASE}-${ARCH} ${distdir}/${RELEASE}-${ARCH}/${ARCH}
+			/bin/ln -shf /server/www/freebsd-dist/${RELEASE}-${ARCH} ${distdir}/${RELEASE}-${ARCH}/${RELEASE}
+
+			/usr/bin/find ${distdir} -type l -exec /bin/chmod -h 755 {} \;
+			/usr/bin/find ${distdir} -type d -exec /bin/chmod 755 {} \;
+			/usr/bin/find ${distdir} -type f -exec /bin/chmod 644 {} \;
+
+			jroleproductionip $( /usr/local/bin/ezjail-admin list | /usr/bin/grep freebsd-dist | /usr/bin/awk '{print $4}' )
+		fi
+	fi
+	local distdir=$( /usr/bin/find /usr/jails/freebsd-dist*/server/www -name mfsbsd | /usr/bin/head -1 )
+	if [ "x" != "x${distdir}" ]; then
+		/bin/mkdir -p ${distdir}/${RELEASE}-${ARCH}
+		local releasedir=$( /usr/bin/find /bootdir -name 'NOX*tar' | /usr/bin/head -1 )
+		if [ "x" != "x${releasedir}" ]; then
+			/server/bin/r -tcW ${releasedir} ${distdir}/${RELEASE}-${ARCH}/
+		fi
+	fi
+	local POUDIR=/poudriere
+	local releasedir=$( /usr/bin/find /packages -name 'rsync*txz' | /usr/bin/head -1 )
+	if [ "x" != "x${releasedir}" ]; then
+		local distdir=$( /usr/bin/find /usr/jails/pkgng*/server/www -name pkgng | /usr/bin/head -1 )
+		if [ "x" != "x${distdir}" ]; then
+			mkdir -p ${distdir}/All
+			echo "/server/bin/r -tcW --delete --exclude noauto ${releasedir%/*}/ ${distdir}/All/"
+				  /server/bin/r -tcW --delete --exclude noauto ${releasedir%/*}/ ${distdir}/All/
+			if [ -e ${releasedir%/*}/noauto ]; then
+				echo "/server/bin/r -tcW ${releasedir%/*}/noauto/ ${distdir}/All/"
+					  /server/bin/r -tcW ${releasedir%/*}/noauto/ ${distdir}/All/
+			fi
+			cd ${distdir}/ ; /usr/local/sbin/pkg-static repo ./ ; cd -
+
+			/usr/bin/find ${distdir} -type l -exec /bin/chmod -h 755 {} \;
+			/usr/bin/find ${distdir} -type d -exec /bin/chmod 755 {} \;
+			/usr/bin/find ${distdir} -type f -exec /bin/chmod 644 {} \;
+
+			jroleproductionip $( /usr/local/bin/ezjail-admin list | /usr/bin/grep pkgng | /usr/bin/awk '{print $4}' )
+		fi
+	fi
+}
+
+# ---------------------------------------------------------
+
+jrolelinkrelease () {
+	local releasedir=$( /usr/bin/find /usr/jails/release*builder.local/scratch/R -name ftp | /usr/bin/head -1 )
+	if [ "x" != "x${releasedir}" ]; then
+		local distdir=$( /usr/bin/find /usr/jails/freebsd-dist*/server/www -name freebsd-dist | /usr/bin/head -1 )
+		if [ "x" != "x${distdir}" ]; then
+			#/sbin/umount ${distdir}/${RELEASE}-${ARCH}
+			/server/bin/r -tcW ${releasedir}/ ${distdir}/${RELEASE}-${ARCH}/
+
+			/bin/ln -shf /server/www/freebsd-dist/${RELEASE}-${ARCH} ${distdir}/${RELEASE}-${ARCH}/FreeBSD
+			/bin/ln -shf /server/www/freebsd-dist/${RELEASE}-${ARCH} ${distdir}/${RELEASE}-${ARCH}/releases
+			/bin/ln -shf /server/www/freebsd-dist/${RELEASE}-${ARCH} ${distdir}/${RELEASE}-${ARCH}/${ARCH}
+			/bin/ln -shf /server/www/freebsd-dist/${RELEASE}-${ARCH} ${distdir}/${RELEASE}-${ARCH}/${RELEASE}
+
+			/usr/bin/find ${distdir} -type l -exec /bin/chmod -h 755 {} \;
+			/usr/bin/find ${distdir} -type d -exec /bin/chmod 755 {} \;
+			/usr/bin/find ${distdir} -type f -exec /bin/chmod 644 {} \;
+
+			jroleproductionip $( /usr/local/bin/ezjail-admin list | /usr/bin/grep freebsd-dist | /usr/bin/awk '{print $4}' )
+		fi
+	fi
+}
+
+# ---------------------------------------------------------
+
+jrolelinkmfsbsd () {
+	local releasedir=$( /usr/bin/find /usr/jails/mfsbsd*builder.local/root/mfsbsd-personal -name 'NOX*iso' | /usr/bin/head -1 )
+	if [ "x" != "x${releasedir}" ]; then
+		local distdir=$( /usr/bin/find /usr/jails/pxe*/server -name tftp | /usr/bin/head -1 )
+		if [ "x" != "x${distdir}" ]; then
+			/usr/bin/install -d -m 555 -o nobody -g wheel ${distdir}/distro/mfsbsd
+			/server/bin/r -tcW ${releasedir} ${distdir}/distro/mfsbsd/mfsbsd.iso
+			/usr/sbin/chown nobody:wheel ${distdir}/distro/mfsbsd/mfsbsd.iso
+			/bin/chmod -h 444 ${distdir}/distro/mfsbsd/mfsbsd.iso
+		fi
+		local distdir=$( /usr/bin/find /usr/jails/freebsd-dist*/server/www -name mfsbsd | /usr/bin/head -1 )
+		if [ "x" != "x${distdir}" ]; then
+			/bin/mkdir -p ${distdir}/${RELEASE}-${ARCH}
+			/server/bin/r -tcW ${releasedir} ${distdir}/${RELEASE}-${ARCH}/
+			local releasedir=$( /usr/bin/find /usr/jails/mfsbsd*builder.local/root/mfsbsd-personal -name 'NOX*tar' | /usr/bin/head -1 )
+			if [ "x" != "x${releasedir}" ]; then
+				/server/bin/r -tcW ${releasedir} ${distdir}/${RELEASE}-${ARCH}/
+			fi
+			local releasedir=$( /usr/bin/find /usr/jails/mfsbsd*builder.local/root/mfsbsd-personal -name 'NOX*img' | /usr/bin/head -1 )
+			if [ "x" != "x${releasedir}" ]; then
+				/server/bin/r -tcW ${releasedir} ${distdir}/${RELEASE}-${ARCH}/
+			fi
+			/usr/bin/find ${distdir} -type l -exec /bin/chmod -h 755 {} \;
+			/usr/bin/find ${distdir} -type d -exec /bin/chmod 755 {} \;
+			/usr/bin/find ${distdir} -type f -exec /bin/chmod 644 {} \;
+		fi
+	fi
+}
+
+# ---------------------------------------------------------
+
+jrolelinkpkgng () {
+	local POUDIR=/poudriere
+	local releasedir=$( /usr/bin/find ${POUDIR}/data/packages -name All -type d | /usr/bin/head -1 )
+	if [ "x" != "x${releasedir}" ]; then
+		local distdir=$( /usr/bin/find /usr/jails/pkgng*/server/www -name pkgng | /usr/bin/head -1 )
+		if [ "x" != "x${distdir}" ]; then
+			echo "/server/bin/r -tcW --delete ${releasedir%/*}/ ${distdir}/"
+				  /server/bin/r -tcW --delete ${releasedir%/*}/ ${distdir}/
+			#cd ${distdir}/ ; /usr/local/sbin/pkg-static repo ./ ; cd -
+
+			/usr/bin/find ${distdir} -type l -exec /bin/chmod -h 755 {} \;
+			/usr/bin/find ${distdir} -type d -exec /bin/chmod 755 {} \;
+			/usr/bin/find ${distdir} -type f -exec /bin/chmod 644 {} \;
+
+			jroleproductionip $( /usr/local/bin/ezjail-admin list | /usr/bin/grep pkgng | /usr/bin/awk '{print $4}' )
+		fi
+	fi
+}
+
+# ---------------------------------------------------------
+
+jroleproductionip () {
+	[ $# -lt 1 ] && echo "Usage: `basename $0` hostname" && exit 1
+	local hostname=$1
+	local safehostname=$( echo -n $hostname | /usr/bin/tr -c '[:alnum:]' _ )
+	# now stop and switch ip from 10.123.234 to 10.7.7
+	local oldip=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep "/usr/jails/${hostname}" | /usr/bin/awk '{print $3}' )
+	local newip="${PRODIP}.${oldip##*.}"
+	if echo $oldip | /usr/bin/grep "$LOCALIP" >/dev/null 2>&1 ; then
+		/bin/cat >>/usr/local/etc/ezjail/${safehostname} <<EOF
+export jail_${safehostname}_ip="${LOCALNIC}|${newip}"
+EOF
+		/usr/local/bin/ezjail-admin onestop  ${hostname}
+		/usr/local/bin/ezjail-admin onestart ${hostname}
+	fi
+	/server/bin/startucarp
+}
+
+# ---------------------------------------------------------
+
+# Creates the auto_links giving the user new functionallity from the
+# command line. Creates link files to this script.
+make_auto_links (){
+	# "() {" are     published functions of this script.
+	# "(){"  are not published functions of this script.
+	local thisfile=`/usr/bin/basename $0`
+	for var in `/usr/bin/grep "() {" $0 | /usr/bin/grep "^jrole" | /usr/bin/cut -d' ' -f1` ; do
+		/bin/ln -shf $thisfile /server/bin/$var 2>/dev/null 
+	done
+}
+
+# ---------------------------------------------------------
+
+# If a link is used, run the proper function, else give info about 
+# how to work with this script and functions.
+if [ -L /server/bin/`/usr/bin/basename $0` ] ; then
+	`/usr/bin/basename $0` $* 
+else
+	echo "Usage: Please use the created links to `/usr/bin/basename $0` in this directory to use the functionality. If this is your first run, some scripts have been created in /server/bin for you." && { make_auto_links ; exit 1 ; }
+fi
+
+
+if [ -e "${TMPFILE}" ]; then
+	/bin/rm ${TMPFILE}
+fi

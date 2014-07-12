@@ -1,0 +1,3 @@
+#!/bin/sh
+/server/bin/pf-table-backup whitelist
+

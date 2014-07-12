@@ -1,0 +1,4 @@
+#!/bin/sh
+
+import -window root /tmp/Screenshot`date-d`.png
+

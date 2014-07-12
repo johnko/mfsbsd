@@ -1,0 +1,51 @@
+#!/bin/sh
+
+if ! /usr/bin/egrep "^local0.*dnsmasq.log$" /etc/syslog.conf >/dev/null 2>&1 ; then
+	/bin/cat >>/etc/syslog.conf <<EOF
+# We should also specify the matching entry in newsyslog.conf
+local0.*   /var/log/dnsmasq.log
+EOF
+fi
+
+if ! /usr/bin/egrep "^/var/log/dnsmasq.log.*31" /etc/newsyslog.conf >/dev/null 2>&1 ; then
+	/bin/cat >>/etc/newsyslog.conf <<EOF
+/var/log/dnsmasq.log    root:wheel    600  7  100  *  C  /var/run/dnsmasq.pid  31
+EOF
+fi
+
+if [ -x "/etc/rc.d/newsyslog" ]; then
+	/etc/rc.d/newsyslog onerestart
+fi
+if [ -x "/etc/rc.d/syslogd" ]; then
+	/etc/rc.d/syslogd onerestart
+fi
+
+
+/server/bin/startconfig dnsmasq
+
+/usr/sbin/sysrc -f /etc/rc.conf dnsmasq_enable="YES"
+/usr/sbin/sysrc -f /etc/rc.conf dnsmasq_conf="/server/dnsmasq/dnsmasq.conf"
+
+if [ ! -f "/usr/local/etc/rc.d/dnsmasq" ]; then
+	/usr/local/sbin/pkg-static install -y dnsmasq
+fi
+
+if [ -x "/usr/local/etc/rc.d/dnsmasq" ]; then
+	/usr/local/etc/rc.d/dnsmasq onereload || /usr/local/etc/rc.d/dnsmasq onestart
+fi
+
+if [ -x /server/bin/cron-dnsmasq-watchdog ]; then
+	if ! /usr/bin/egrep 'cron-dnsmasq-watchdog$' /etc/crontab > /dev/null 2>&1 ; then
+		/bin/cat >> /etc/crontab <<EOF
+# Added by /etc/rc.d/jcron
+*      *       *       *       *       root    /server/bin/cron-dnsmasq-watchdog
+EOF
+	fi
+fi
+
+if [ -x "/etc/rc.d/newsyslog" ]; then
+	/etc/rc.d/newsyslog onerestart
+fi
+if [ -x "/etc/rc.d/syslogd" ]; then
+	/etc/rc.d/syslogd onerestart
+fi

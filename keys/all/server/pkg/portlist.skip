@@ -1,0 +1,5 @@
+/usr/ports/security/openvpn-auth-ldap
+/usr/ports/sysutils/e2fsprogs
+/usr/ports/editors/libreoffice
+/usr/ports/x11-drivers/xf86-video-ati #crashes X on logout
+databases/percona56-xtradb-cluster

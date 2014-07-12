@@ -1,0 +1,20 @@
+#!/bin/sh
+
+if which rsync >/dev/null 2>&1 ; then
+  rsync=$( which rsync )
+else
+  echo "Command rsync not found"
+  exit 1
+fi
+
+$rsync -virhP --exclude ".DS_Store" --exclude .localized --exclude Thumbs.db "$@"
+# -L follows links to actual file
+# -H keep hardlinks
+# -l keel symlinks
+# -m for skipping empty folders
+# -t for time
+# -c for checksum
+# -o for owner
+# -g for group
+# -p for permission
+

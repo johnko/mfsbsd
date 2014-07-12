@@ -1,0 +1,178 @@
+#!/bin/sh
+# # #
+#     (c) 2013 John Ko
+#     This may not work...
+#
+#     Certificate generator
+#     Wrapper for various SSL/TLS tools
+# # #
+#     Set _DEBUG to see debug info, comment to hide
+#_DEBUG=1
+#     Programs in order of preferencs (not all are implemented)
+_CERTBINS="gnutls-certtool certtool openssl certutil"
+_SIGNBINS="openssl certutil"
+_VERIBINS="openssl certutil"
+
+for a in ${_CERTBINS}; do
+  if [ -x `which $a` ]; then
+    _CRT=$a
+    break
+  fi
+done
+_OLDUMASK=`umask`
+
+_usage()
+{
+  echo "Generate a key:"
+  echo "  $0  key   [filename]"
+  echo "Generate a self signed certificate:"
+  echo "  $0  self  [filename]"
+  echo "View certificate info:"
+  echo "  $0  info  filename"
+}
+
+_key_create()
+{
+  [ -n "$_DEBUG" ] && \
+    echo "called _key_create $@" >&2
+  local _out="${2:-gen-key.pem}"
+  local _bits="${3:-normal}"
+  local _type="${4:-rsa}"
+  if [ -n "$_out" ]; then
+    case $_CRT in
+      gnutls-certtool)
+        case $_bits in
+          low|legacy|normal|high|ultra)
+            ;;
+          *)
+            local _bits=normal
+            ;;
+        esac
+        case $_type in
+          [dD][sS][aA])
+            local _type=dsa
+            ;;
+          [eE][cC][cC])
+            local _type=ecc
+            ;;
+          *)
+            local _type=rsa
+            ;;
+        esac
+# # #
+#     --pkcs8 to encrypt private key
+#     --rsa --dsa --ecc to choose algo
+# # #
+        local _arg="--generate-privkey --pkcs8 --pkcs-cipher=aes-128 \
+--sec-param=${_bits} --${_type} --outfile ${_out}"
+        ;;
+      openssl)
+# # #
+#     mimic gnutls bit settings
+# # #
+        case $_bits in
+          low)
+            local _bits=1248
+            ;;
+          legacy)
+            local _bits=1776
+            ;;
+          normal)
+            local _bits=2432
+            ;;
+          high)
+            local _bits=3248
+            ;;
+          ultra)
+            local _bits=15424
+            ;;
+          *)
+            local _bits=2432
+            ;;
+        esac
+        case $_type in
+          [dD][sS][aA])
+            local _type=dsa
+            local _arg="gen${_type} -out ${_out} -des3"
+            ;;
+          *)
+            local _type=rsa
+            local _arg="gen${_type} -out ${_out} -des3 ${_bits}"
+            ;;
+        esac
+        ;;
+    esac
+    [ -n "$_DEBUG" ] && \
+      echo "called $_CRT $_arg" >&2
+    umask 0077
+    $_CRT $_arg
+    umask $_OLDUMASK
+  fi
+}
+
+_crt_self()
+{
+  [ -n "$_DEBUG" ] && \
+    echo "called _crt_self $@" >&2
+  local _cfg="${2:-.gen.cfg}"
+  local _key="${3:-gen-key.pem}"
+  local _out="${4:-gen-self.pem}"
+  if [ -n "$_out" ]; then
+    case $_CRT in
+      gnutls-certtool)
+        if [ -f "${_cfg}" ]; then
+          local _arg="--generate-self-signed --template ${_cfg} \
+--load-privkey ${_key} --outfile ${_out}"
+        else
+          local _arg="--generate-self-signed \
+--load-privkey ${_key} --outfile ${_out}"
+        fi
+        ;;
+      openssl)
+        ;;
+    esac
+    if [ ! -f "${_key}" ]; then
+      _key_create k "${_key}" normal
+    fi
+    [ -n "$_DEBUG" ] && \
+      echo "called $_CRT $_arg" >&2
+    umask 0077
+    $_CRT $_arg
+    umask $_OLDUMASK
+  fi
+}
+
+_crt_info()
+{
+  [ -n "$_DEBUG" ] && \
+    echo "called _crt_info $@" >&2
+  local _in="${2:-gen-self.pem}"
+  if [ -n "$_in" ]; then
+    case $_CRT in
+      gnutls-certtool)
+        local _arg="--certificate-info --infile ${_in}"
+        ;;
+      openssl)
+        ;;
+    esac
+    [ -n "$_DEBUG" ] && \
+      echo "called $_CRT $_arg" >&2
+    $_CRT $_arg
+  fi
+}
+
+case "$1" in
+  k|key)
+    _key_create $@
+    ;;
+  se|self)
+    _crt_self $@
+    ;;
+  i|info)
+    _crt_info $@
+    ;;
+  *)
+    _usage
+    ;;
+esac
+

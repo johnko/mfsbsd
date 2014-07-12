@@ -1,0 +1,13 @@
+#!/bin/sh
+
+case `uname -s` in
+  "Darwin")
+    echo $( ram-total )" "$( ram-free ) | \
+      awk '{ printf "%.1f\n", $1 - $2 }'
+    ;;
+  "FreeBSD")
+    echo $( ram-totalpage )" "$( ram-freepage ) | \
+      awk '{ printf "%.1f\n", ( $1 - $2 ) / 1073741824 }'
+    ;;
+esac
+

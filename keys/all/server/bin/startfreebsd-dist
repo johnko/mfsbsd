@@ -1,0 +1,23 @@
+#!/bin/sh
+: ${RELEASE:="10.0-RELEASE"}
+: ${ARCH:="amd64"}
+
+/usr/bin/install -d -m 755 /server/nginx/sites-enabled
+/usr/bin/install -d -m 700 /server/www/freebsd-dist/${RELEASE}-${ARCH}
+
+/bin/ln -shf /server/www/freebsd-dist/${RELEASE}-${ARCH} /server/www/freebsd-dist/pub
+/bin/ln -shf /server/www/freebsd-dist/${RELEASE}-${ARCH} /server/www/freebsd-dist/${RELEASE}-${ARCH}/FreeBSD
+/bin/ln -shf /server/www/freebsd-dist/${RELEASE}-${ARCH} /server/www/freebsd-dist/${RELEASE}-${ARCH}/releases
+/bin/ln -shf /server/www/freebsd-dist/${RELEASE}-${ARCH} /server/www/freebsd-dist/${RELEASE}-${ARCH}/${ARCH}
+/bin/ln -shf /server/www/freebsd-dist/${RELEASE}-${ARCH} /server/www/freebsd-dist/${RELEASE}-${ARCH}/${RELEASE}
+
+/usr/bin/install -d -m 700 /server/www/mfsbsd/${RELEASE}-${ARCH}
+/bin/ln -shf ../sites-available/freebsd-dist.conf /server/nginx/sites-enabled/
+/server/bin/startnginx
+
+for i in /server/www/freebsd-dist /server/www/mfsbsd ; do
+	/usr/sbin/chown -R root:www $i
+	/usr/bin/find $i -type d -exec /bin/chmod 755 {} \;
+	/usr/bin/find $i -type f -exec /bin/chmod 644 {} \;
+	/usr/bin/find $i -type l -exec /bin/chmod -h 755 {} \;
+done

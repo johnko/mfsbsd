@@ -1,0 +1,16 @@
+#!/bin/sh
+
+if [ ! -e /usr/local/bin/ezjail-admin ]; then
+	/usr/local/sbin/pkg-static install -y ezjail
+fi
+
+if [ $( /usr/local/bin/ezjail-admin list | /usr/bin/wc -l ) -gt 2 ]; then
+. /usr/local/etc/ezjail.conf
+
+for i in $( /usr/local/bin/ezjail-admin list | /usr/bin/grep -v "JID.*IP.*Hostname.*Directory" | /usr/bin/grep -v "\-\-\-" | /usr/bin/awk '{print $4}' ); do
+	/usr/local/bin/ezjail-admin onestop ${i}
+	/sbin/zfs snapshot -r "${ezjail_jailzfs}/${i}@$( /server/bin/date-d )"
+	/usr/local/bin/ezjail-admin onestart ${i}
+done
+
+fi

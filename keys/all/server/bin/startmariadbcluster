@@ -1,0 +1,78 @@
+#!/bin/sh
+
+#APPENDMYCNF=1
+RESTOREMASK=`umask`
+umask 022
+
+/usr/sbin/sysrc -f /etc/rc.conf mysql_limits="YES"
+/usr/sbin/sysrc -f /etc/rc.conf mysql_dbdir="/server/mysql/data"
+/usr/sbin/sysrc -f /etc/rc.conf mysql_optfile="/server/mysql/my.cnf"
+#/server/mysql/sites-enabled/wsrep.cnf"
+
+if [ ! -f "/usr/local/etc/rc.d/mysql-server" ]; then
+#	/usr/local/sbin/pkg-static install -y xtrabackup
+	/usr/local/sbin/pkg-static install -y mariadb55-galera-server
+fi
+/usr/sbin/sysrc -f /etc/rc.conf sshd_enable="YES"
+/etc/rc.d/sshd onestatus || /etc/rc.d/sshd onestart
+
+/usr/sbin/sysrc -f /etc/rc.conf mysql_enable="YES"
+MYIP=$( /sbin/ifconfig | /usr/bin/egrep inet | /usr/bin/sed -e 's/broadcast.*//g' -e 's/netmask.*//g' | /usr/bin/egrep -o "([0-9]{1,3}\.){3}[0-9]{1,3}" | /usr/bin/head -1 )
+OTHERNODES=$( echo $2 | /usr/bin/sed -e "s/,${MYIP}//" -e 's#/,#/#' )
+if [ -n "$1" ]; then
+	if [ $1 -eq 1 ]; then
+#		/usr/sbin/sysrc -f /etc/rc.conf mysql_args='--wsrep-new-cluster'
+	else
+#		/usr/sbin/sysrc -f /etc/rc.conf mysql_args="--wsrep_cluster_address=${OTHERNODES}"
+	fi
+fi
+/server/bin/configmysql 1 mariadb "$1" "$2"
+
+/bin/cat > ~/mysql-server.patch <<EOF
+--- mysql-server.ori	2014-05-06 12:00:11.035127000 +0000
++++ mysql-server	2014-05-06 22:28:22.939222537 +0000
+@@ -16,6 +16,8 @@
+ #			just before mysql starts.
+ # mysql_dbdir (str):	Default to "/var/db/mysql"
+ #			Base database directory.
++# mysql_optfile (str):	Server-specific option file.
++#			Default to "\${mysql_dbdir}/my.cnf".
+ # mysql_pidfile (str):	Custum PID file path and name.
+ #			Default to "\${mysql_dbdir}/\${hostname}.pid".
+ # mysql_args (str):	Custom additional arguments to be passed
+@@ -32,12 +34,13 @@
+ : \${mysql_enable="NO"}
+ : \${mysql_limits="NO"}
+ : \${mysql_dbdir="/var/db/mysql"}
++: \${mysql_optfile="\${mysql_dbdir}/my.cnf"}
+
+ mysql_user="mysql"
+ mysql_limits_args="-e -U \${mysql_user}"
+ pidfile=\${mysql_pidfile:-"\${mysql_dbdir}/\`/bin/hostname\`.pid"}
+ command="/usr/sbin/daemon"
+-command_args="-c -f /usr/local/bin/mysqld_safe --defaults-extra-file=\${mysql_dbdir}/my.cnf --user=\${mysql_user} --datadir=\${mysql_dbdir} --pid-file=\${pidfile} \${mysql_args}"
++command_args="-c -f /usr/local/bin/mysqld_safe --defaults-extra-file=\${mysql_optfile} --user=\${mysql_user} --datadir=\${mysql_dbdir} --pid-file=\${pidfile} \${mysql_args}"
+ procname="/usr/local/libexec/mysqld"
+ start_precmd="\${name}_prestart"
+ start_postcmd="\${name}_poststart"
+EOF
+/usr/bin/patch /usr/local/etc/rc.d/mysql-server < ~/mysql-server.patch
+
+if [ -x "/usr/local/etc/rc.d/mysql-server" ]; then
+	/usr/local/etc/rc.d/mysql-server onerestart
+fi
+
+#TODO XXX FIXME /usr/sbin/sysrc -f /etc/rc.conf mysql_args="--wsrep_cluster_address=${OTHERNODES}"
+
+if [ -x /server/bin/cron-mariadb-watchdog ]; then
+	if ! /usr/bin/egrep 'cron-mariadb-watchdog$' /etc/crontab > /dev/null 2>&1 ; then
+		/bin/cat >> /etc/crontab <<EOF
+# Added by /etc/rc.d/jcron
+*      *       *       *       *       root    /server/bin/cron-mariadb-watchdog
+EOF
+	fi
+fi
+
+/server/bin/configmysql 2 mariadb "$1" "$2"
+
+umask $RESTOREMASK

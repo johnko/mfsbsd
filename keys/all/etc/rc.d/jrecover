@@ -1,0 +1,32 @@
+#!/bin/sh
+# $Id$
+
+# PROVIDE: jrecover
+# REQUIRE: mountcritlocal disks jautomount mdinit tmp var jmyrepo jroute jautopkg jrcdone
+# KEYWORD: FreeBSD
+
+. /etc/rc.subr
+
+name="jrecover"
+start_cmd="jrecover_start"
+stop_cmd=":"
+
+jrecover_start()
+{
+	recoverdisk=`/bin/kenv -q recoverdisk`
+	recoverphase=`/bin/kenv -q recoverphase`
+	if [ "xinstall" = "x${recoverphase}" ]; then
+		/server/bin/mfsbsd-install
+	elif [ "xdata" = "x${recoverphase}" ]; then
+		if [ "x" != "x${recoverdisk}" ]; then
+			/server/bin/zquickdata ${recoverdisk}
+			if [ -e /bootdir/boot/loader.conf ]; then
+				/usr/sbin/sysrc -f /bootdir/boot/loader.conf recoverphase=""
+				/sbin/reboot
+			fi
+		fi
+	fi
+}
+
+load_rc_config $name
+run_rc_command "$1"

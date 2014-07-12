@@ -1,0 +1,97 @@
+#!/bin/sh
+# # #
+#     Generates md5 of ether address
+# # #
+#     Set _DEBUG to see debug info
+# _DEBUG=1
+_ALGO=md5
+
+_get_md5()
+{
+	[ -n "$_DEBUG" ] && \
+		echo "called _get_md5 $1" >&2
+	_str="$1"
+	if [ -n "$_str" ]; then
+		[ -n "$_DEBUG" ] && \
+			/sbin/md5 -s "$_str" >&2
+		/sbin/md5 -qs "$_str"
+	fi
+}
+
+_get_sha()
+{
+	[ -n "$_DEBUG" ] && \
+		echo "called _get_sha $1 $2" >&2
+	_str="$1"
+	if [ -n "$_str" ]; then
+		case `uname -s` in
+			Darwin)
+				if [ -n "$2" ]; then
+					_salgo="-a $2"
+				fi
+				echo -n "$_str" | /usr/bin/shasum $_salgo | /usr/bin/awk '{ print $1 }'
+				;;
+			FreeBSD)
+				if [ -z "$2" -o "$2" = "1" ]; then
+					_cmd=/sbin/sha1
+				else
+					_cmd=/sbin/sha256
+				fi
+				[ -n "$_DEBUG" ] && \
+					$_cmd -s "$_str" >&2
+				$_cmd -qs "$_str"
+				;;
+		esac
+	fi
+}
+
+_get_sha1()
+{
+	_get_sha "$1" 1
+}
+
+_get_sha256()
+{
+	_get_sha "$1" 256
+}
+
+_get_sum()
+{
+	[ -n "$_DEBUG" ] && \
+		echo "called _get_sum $1" >&2
+	_str="$1"
+	if [ -n "$_str" ]; then
+		echo -n "$_str" | /usr/bin/cksum | /usr/bin/awk '{ print $1 }'
+	fi
+}
+
+_check_nic()
+{
+	[ -n "$_DEBUG" ] && \
+		echo "called _check_nic $1" >&2
+	if /sbin/ifconfig "$1" >/dev/null 2>&1 ; then
+		echo "$1"
+	fi
+}
+
+_get_mac()
+{
+	[ -n "$_DEBUG" ] && \
+		echo "called _get_mac $1" >&2
+	_nic=`_check_nic "$1"`
+	if [ -n "$_nic" ]; then
+		/sbin/ifconfig "$_nic" | /usr/bin/egrep -o "([0-9a-f]{2}:){5}[0-9a-f]{2}"
+	fi
+}
+
+if [ -n "$1" ]; then
+	_get_$_ALGO `_get_mac "$1"`
+else
+	for i in `/sbin/ifconfig -l`; do
+		_chk=$(_get_$_ALGO `_get_mac "$i"`)
+		if [ -n "$_chk" ]; then
+			echo "$i	$_chk"
+		fi
+	done
+fi
+

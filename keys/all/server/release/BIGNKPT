@@ -1,0 +1,20 @@
+include GENERIC
+ident   BIGNKPT
+options NKPT=250
+
+# Resource Limit
+options         RACCT
+options         RCTL
+
+# Options for a IPsec enabled kernel
+options IPSEC
+options IPSEC_FILTERTUNNEL
+options IPSEC_NAT_T
+device  crypto
+device  enc
+
+# Options for SmartOS
+makeoptions WITH_CTF=1
+options KDTRACE_FRAME
+options KDTRACE_HOOKS
+options SC_TWOBUTTON_MOUSE

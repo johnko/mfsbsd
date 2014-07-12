@@ -1,0 +1,8 @@
+#!/bin/sh
+
+mfsbsdjail=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep mfsbsd | /usr/bin/awk '{print $4}' )
+if [ "x" = "x${mfsbsdjail}" ] ; then
+	jrolemfsbsdjails
+else
+	/server/bin/jrolebgstart mfsbsd ${mfsbsdjail}
+fi

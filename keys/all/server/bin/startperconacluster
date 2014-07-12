@@ -1,0 +1,50 @@
+#!/bin/sh
+
+APPENDMYCNF=1
+RESTOREMASK=`umask`
+umask 022
+
+/usr/sbin/sysrc -f /etc/rc.conf mysql_limits="YES"
+/usr/sbin/sysrc -f /etc/rc.conf mysql_dbdir="/server/mysql/data"
+/usr/sbin/sysrc -f /etc/rc.conf mysql_optfile="/server/mysql/sites-enabled/wsrep.cnf"
+if [ "$APPENDMYCNF" = "1" ]; then
+	/usr/sbin/sysrc -f /etc/rc.conf mysql_optfile="/server/mysql/my.cnf"
+fi
+
+if [ ! -f "/usr/local/etc/rc.d/mysql-server" ]; then
+	/usr/local/sbin/pkg-static install -y percona56-XtraDB-Cluster
+fi
+
+/usr/sbin/sysrc -f /etc/rc.conf mysql_enable="YES"
+MYIP=$( /sbin/ifconfig | /usr/bin/egrep inet | /usr/bin/sed -e 's/broadcast.*//g' -e 's/netmask.*//g' | /usr/bin/egrep -o "([0-9]{1,3}\.){3}[0-9]{1,3}" | /usr/bin/head -1 )
+OTHERNODES=$( echo $2 | /usr/bin/sed -e "s/,${MYIP}//" -e 's#/,#/#' )
+if [ -n "$1" ]; then
+	if [ $1 -eq 1111 ]; then
+		/usr/sbin/sysrc -f /etc/rc.conf mysql_args='--wsrep_cluster_address=gcomm://'
+	else
+		/usr/sbin/sysrc -f /etc/rc.conf mysql_args="--wsrep_cluster_address=${OTHERNODES}"
+	fi
+fi
+if [ "$APPENDMYCNF" = "1" ]; then
+	/usr/sbin/sysrc -f /etc/rc.conf mysql_args=''
+fi
+/server/bin/configmysql 1 percona "$1" "$2"
+
+if [ -x "/usr/local/etc/rc.d/mysql-server" ]; then
+	/usr/local/etc/rc.d/mysql-server onerestart
+fi
+
+#TODO XXX FIXME /usr/sbin/sysrc -f /etc/rc.conf mysql_args="--wsrep_cluster_address=${OTHERNODES}"
+
+if [ -x /server/bin/cron-percona-watchdog ]; then
+	if ! /usr/bin/egrep 'cron-percona-watchdog$' /etc/crontab > /dev/null 2>&1 ; then
+		/bin/cat >> /etc/crontab <<EOF
+# Added by /etc/rc.d/jcron
+*      *       *       *       *       root    /server/bin/cron-percona-watchdog
+EOF
+	fi
+fi
+
+/server/bin/configmysql 2 percona "$1" "$2"
+
+umask $RESTOREMASK

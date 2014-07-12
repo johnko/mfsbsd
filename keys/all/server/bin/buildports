@@ -1,0 +1,7 @@
+#!/bin/sh
+
+/server/bin/startpoudriereiredmail
+
+/bin/chmod a-x /server/bin/buildports
+
+/usr/sbin/jls | /usr/bin/grep pkgng > /dev/null 2> /dev/null && /server/bin/jrolelinkpkgng

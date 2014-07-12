@@ -1,0 +1,5 @@
+#!/bin/sh
+
+uptime | \
+  egrep -o "up[^,]*"
+

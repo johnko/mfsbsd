@@ -1,0 +1,6 @@
+#!/bin/sh
+
+#/server/bin/startmysql
+/server/bin/startmariadb
+
+/server/bin/startwordpress

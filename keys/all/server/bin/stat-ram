@@ -1,0 +1,4 @@
+#!/bin/sh
+
+echo $( ram-total )"G "$( ram-used )"G "$( ram-free )"G"
+

@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# pass vars counter and seed
+/usr/bin/opiekey -n 5 $*
+

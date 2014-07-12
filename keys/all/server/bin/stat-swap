@@ -1,0 +1,15 @@
+#!/bin/sh
+
+case `uname -s` in
+	"Darwin")
+		exit 1
+	;;
+	"FreeBSD")
+		if /usr/sbin/swapinfo | /usr/bin/grep -v 'Device.*Used.*Avail' | /usr/bin/grep '[0-9]' >/dev/null 2>&1 ; then
+			TOTAL=$( /usr/bin/top -b | /usr/bin/grep 'Swap:' | /usr/bin/egrep -o '[0-9]+[BKMG] Total' | /usr/bin/awk '{print $1}' )
+			LINE=$( /usr/sbin/swapinfo -h | /usr/bin/grep -v 'Device.*Used.*Avail' | /usr/bin/awk '{print $3,$4}' )
+			echo "${TOTAL} ${LINE}"
+		fi
+	;;
+esac
+

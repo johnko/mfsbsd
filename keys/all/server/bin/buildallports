@@ -1,0 +1,7 @@
+#!/bin/sh
+
+if [ ! -e /server/pkg/portlist.orig ]; then
+	/bin/mv /server/pkg/portlist /server/pkg/portlist.orig
+fi
+/server/bin/allports > /server/pkg/portlist
+/server/bin/startpoudriereiredmail

@@ -1,0 +1,318 @@
+#!/bin/sh
+
+MYDOMAIN="mydomain.local"
+MYHOST="mx"
+
+
+/usr/bin/install -d -m 750 /server/postfix/db
+#/usr/bin/install -d -m 770 /server/postfix/data
+/usr/sbin/sysrc -f ${MNT}/etc/rc.conf postfix_flags="-c /server/postfix"
+/usr/sbin/sysrc -f ${MNT}/etc/rc.conf sendmail_enable="NO"
+/usr/sbin/sysrc -f ${MNT}/etc/rc.conf sendmail_submit_enable="NO"
+/usr/sbin/sysrc -f ${MNT}/etc/rc.conf sendmail_outbound_enable="NO"
+/usr/sbin/sysrc -f ${MNT}/etc/rc.conf sendmail_msp_queue_enable="NO"
+
+if [ ! -e "/usr/local/bin/postfix" ]; then
+	/usr/local/sbin/pkg-static install -y postfix
+fi
+
+/usr/sbin/sysrc -f ${MNT}/etc/rc.conf postfix_enable="YES"
+/usr/bin/find /server/postfix -exec /usr/sbin/chown root:mail {} \;
+/usr/bin/find /server/postfix -type d -exec /bin/chmod 755 {} \;
+/usr/bin/find /server/postfix -type f -exec /bin/chmod 644 {} \;
+#/usr/sbin/chown postfix /server/postfix/data
+/bin/chmod 750 /server/postfix/db
+/usr/bin/find /server/postfix/db -type f -exec /bin/chmod 640 {} \;
+
+# -------------------- ALLOWED --------------------
+/bin/cat >/server/postfix/db/mynetworks.in <<EOF
+127.0.0.1/8		OK
+EOF
+
+/bin/cat >/server/postfix/db/relay_recipients.in <<EOF
+EOF
+
+# -------------------- ALIAS --------------------
+/bin/cp /etc/aliases /server/postfix/db/aliases.in
+/bin/cat >>/server/postfix/db/aliases.in <<EOF
+webmaster:	root
+www-data:	root
+www:		webmaster
+#all: 		john, bob, peter
+EOF
+
+/bin/cat >/server/postfix/db/virtual.in <<EOF
+root@notexist.local		root@localhost
+EOF
+
+/bin/cat >/server/postfix/db/smtpd_sender_login_maps.in <<EOF
+#outbound-alias		realuser
+EOF
+
+# -------------------- RELAY CREDENTIALS --------------------
+/bin/cat >/server/postfix/db/sasl_passwd.in <<EOF
+[outbound.mailhop.org]:2525	user:password
+EOF
+
+# -------------------- DENY --------------------
+/bin/cat >/server/postfix/db/restricted_senders.in <<EOF
+deny1@${MYDOMAIN}	local_only
+deny2@${MYDOMAIN}	local_only
+mail.local			local_only
+.mail.local			local_only
+EOF
+
+/bin/cat >/server/postfix/db/local_only_domains.in <<EOF
+notexist.local	OK
+EOF
+
+/bin/cat >/server/postfix/body_checks <<EOF
+/^<iframe src=(3D)?.*/
+	REJECT IFRAME vulnerability exploit
+EOF
+
+# -------------------- MAKE --------------------
+/bin/cat >/server/postfix/db/Makefile <<EOF
+all: aliases.db virtual.db mynetworks.db local_only_domains.db relay_recipients.db restricted_senders.db sasl_passwd.db
+# Note 1: commands are specified after a TAB character.
+# Note 2: use postalias(1) for local aliases, postmap(1) for the rest.
+aliases.db: aliases.in
+	postalias aliases.in
+	mv aliases.in.db aliases.db
+
+virtual.db: virtual.in
+	postmap virtual.in
+	mv virtual.in.db virtual.db
+
+mynetworks.db: mynetworks.in
+	postmap mynetworks.in
+	mv mynetworks.in.db mynetworks.db
+
+local_only_domains.db: local_only_domains.in
+	postmap local_only_domains.in
+	mv local_only_domains.in.db local_only_domains.db
+
+relay_recipients.db: relay_recipients.in
+	postmap relay_recipients.in
+	mv relay_recipients.in.db relay_recipients.db
+
+restricted_senders.db: restricted_senders.in
+	postmap restricted_senders.in
+	mv restricted_senders.in.db restricted_senders.db
+
+sasl_passwd.db: sasl_passwd.in
+	postmap sasl_passwd.in
+	mv sasl_passwd.in.db sasl_passwd.db
+EOF
+cd /server/postfix/db
+make
+
+/bin/cat >/server/postfix/main.cf <<EOF
+biff = no
+queue_directory = /var/spool/postfix
+command_directory = /usr/local/sbin
+daemon_directory = /usr/local/libexec/postfix
+data_directory = /server/postfix/data
+mail_owner = postfix
+inet_interfaces = all
+unknown_local_recipient_reject_code = 550
+home_mailbox = Maildir/
+sendmail_path = /usr/local/sbin/sendmail
+newaliases_path = /usr/local/bin/newaliases
+mailq_path = /usr/local/bin/mailq
+setgid_group = maildrop
+html_directory = /usr/local/share/doc/postfix
+manpage_directory = /usr/local/man
+sample_directory = /usr/local/etc/postfix
+readme_directory = no
+inet_protocols = ipv4
+#mailbox_command = /usr/local/libexec/dovecot/deliver -c /server/dovecot/01-dovecot-postfix.conf -n -m "\${EXTENSION}"
+#mailbox_transport = lmtp:unix:/var/imap/socket/lmtp
+smtpd_banner = \$myhostname ESMTP \$mail_name
+append_dot_mydomain = no
+mailbox_size_limit = 0
+tls_random_source = dev:/dev/random
+message_size_limit = 52428800
+maximal_backoff_time = 600
+#### Don't reject unkown local users, we can push to a catchall ##########
+local_recipient_maps =
+luser_relay = root@localhost
+
+
+#### TODO XXX FIXME change myhostname ##########
+#### TODO XXX FIXME change mydomain
+#### TODO XXX FIXME other domains we collect for
+mydomain = ${MYDOMAIN}
+myhostname = ${MYHOST}.\$mydomain
+mydestination = \$myhostname, \$myhostname.\$mydomain, localhost.\$mydomain, localhost
+myorigin = \$mydomain
+virtual_mailbox_domains = \$mydomain
+
+
+#### TODO Junk mail header_check? ##########
+#header_checks = regexp:/server/postfix/header_checks.regexp
+body_checks = regexp:/server/postfix/body_checks
+
+
+#### Listening ##########
+smtpd_use_tls = yes
+smtpd_tls_loglevel = 2
+smtpd_tls_cert_file = /server/postfix/cert.pem
+smtpd_tls_key_file = /server/postfix/cert.key
+smtpd_tls_session_cache_database = btree:\${data_directory}/smtpd_scache
+smtpd_tls_received_header = yes
+smtpd_tls_mandatory_protocols = SSLv3, TLSv1, TLSv1.1, TLSv1.2
+smtpd_tls_mandatory_ciphers = medium
+smtpd_sasl_auth_enable = yes
+smtpd_sasl_type = dovecot
+smtpd_sasl_path = private/dovecot-auth
+smtpd_sasl_authenticated_header = yes
+smtpd_sasl_security_options = noanonymous
+smtpd_sasl_tls_security_options = noanonymous
+smtpd_sasl_local_domain = \$myhostname
+smtpd_recipient_restrictions = reject_unknown_sender_domain, reject_unknown_recipient_domain, reject_unauth_pipelining, permit_mynetworks, permit_sasl_authenticated, reject_unauth_destination
+#### TODO XXX FIXME REJECT MISMATCH SASLUSER ADD TO smtpd_sender_restrictions --- reject_sender_login_mismatch
+smtpd_sender_restrictions = reject_unknown_sender_domain check_sender_access hash:/server/postfix/db/restricted_senders
+smtpd_client_restrictions = permit_sasl_authenticated, reject
+smtpd_restriction_classes = local_only
+smtpd_enforce_tls = yes
+smtpd_tls_auth_only = yes
+smtpd_delay_reject = yes
+broken_sasl_auth_clients = yes
+#### TODO which ip can relay through us? ##########
+#### TODO which domains will we relay to
+#### TODO which users will we relay to
+mynetworks = hash:/server/postfix/db/mynetworks
+relay_domains = \$mydestination
+relay_recipient_maps = hash:/server/postfix/db/relay_recipients
+smtpd_sender_login_maps = hash:/server/postfix/db/smtpd_sender_login_maps
+
+#### Sending ##########
+smtp_use_tls = yes
+smtp_tls_session_cache_database = btree:\${data_directory}/smtp_scache
+smtp_sasl_auth_enable = yes
+smtp_sasl_password_maps = hash:/server/postfix/db/sasl_passwd
+smtp_sasl_security_options =
+smtp_sasl_tls_security_options =
+local_only = check_recipient_access hash:/server/postfix/db/local_only_domains, reject
+#### TODO where is our relay host? ##########
+relayhost =
+#relayhost = [outbound.mailhop.org]:2525
+#### remember to run 'postalias' ##########
+alias_maps = hash:/server/postfix/db/aliases
+alias_database = hash:/server/postfix/db/aliases
+virtual_alias_maps = hash:/server/postfix/db/virtual
+
+
+#### Debug for localhost ##########
+debug_peer_level = 2
+debug_peer_list = hash:/server/postfix/db/mynetworks
+debugger_command =
+         PATH=/bin:/usr/bin:/usr/local/bin:/usr/X11R6/bin
+         ddd \$daemon_directory/\$process_name \$process_id & sleep 5
+EOF
+
+/bin/cat >/server/postfix/master.cf <<EOF
+# Do not forget to execute "postfix reload" after editing this file.
+# ==========================================================================
+# service type  private unpriv  chroot  wakeup  maxproc command + args
+#               (yes)   (yes)   (yes)   (never) (100)
+# ==========================================================================
+#smtp      inet  n       -       n       -       -       smtpd
+#smtp      inet  n       -       n       -       1       postscreen
+#smtpd     pass  -       -       n       -       -       smtpd
+#dnsblog   unix  -       -       n       -       0       dnsblog
+#tlsproxy  unix  -       -       n       -       0       tlsproxy
+submission inet n       -       n       -       -       smtpd
+#  -o syslog_name=postfix/submission
+#  -o smtpd_tls_security_level=encrypt
+#  -o smtpd_sasl_auth_enable=yes
+#  -o smtpd_reject_unlisted_recipient=no
+#  -o smtpd_client_restrictions=$mua_client_restrictions
+#  -o smtpd_helo_restrictions=$mua_helo_restrictions
+#  -o smtpd_sender_restrictions=$mua_sender_restrictions
+#  -o smtpd_recipient_restrictions=
+#  -o smtpd_relay_restrictions=permit_sasl_authenticated,reject
+#  -o milter_macro_daemon_name=ORIGINATING
+#smtps     inet  n       -       n       -       -       smtpd
+#  -o syslog_name=postfix/smtps
+#  -o smtpd_tls_wrappermode=yes
+#  -o smtpd_sasl_auth_enable=yes
+#  -o smtpd_reject_unlisted_recipient=no
+#  -o smtpd_client_restrictions=$mua_client_restrictions
+#  -o smtpd_helo_restrictions=$mua_helo_restrictions
+#  -o smtpd_sender_restrictions=$mua_sender_restrictions
+#  -o smtpd_recipient_restrictions=
+#  -o smtpd_relay_restrictions=permit_sasl_authenticated,reject
+#  -o milter_macro_daemon_name=ORIGINATING
+#628       inet  n       -       n       -       -       qmqpd
+pickup    unix  n       -       n       60      1       pickup
+cleanup   unix  n       -       n       -       0       cleanup
+qmgr      unix  n       -       n       300     1       qmgr
+#qmgr     unix  n       -       n       300     1       oqmgr
+tlsmgr    unix  -       -       n       1000?   1       tlsmgr
+rewrite   unix  -       -       n       -       -       trivial-rewrite
+bounce    unix  -       -       n       -       0       bounce
+defer     unix  -       -       n       -       0       bounce
+trace     unix  -       -       n       -       0       bounce
+verify    unix  -       -       n       -       1       verify
+flush     unix  n       -       n       1000?   0       flush
+proxymap  unix  -       -       n       -       -       proxymap
+proxywrite unix -       -       n       -       1       proxymap
+smtp      unix  -       -       n       -       -       smtp
+relay     unix  -       -       n       -       -       smtp
+		-o smtp_fallback_relay=
+#       -o smtp_helo_timeout=5 -o smtp_connect_timeout=5
+showq     unix  n       -       n       -       -       showq
+error     unix  -       -       n       -       -       error
+retry     unix  -       -       n       -       -       error
+discard   unix  -       -       n       -       -       discard
+local     unix  -       n       n       -       -       local
+virtual   unix  -       n       n       -       -       virtual
+lmtp      unix  -       -       n       -       -       lmtp
+anvil     unix  -       -       n       -       1       anvil
+scache    unix  -       -       n       -       1       scache
+# ====================================================================
+# maildrop. See the Postfix MAILDROP_README file for details.
+# Also specify in main.cf: maildrop_destination_recipient_limit=1
+maildrop  unix  -       n       n       -       -       pipe
+  flags=DRhu user=vmail argv=/usr/local/bin/maildrop -d ${recipient}
+# ====================================================================
+# Recent Cyrus versions can use the existing "lmtp" master.cf entry.
+# Specify in cyrus.conf:
+#   lmtp    cmd="lmtpd -a" listen="localhost:lmtp" proto=tcp4
+# Specify in main.cf one or more of the following:
+#  mailbox_transport = lmtp:inet:localhost
+#  virtual_transport = lmtp:inet:localhost
+# ====================================================================
+# Cyrus 2.1.5 (Amos Gouaux)
+# Also specify in main.cf: cyrus_destination_recipient_limit=1
+#cyrus     unix  -       n       n       -       -       pipe
+#  user=cyrus argv=/cyrus/bin/deliver -e -r ${sender} -m ${extension} ${user}
+# ====================================================================
+# Old example of delivery via Cyrus.
+#old-cyrus unix  -       n       n       -       -       pipe
+#  flags=R user=cyrus argv=/cyrus/bin/deliver -e -m ${extension} ${user}
+# ====================================================================
+# See the Postfix UUCP_README file for configuration details.
+uucp      unix  -       n       n       -       -       pipe
+  flags=Fqhu user=uucp argv=uux -r -n -z -a$sender - $nexthop!rmail ($recipient)
+# ====================================================================
+# Other external delivery methods.
+ifmail    unix  -       n       n       -       -       pipe
+  flags=F user=ftn argv=/usr/lib/ifmail/ifmail -r $nexthop ($recipient)
+bsmtp     unix  -       n       n       -       -       pipe
+  flags=Fq. user=bsmtp argv=/usr/local/sbin/bsmtp -f $sender $nexthop $recipient
+scalemail-backend unix -       n       n       -       2       pipe
+  flags=R user=scalemail argv=/usr/lib/scalemail/bin/scalemail-store
+  ${nexthop} ${user} ${extension}
+mailman   unix  -       n       n       -       -       pipe
+  flags=FR user=list argv=/usr/lib/mailman/bin/postfix-to-mailman.py
+  ${nexthop} ${user}
+#dovecot   unix  -       n       n       -       -       pipe
+#  flags=DRhu user=vmail argv=/usr/lib/dovecot/deliver -c /etc/dovecot/conf.d/01-dovecot-postfix.conf -f $sender -d $recipient
+EOF
+
+if [ -x "/usr/local/etc/rc.d/postfix" ]; then
+	/usr/local/etc/rc.d/postfix onereload || /usr/local/etc/rc.d/postfix onestart
+fi

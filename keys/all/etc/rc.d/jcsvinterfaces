@@ -1,0 +1,131 @@
+#!/bin/sh
+# $Id$
+# MFSBSD CUSTOM
+
+# PROVIDE: jcsvinterfaces
+# REQUIRE: FILESYSTEMS
+# BEFORE:  jinterfaces hostname
+
+. /etc/rc.subr
+
+name="jcsvinterfaces"
+start_cmd="jcsvinterfaces_start"
+stop_cmd=":"
+
+
+
+omitcomments()
+{
+	/usr/bin/egrep -v '^ *#'
+}
+
+
+
+dhcpoption()
+{
+	search=$1
+	if [ "router" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep 'option.router' | /usr/bin/egrep dhcp-option | /usr/bin/head -1 | /usr/bin/awk -F, '$3{print $3}'
+	elif [ "dns-server" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep ${search} | /usr/bin/egrep dhcp-option | /usr/bin/head -1 | /usr/bin/awk -F, '{if($4)print $3" "$4;else if($3)print $3}'
+	elif [ "dhcp-host" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep ${search} | /usr/bin/awk -F, '$4{print $4}'
+	elif [ "dhcp-laggs" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep dhcp-lagg | /usr/bin/awk -F, '$4{printf "inet "$4"/24 laggproto loadbalance ";split($2,a,"|");for (i in a) {split(a[i],b,"=");printf "laggport "b[1]" "}}'
+	elif [ "dhcp-laggd" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep dhcp-lagg | /usr/bin/awk -F, '$2{printf "inet SYNCDHCP laggproto loadbalance ";split($2,a,"|");for (i in a) {split(a[i],b,"=");printf "laggport "b[1]" "}}'
+	elif [ "dhcp-laggi" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep dhcp-lagg | /usr/bin/awk -F, '$2{split($2,a,"|");for (i in a) {split(a[i],b,"=");printf b[1]" "}}'
+	elif [ "hostname" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep 'dhcp-(host|lagg)' | /usr/bin/awk -F, '$3{print $3}'
+	fi
+}
+
+
+
+jcsvinterfaces_start()
+{
+
+
+
+	outfile=/etc/rc.conf.d/jinterfaces
+	/usr/bin/install -d -m 700	${outfile%/*}
+	echo > ${outfile}
+	count=0
+	lagcount=-1
+	lagskip="fa:ke:ma:c0:ma:tc"
+
+	for csv in /server/csv/dhcpd/* ; do
+		if [ -r ${csv} ]; then
+			#echo -n "${csv##*/}... "
+			_dif=`/sbin/ifconfig -l | /usr/bin/sed -E -e 's/lo[0-9]+//g' -e 's/bridge[0-9]+//g' -e 's/enc[0-9]+//g' -e 's/ipfw[0-9]+//g' -e 's/pflog[0-9]+//g' -e 's/plip[0-9]+//g' -e 's/tap[0-9]+//g' -e 's/tun[0-9]+//g'`
+			for i in $_dif; do
+				if /sbin/ifconfig ${i} | /usr/bin/egrep -o "([0-9a-f]{2}:){5}[0-9a-f]{2}" >/dev/null 2>&1 ; then
+					ifmac=$( /sbin/ifconfig ${i} | /usr/bin/egrep -o "([0-9a-f]{2}:){5}[0-9a-f]{2}" | /usr/bin/tr '[A-Z]' '[a-z]' | /usr/bin/sort -u )
+					gw=$(  /bin/cat ${csv} | dhcpoption router )
+					dns=$( /bin/cat ${csv} | dhcpoption dns-server )
+					if /bin/cat ${csv} | omitcomments | /usr/bin/egrep -i "dhcp-(host|lagg).*${ifmac}" >/dev/null 2>&1 ; then
+						hn=$( /usr/bin/egrep -i "dhcp-(host|lagg).*${ifmac}" ${csv} | dhcpoption hostname )
+						/usr/sbin/sysrc -f /etc/rc.conf.d/hostname hostname="$hn"
+					fi
+					if /bin/cat ${csv} | omitcomments | /usr/bin/egrep -i "dhcp-host.*${ifmac}.*static" >/dev/null 2>&1 ; then
+						ip=$( /usr/bin/egrep -i "dhcp-host.*${ifmac}.*static" ${csv} | dhcpoption dhcp-host )
+						/usr/sbin/sysrc -f ${outfile} ifconfig_ext${count}_mac="${ifmac}"
+						/usr/sbin/sysrc -f ${outfile} ifconfig_ext${count}="inet ${ip}/24"
+						/usr/sbin/sysrc -f ${outfile} ifconfig_ext${count}_gw="${gw}"
+						/usr/sbin/sysrc -f ${outfile} ifconfig_ext${count}_dns="${dns}"
+						count=$(( count + 1 ))
+					elif /bin/cat ${csv} | omitcomments | /usr/bin/egrep -iv "(${lagskip})" | /usr/bin/egrep -i "dhcp-lagg.*${ifmac}.*static" >/dev/null 2>&1 ; then
+						lagcount=$(( lagcount + 1 ))
+						line=$( /usr/bin/egrep -i "dhcp-lagg.*${ifmac}.*static" ${csv} | dhcpoption dhcp-laggs )
+						/usr/sbin/sysrc -f /etc/rc.conf.d/network ifconfig_lagg${lagcount}="${line}"
+						ints=$(	/usr/bin/egrep -i "dhcp-lagg.*${ifmac}.*static" ${csv} | dhcpoption dhcp-laggi )
+						for lagif in $ints ; do
+							/usr/sbin/sysrc -f /etc/rc.conf.d/network ifconfig_${lagif}="up"
+						done
+						/usr/sbin/sysrc -f /etc/rc.conf.d/routing defaultrouter="${gw}"
+						for n in $dns ; do
+							/usr/bin/grep "nameserver $n\$" /etc/resolv.conf >/dev/null 2>&1 || \
+								echo "nameserver $n" >> /etc/resolv.conf
+						done
+						lagskip="${lagskip}|${ifmac}"
+					elif /bin/cat ${csv} | omitcomments | /usr/bin/egrep -iv "(${lagskip})" | /usr/bin/egrep -i "dhcp-lagg.*${ifmac}" >/dev/null 2>&1 ; then
+						lagcount=$(( lagcount + 1 ))
+						line=$(	/usr/bin/egrep -i "dhcp-lagg.*${ifmac}" ${csv} | dhcpoption dhcp-laggd )
+						/usr/sbin/sysrc -f /etc/rc.conf.d/network ifconfig_lagg${lagcount}="${line}"
+						ints=$(	/usr/bin/egrep -i "dhcp-lagg.*${ifmac}" ${csv} | dhcpoption dhcp-laggi )
+						for lagif in $ints ; do
+							/usr/sbin/sysrc -f /etc/rc.conf.d/network ifconfig_${lagif}="up"
+						done
+						/usr/sbin/sysrc -f /etc/rc.conf.d/routing defaultrouter="${gw}"
+						for n in $dns ; do
+							/usr/bin/grep "nameserver $n\$" /etc/resolv.conf >/dev/null 2>&1 || \
+								echo "nameserver $n" >> /etc/resolv.conf
+						done
+						lagskip="${lagskip}|${ifmac}"
+					fi
+				fi
+			done
+		fi
+	done
+	maci=""
+	for i in $( /usr/bin/seq 0 ${count} ) ; do
+		maci="${maci}ext${i} "
+	done
+	/usr/sbin/sysrc -f ${outfile} mac_interfaces="${maci}"
+	if [ $lagcount -ge 0 ]; then
+		lagi=""
+		for i in $( /usr/bin/seq 0 ${lagcount} ) ; do
+			lagi="${lagi}lagg${i} "
+		done
+		/usr/sbin/sysrc -f /etc/rc.conf.d/network cloned_interfaces="lo1 ${lagi} tap0 bridge0"
+		/usr/sbin/sysrc -f /etc/rc.conf.d/network ifconfig_bridge0="addm ${lagi} addm tap0 up"
+	else
+		/usr/sbin/sysrc -f /etc/rc.conf.d/network cloned_interfaces="lo1 tap0 bridge0"
+	fi
+
+
+}
+
+load_rc_config $name
+run_rc_command "$1"

@@ -1,0 +1,6 @@
+#!/bin/sh
+
+if [ ! -e /etc/ssh/moduli ]; then
+	/usr/bin/ssh-keygen -G /etc/ssh/moduli.tmp -b 4096
+	/usr/bin/ssh-keygen -T /etc/ssh/moduli -f /etc/ssh/moduli.tmp
+fi

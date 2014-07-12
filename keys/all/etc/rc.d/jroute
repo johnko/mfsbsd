@@ -1,0 +1,38 @@
+#!/bin/sh
+# $Id$
+# MFSBSD CUSTOM
+
+# PROVIDE: jroute
+# REQUIRE: jrcalmost
+# BEFORE: jautopkg jezjail
+
+. /etc/rc.subr
+
+name="jroute"
+start_cmd="jroute_start"
+stop_cmd=":"
+
+
+omitcomments()
+{
+	/usr/bin/egrep -v '^ *#'
+}
+
+
+
+jroute_start()
+{
+
+
+	if [ -e /server/csv/ucarp ]; then
+		local server=$( /bin/cat /server/csv/ucarp | /usr/bin/tr -d '\n' )
+		/sbin/route del 10.7.7.0/24
+		/sbin/route add 10.7.7.0/24 ${server}
+	fi
+
+
+}
+
+load_rc_config $name
+run_rc_command "$1"
+

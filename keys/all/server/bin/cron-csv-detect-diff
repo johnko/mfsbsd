@@ -1,0 +1,97 @@
+#!/bin/sh
+
+
+if /sbin/ifconfig -l | /usr/bin/grep lagg0 >/dev/null 2>&1 ; then
+	interface=lagg0
+else
+	interface=$( /usr/sbin/arp -an | /usr/bin/grep permanent | /usr/bin/tail -1 | /usr/bin/awk '{print $6}' )
+fi
+
+
+srcdir=/server/csv/dhcpd
+if [ -e ${srcdir} ]; then
+	if [ ! -e /server/csv/backup/README ]; then
+		/bin/cat >/server/csv/backup/README <<EOF
+Backups are kept only if different from previous backup
+EOF
+	fi
+
+	prevdir=$( /bin/ls -1dtr /server/csv/backup/dhcpd/*/ | /usr/bin/tail -1 )
+	if [ ! -d "${prevdir}" ]; then
+		prevdir="/var/empty/"
+	fi
+	if /usr/bin/diff -r ${prevdir} ${srcdir}/ >/dev/null 2>&1 ; then
+		/usr/bin/touch /server/csv/backup/README
+	else
+		newdir=/server/csv/backup/dhcpd/$( /server/bin/date-d )
+		/usr/bin/install -d -m 700 -o root -g wheel ${newdir}
+		/bin/cp -a ${srcdir}/* ${newdir}/
+		# IF NOT JAILED
+		if /sbin/sysctl security.jail.jailed | /usr/bin/grep 0 >/dev/null 2>&1 ; then
+			# based on rcorder /etc/rc.d/*
+			test -e /etc/rc.d/jcsvinterfaces && /etc/rc.d/jcsvinterfaces onestart
+			test -e /etc/rc.d/jinterfaces && /etc/rc.d/jinterfaces onestart
+			/etc/rc.d/netoptions onerestart
+			/etc/rc.d/netif onerestart
+			test -e /etc/rc.d/jpfconf && /etc/rc.d/jpfconf onestart
+			/etc/rc.d/pfsync onerestart
+			/etc/rc.d/pflog onereload
+			/etc/rc.d/pf onereload
+			/etc/rc.d/routing onerestart
+			if /sbin/ifconfig -l | /usr/bin/grep lagg0 >/dev/null 2>&1 ; then
+				interface=lagg0
+			else
+				interface=$( /usr/sbin/arp -an | /usr/bin/grep permanent | /usr/bin/tail -1 | /usr/bin/awk '{print $6}' )
+			fi
+			realip=$( /server/bin/net-ipreal )
+			if [ "x" = "x${realip}" ]; then
+				/sbin/dhclient ${interface}
+			fi
+			/usr/bin/grep nameserver /etc/resolv.conf || /etc/rc.d/jinterfaces onestart
+			if /sbin/ifconfig -l | /usr/bin/grep lagg0 >/dev/null 2>&1 ; then
+				/server/bin/pf-rule | /usr/bin/grep lagg0 || ( /etc/rc.d/pflog onereload; /etc/rc.d/pf onereload )
+			fi
+			for ip in $( /server/bin/net-ipreal -F ' ' ) ; do
+				if ! /usr/bin/egrep "ListenAddress $ip" /etc/ssh/sshd_config >/dev/null 2>&1 ; then
+					/bin/chflags noschg /etc/ssh/sshd_config
+					/bin/cat >>/etc/ssh/sshd_config <<EOF
+##### Added by jrolesetuphost
+ListenAddress $ip
+##### End of addition
+EOF
+					/bin/chflags schg /etc/ssh/sshd_config
+					/etc/rc.d/sshd onereload 2> /dev/null
+				fi
+			done
+		fi
+		/usr/bin/grep nameserver /etc/resolv.conf || echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+		test -e /etc/rc.d/jcsvpxelinuxcfg && /etc/rc.d/jcsvpxelinuxcfg onestart
+		test -e /etc/rc.d/jcsvdhcpd && /etc/rc.d/jcsvdhcpd onestart
+		if [ -e /usr/local/etc/rc.d/dnsmasq ]; then
+			/usr/local/etc/rc.d/dnsmasq onereload || /usr/local/etc/rc.d/dnsmasq onestart
+		fi
+		if [ -e /usr/local/etc/rc.d/isc-dhcpd ]; then
+			/usr/local/etc/rc.d/isc-dhcpd onestart || /usr/local/etc/rc.d/isc-dhcpd onerestart
+		fi
+	fi
+fi
+
+if /sbin/sysctl security.jail.jailed | /usr/bin/grep 0 >/dev/null 2>&1 ; then
+	if [ ! -e /server/csv/ucarp ]; then
+		echo "####################"
+		echo "Missing /server/csv/ucarp"
+		echo "Trying with dhclient"
+		echo "####################"
+		if ! /usr/bin/find /var/db -type f -maxdepth 1 | /usr/bin/grep dhclient.leases >/dev/null 2>&1 ; then
+			/sbin/dhclient ${interface}
+		else
+			# using next-server is limited, so we detect dhcp-server-identifier for failover scenario
+			server=$( /usr/bin/egrep "dhcp-server-identifier" `ls -1tr /var/db/dhclient.leases.* 2>/dev/null` | /usr/bin/awk '{ print $NF }' | /usr/bin/tail -1 | /usr/bin/tr -d ';' )
+			if [ "x" != "x${server}" ]; then
+				echo ${server} > /server/csv/ucarp
+			fi
+		fi
+	fi
+	/etc/rc.d/jmyrepo onestart
+	/etc/rc.d/jroute onestart
+fi

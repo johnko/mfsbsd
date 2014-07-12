@@ -1,0 +1,303 @@
+#!/bin/sh
+
+/usr/sbin/sysrc -f /etc/rc.conf php_fpm_enable="YES"
+
+if [ ! -e "/usr/local/etc/rc.d/php-fpm" ]; then
+	/usr/local/sbin/pkg-static install -y php55 php55-filter php55-mysql php55-mysqli php55-zip php55-zlib php55-imap php55-session php55-hash php55-mcrypt php55-json
+	# phpsecinfo php-suhosin
+fi
+
+/usr/bin/install -d -m 700 /server/php
+/usr/bin/install -d -m 700 -o www -g www /var/tmp/.php-session
+/usr/bin/install -d -m 700 -o www -g www /var/tmp/.php-upload
+/usr/bin/install -d -m 700 -o www -g www /var/tmp/.php
+#/bin/cp /usr/local/etc/php.ini-production /usr/local/etc/php.ini
+PHPINI=/server/php/php.ini
+/bin/cat >${PHPINI} <<EOF
+[PHP]
+allow_url_fopen=Off
+allow_url_include=Off
+asp_tags = Off
+auto_append_file =
+auto_globals_jit = On
+auto_prepend_file =
+cgi.fix_pathinfo=0
+default_mimetype = "text/html"
+default_socket_timeout = 60
+disable_classes =
+disable_functions=exec,passthru,shell_exec,system,proc_open,popen,curl_exec,curl_multi_exec,parse_ini_file,show_source
+display_errors=Off
+display_startup_errors=Off
+doc_root =
+enable_dl = Off
+engine = On
+error_reporting=E_ALL & ~E_DEPRECATED & ~E_STRICT
+expose_php=Off
+file_uploads = On
+html_errors=Off
+ignore_repeated_errors = Off
+ignore_repeated_source = Off
+implicit_flush = Off
+log_errors = On
+log_errors_max_len = 1024
+magic_quotes_gpc=Off
+magic_quotes_runtime=Off
+magic_quotes_sybase=Off
+max_execution_time=30
+max_file_uploads = 20
+max_input_time=30
+; TODO set memory_limit=64M
+memory_limit=128M
+output_buffering = 4096
+; TODO set post_max_size=10M
+post_max_size=50M
+precision = 14
+register_argc_argv = Off
+register_globals=Off
+register_long_arrays=Off
+report_memleaks=On
+request_order = "GP"
+safe_mode=Off
+serialize_precision = 17
+short_open_tag = Off
+track_errors = Off
+unserialize_callback_func =
+; TODO set upload_max_filesize=10M
+upload_max_filesize=40M
+upload_tmp_dir=/tmp/.php-upload
+user_dir =
+variables_order = "GPCS"
+zend.enable_gc = On
+zlib.output_compression = Off
+[CLI Server]
+cli_server.color = On
+[Date]
+date.timezone = "America/Toronto"
+[filter]
+[iconv]
+[intl]
+[sqlite]
+[sqlite3]
+[Pcre]
+[Pdo]
+[Pdo_mysql]
+pdo_mysql.cache_size = 2000
+pdo_mysql.default_socket=
+[Phar]
+[mail function]
+SMTP = localhost
+smtp_port = 25
+mail.add_x_header = On
+[SQL]
+sql.safe_mode=Off
+[ODBC]
+odbc.allow_persistent = On
+odbc.check_persistent = On
+odbc.max_persistent = -1
+odbc.max_links = -1
+odbc.defaultlrl = 4096
+odbc.defaultbinmode = 1
+[Interbase]
+ibase.allow_persistent = 1
+ibase.max_persistent = -1
+ibase.max_links = -1
+ibase.timestampformat = "%Y-%m-%d %H:%M:%S"
+ibase.dateformat = "%Y-%m-%d"
+ibase.timeformat = "%H:%M:%S"
+[MySQL]
+mysql.allow_local_infile = On
+mysql.allow_persistent = On
+mysql.cache_size = 2000
+mysql.connect_timeout = 60
+mysql.default_port=3306
+mysql.default_socket =
+mysql.default_host =
+mysql.default_user =
+mysql.default_password =
+mysql.max_persistent = -1
+mysql.max_links = -1
+mysql.trace_mode = Off
+[MySQLi]
+mysqli.allow_persistent = On
+mysqli.max_persistent = -1
+mysqli.max_links = -1
+mysqli.cache_size = 2000
+mysqli.default_port=3306
+mysqli.default_socket =
+mysqli.default_host =
+mysqli.default_user =
+mysqli.default_pw =
+mysqli.reconnect = Off
+[mysqlnd]
+mysqlnd.collect_memory_statistics = Off
+mysqlnd.collect_statistics = On
+[OCI8]
+[PostgreSQL]
+pgsql.allow_persistent = On
+pgsql.auto_reset_persistent = Off
+pgsql.max_persistent = -1
+pgsql.max_links = -1
+pgsql.ignore_notice = 0
+pgsql.log_notice = 0
+[Sybase-CT]
+sybct.allow_persistent = On
+sybct.max_persistent = -1
+sybct.max_links = -1
+sybct.min_server_severity = 10
+sybct.min_client_severity = 10
+[bcmath]
+bcmath.scale = 0
+[browscap]
+[Session]
+session.auto_start = 0
+session.cache_expire = 180
+session.cache_limiter = nocache
+session.cookie_domain =
+; TODO set session.cookie_httponly=1
+session.cookie_httponly=1
+session.cookie_lifetime = 0
+session.cookie_path = /
+session.entropy_file=/dev/urandom
+session.entropy_length=32
+session.gc_divisor = 1000
+session.gc_maxlifetime = 1440
+session.gc_probability = 1
+session.hash_bits_per_character = 5
+session.hash_function = 0
+session.name = PHPSESSID
+session.referer_check =
+session.save_handler = files
+session.save_path=/var/tmp/.php-session
+session.serialize_handler = php
+session.use_cookies = 1
+session.use_only_cookies = 1
+session.use_strict_mode = 0
+session.use_trans_sid = 0
+url_rewriter.tags = "a=href,area=href,frame=src,input=src,form=fakeentry"
+[MSSQL]
+mssql.allow_persistent = On
+mssql.compatibility_mode = Off
+mssql.min_error_severity = 10
+mssql.max_links = -1
+mssql.min_message_severity = 10
+mssql.max_persistent = -1
+mssql.secure_connection = Off
+[Assertion]
+[COM]
+[mbstring]
+[gd]
+[exif]
+[Tidy]
+tidy.clean_output = Off
+[soap]
+soap.wsdl_cache_enabled=1
+soap.wsdl_cache_dir="/tmp"
+soap.wsdl_cache_ttl=86400
+soap.wsdl_cache_limit = 5
+[sysvshm]
+[ldap]
+ldap.max_links = -1
+[mcrypt]
+[dba]
+[opcache]
+[curl]
+EOF
+/bin/ln -shf /server/php/php.ini	/usr/local/etc/php.ini
+
+/usr/bin/grep "^cgi.fix_pathinfo=0" ${PHPINI} || \
+	/bin/cat >>${PHPINI} <<EOF
+; Added to prevent php hack
+cgi.fix_pathinfo=0
+EOF
+
+/usr/bin/sed -i .bkp 's#^expose_php.*On#expose_php=Off#g' ${PHPINI}
+/usr/bin/grep "^expose_php=Off" ${PHPINI} || \
+	/bin/cat >>${PHPINI} <<EOF
+; Added by startphp
+expose_php=Off
+EOF
+
+/usr/bin/grep "^error_log=/var/log/php-error.log" ${PHPINI} || \
+	/bin/cat >>${PHPINI} <<EOF
+; Added by startphp
+error_log=/var/log/php-error.log
+EOF
+
+/usr/bin/sed -i .bkp 's#^upload_max_filesize.*M#upload_max_filesize=10M#g' ${PHPINI}
+/usr/bin/grep "^upload_max_filesize=10M" ${PHPINI} || \
+	/bin/cat >>${PHPINI} <<EOF
+; Added by startphp
+upload_max_filesize=10M
+EOF
+
+/usr/bin/grep "^session.save_path=/var/tmp/.php-session" ${PHPINI} || \
+	/bin/cat >>${PHPINI} <<EOF
+; Added by startphp
+session.save_path=/var/tmp/.php-session
+EOF
+
+PHPFPMCNF=/server/php/php-fpm.conf
+/bin/cat >${PHPFPMCNF} <<EOF
+[global]
+pid = /var/run/php-fpm.pid
+error_log = /var/log/php-fpm.err
+log_level=warning
+[www]
+user = www
+group = www
+listen = /var/run/php-fpm.sock
+listen.owner = nobody
+listen.group = nobody
+listen.mode = 0660
+pm = dynamic
+pm.max_children = 5
+pm.start_servers = 2
+pm.min_spare_servers = 1
+pm.max_spare_servers = 3
+pm.max_requests = 500
+ping.path = /ping
+access.format = "%R - %u %t \"%m %r%Q%q\" %s %f %{mili}d %{kilo}M %C%%"
+access.log = /var/log/php-fpm.log
+slowlog = /var/log/php-fpm.slow.log
+chdir = /var/tmp/.php
+security.limit_extensions = .php
+EOF
+/bin/ln -shf /server/php/php-fpm.conf	/usr/local/etc/php-fpm.conf
+
+
+/bin/cat >/server/nginx/fastcgi_params <<EOF
+fastcgi_param  QUERY_STRING       \$query_string;
+fastcgi_param  REQUEST_METHOD     \$request_method;
+fastcgi_param  CONTENT_TYPE       \$content_type;
+fastcgi_param  CONTENT_LENGTH     \$content_length;
+
+fastcgi_param  SCRIPT_FILENAME    \$document_root\$fastcgi_script_name;
+fastcgi_param  SCRIPT_NAME        \$fastcgi_script_name;
+# This should be set from nginx if there are paths after .php, see global/php.conf
+#fastcgi_param  PATH_INFO          \$fastcgi_path_info;
+#fastcgi_param  PATH_TRANSLATED	  \$document_root\$fastcgi_path_info;
+fastcgi_param  REQUEST_URI        \$request_uri;
+fastcgi_param  DOCUMENT_URI       \$document_uri;
+fastcgi_param  DOCUMENT_ROOT      \$document_root;
+fastcgi_param  SERVER_PROTOCOL    \$server_protocol;
+fastcgi_param  HTTPS              \$https if_not_empty;
+
+fastcgi_param  GATEWAY_INTERFACE  CGI/1.1;
+fastcgi_param  SERVER_SOFTWARE    nginx/\$nginx_version;
+
+fastcgi_param  REMOTE_ADDR        \$remote_addr;
+fastcgi_param  REMOTE_PORT        \$remote_port;
+fastcgi_param  SERVER_ADDR        \$server_addr;
+fastcgi_param  SERVER_PORT        \$server_port;
+fastcgi_param  SERVER_NAME        \$server_name;
+
+# PHP only, required if PHP was built with --enable-force-cgi-redirect
+fastcgi_param  REDIRECT_STATUS    200;
+EOF
+if [ ! -h /usr/local/etc/nginx ]; then
+	/usr/bin/install -m 644 /server/nginx/fastcgi_params /usr/local/etc/nginx/fastcgi_params
+fi
+
+if [ -x "/usr/local/etc/rc.d/php-fpm" ]; then
+	/usr/local/etc/rc.d/php-fpm onereload || /usr/local/etc/rc.d/php-fpm onestart
+fi

@@ -1,0 +1,46 @@
+#!/bin/sh
+
+THISSCRIPT=`echo $0 | /usr/bin/awk '{print $1}'`
+unset DIRTYBIT
+
+if /bin/pgrep -lf ${THISSCRIPT##*/} >/dev/null 2>&1 ; then
+	exit 1
+else
+	if [ ! -e /usr/local/etc/afp.conf ]; then
+		/bin/ln -shf /server/afp/afp.conf /usr/local/etc/afp.conf
+	fi
+	if [ -d /server/afp/afp-enabled ]; then
+		for userconfig in /server/afp/afp-enabled/* ; do
+			if [ -z "${DIRTYBIT}" ]; then
+				if ! /usr/bin/egrep "include = ${userconfig}" /server/afp/afp.conf > /dev/null 2>&1 ; then
+					DIRTYBIT=1
+				fi
+			fi
+		done
+		if [ -n "${DIRTYBIT}" ]; then
+			/bin/cat > /server/afp/afp.conf <<EOF
+; Added by cron-afp-add-enable
+; /usr/local/etc/afp.conf linked to /server/afp/afp.conf
+; Netatalk 3.x configuration file
+[Global]
+afp listen = 0.0.0.0
+cnid scheme = dbd
+log file = /var/log/netatalk.log
+mimic model = Xserve
+;log level = default:maxdebug afpdaemon:maxdebug
+
+;[Homes]
+;basedir regex = /usr/home
+;path = afp
+
+EOF
+			for userconfig in /server/afp/afp-enabled/* ; do
+				/bin/cat >> /server/afp/afp.conf <<EOF
+; Added by cron-afp-add-enabled
+include = ${userconfig}
+EOF
+			done
+		fi
+	fi
+
+fi

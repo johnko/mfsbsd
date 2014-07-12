@@ -3,6 +3,26 @@ mfsBSD
 
 Copyright (c) 2007-2013 Martin Matuska <mm at FreeBSD.org>
 
+Version 2.1ko1 (johnko's fork)
+
+> This fork (github.com/johnko/mfsbsd) of mfsBSD has some extra features:
+> - how to recover with the USB image in `./doc` (auto-create DHCP, PXE, pkgng repo, distro jails)
+> - DHCP and PXE auto-configured based on make-your-own network map in `keys/all/server/csv/dhcpd/net.csv`
+> - host network interfaces also auto-configured based on make-your-own network map with `lagg` support
+> - refactored `zfsinstall` to use `geom_label` for identifying partitions
+> - refactored `zfsinstall` to use `geom_mirror` and `geom_eli` for swap
+> - refactored `zfsinstall` to use `geom_eli` for encryption
+> - refactored `zfsinstall` to use the bsdconfig-style zfs creation
+> - `zfsinstall` creates the ssh key of the installed server (so you know what the pubkey will be when you reconnect)
+> - refactored `Makefile` for custom "key" folders to separate different config setups
+> - refactored `Makefile` for more inodes in the mfsroot
+> - included sample `build.sh` script
+> - `/etc/rc.d/jautopkg` to install packages, with fall back to `/etc/rc.d/jpackages` script to install packages that are not pre-installed
+> - smaller `prunelist` (larger mfsroot)
+> - sample `BIGNKPT` kernel config
+> - lots of useful script in `./keys/all/server/bin/` like `buildallports` (using poudriere) and `stat-all`
+> - lots of useful ***EXPERIMENTAL*** configs in `./keys/all/server/nginx/` (use at your own risk)
+
 ## Description
 
 This is a set of scripts that generates a bootable image, ISO file or boot 
