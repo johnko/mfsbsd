@@ -6,6 +6,7 @@ Copyright (c) 2007-2013 Martin Matuska <mm at FreeBSD.org>
 Version 2.1ko1 (johnko's fork)
 
 > This fork (github.com/johnko/mfsbsd) of mfsBSD has some extra features:
+> - inspired by Joyent's SmartOS: boot a whole Data Center from a USB or PXE boot
 > - how to recover with the USB image in `./doc` (auto-create DHCP, PXE, pkgng repo, distro jails)
 > - DHCP and PXE auto-configured based on make-your-own network map in `keys/all/server/csv/dhcpd/net.csv`
 > - host network interfaces also auto-configured based on make-your-own network map with `lagg` support
@@ -22,6 +23,12 @@ Version 2.1ko1 (johnko's fork)
 > - sample `BIGNKPT` kernel config
 > - lots of useful script in `./keys/all/server/bin/` like `buildallports` (using poudriere) and `stat-all`
 > - lots of useful ***EXPERIMENTAL*** configs in `./keys/all/server/nginx/` (use at your own risk)
+
+## To-do
+
+- jail deployment automation with Chef/Puppet/Ansible/etc.
+- MySQL/Percona/MariaDB multi-master replication
+- Riak, RiakCS
 
 ## Description
 
