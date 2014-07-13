@@ -18,7 +18,7 @@ Version 2.1ko1 (johnko's fork)
 > - refactored `Makefile` for custom "key" folders to separate different config setups
 > - refactored `Makefile` for more inodes in the mfsroot
 > - included sample `build.sh` script
-> - `/etc/rc.d/jautopkg` to install packages, with fall back to `/etc/rc.d/jpackages` script to install packages that are not pre-installed
+> - `/etc/rc.d/jautopkg` to install packages, with fall back to install /packages/*t?z that are not pre-installed
 > - smaller `prunelist` (larger mfsroot)
 > - sample `BIGNKPT` kernel config
 > - lots of useful script in `./keys/all/server/bin/` like `buildallports` (using poudriere) and `stat-all`

@@ -34,7 +34,7 @@ This fork (github.com/johnko/mfsbsd) of mfsBSD is setup as follows:
 ./mfsbsdonly/root/.ssh     # contains authorized_keys
 
 ./packages                 # these packages will be copied, but not installed (may be 
-                           # ... installed after boot by /etc/rc.d/jpackages)
+                           # ... installed after boot by /etc/rc.d/jautopkg)
 ./pkginstall               # these packages will be installed.
 
 ./tools
