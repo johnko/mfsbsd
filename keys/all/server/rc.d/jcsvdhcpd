@@ -163,7 +163,7 @@ EOF
 
 		outfile=/server/dhcpd/include/primary.conf
 		/bin/cat >${outfile} <<EOF
-failover peer "mygroup" 
+failover peer "mygroup"
 {
 	primary;
 	mclt 1800;  # only specified in the primary
@@ -175,7 +175,7 @@ failover peer "mygroup"
 	peer port 647;
 	max-response-delay 30;
 	max-unacked-updates 10;
-	load balance max seconds 3;                
+	load balance max seconds 3;
 }
 include "/server/dhcpd/include/master.conf";
 EOF
@@ -187,7 +187,7 @@ EOF
 
 		outfile=/server/dhcpd/include/secondary.conf
 		/bin/cat >${outfile} <<EOF
-failover peer "mygroup" 
+failover peer "mygroup"
 {
 	secondary;
 
@@ -197,7 +197,7 @@ failover peer "mygroup"
 	peer port 647;
 	max-response-delay 30;
 	max-unacked-updates 10;
-	load balance max seconds 3;                
+	load balance max seconds 3;
 }
 include "/server/dhcpd/include/master.conf";
 EOF
