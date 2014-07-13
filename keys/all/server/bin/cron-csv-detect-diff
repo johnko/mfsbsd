@@ -92,6 +92,5 @@ if /sbin/sysctl security.jail.jailed | /usr/bin/grep 0 >/dev/null 2>&1 ; then
 			fi
 		fi
 	fi
-	/etc/rc.d/jmyrepo onestart
 	/etc/rc.d/jroute onestart
 fi

@@ -2,7 +2,7 @@
 # $Id$
 
 # PROVIDE: jrecover
-# REQUIRE: mountcritlocal disks jautomount mdinit tmp var jmyrepo jroute jautopkg jrcdone
+# REQUIRE: mountcritlocal disks jautomount mdinit tmp var jroute jautopkg jrcdone
 # KEYWORD: FreeBSD
 
 . /etc/rc.subr

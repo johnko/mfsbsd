@@ -493,7 +493,7 @@ ${WRKDIR}/.config_done:
 	@${INSTALL} -d -m 0700 ${_DESTDIR}/server/root/.vim/swaps
 	@${INSTALL} -d -m 0700 ${_DESTDIR}/server/root/.vim/undo
 	@${INSTALL} -d -m 0700 ${_DESTDIR}/server/zfs
-	@${INSTALL} -d -m 0755 ${_DESTDIR}/usr/local/etc/
+	@${INSTALL} -d -m 0755 ${_DESTDIR}/usr/local/etc/pkg/repos
 # /usr
 	@for MYDIR in ${MFSBSDONLY} ${FILESDIR} ; do \
 		if [     -d "$${MYDIR}/usr" ]; then \
