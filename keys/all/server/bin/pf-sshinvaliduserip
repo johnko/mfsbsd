@@ -55,7 +55,7 @@ echo /bin/cat /var/log/auth.log  \
 
 /bin/cat <<EOF
 # !!!!! WARNING !!!!!
-# If there are IP addresses listed above the WARNNG line, they may have 
+# If there are IP addresses listed above the WARNNG line, they may have
 # attempted to login via SSH with an invalid user over 20 times!
 # You can probably ban or blacklist them with your firewall.
 # Example:

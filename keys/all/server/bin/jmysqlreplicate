@@ -76,7 +76,7 @@ if [ "oneway" = "$ACTION" -o "twoway" = "$ACTION" ]; then
 	echo "---  Tell master2 about master1  ---"
 	OFFSET2=$(( $OFFSET + 1 ))
 	${SCREENCMD} -S   mysqlmaster2 -X -p0 eval "stuff 'CHANGE MASTER TO MASTER_HOST="'"'${MASTER1}'"'", MASTER_USER="'"'replication_user'"'", MASTER_PASSWORD="'"'${REPLICAPASS}'"'", MASTER_PORT=3306, MASTER_LOG_FILE="'"'${M1File}'"'", MASTER_LOG_POS=${M1Pos}, MASTER_CONNECT_RETRY=10;'^M"
-	${SSHCMD} root@${MASTER2} "cat >>/server/mysql/sites-enabled/replication-offset.cnf" <<EOF 
+	${SSHCMD} root@${MASTER2} "cat >>/server/mysql/sites-enabled/replication-offset.cnf" <<EOF
 [mysqld]
 auto_increment_increment  = 10
 auto_increment_offset     = ${OFFSET2}
@@ -96,7 +96,7 @@ EOF
 
 	echo "---  Tell master1 about master2  ---"
 	${SCREENCMD} -S   mysqlmaster1 -X -p0 eval "stuff 'CHANGE MASTER TO MASTER_HOST="'"'${MASTER2}'"'", MASTER_USER="'"'replication_user'"'", MASTER_PASSWORD="'"'${REPLICAPASS}'"'", MASTER_PORT=3306, MASTER_LOG_FILE="'"'${M1File}'"'", MASTER_LOG_POS=${M1Pos}, MASTER_CONNECT_RETRY=10;'^M"
-	${SSHCMD} root@${MASTER1} "cat >>/server/mysql/sites-enabled/replication-offset.cnf" <<EOF 
+	${SSHCMD} root@${MASTER1} "cat >>/server/mysql/sites-enabled/replication-offset.cnf" <<EOF
 [mysqld]
 auto_increment_increment  = 10
 auto_increment_offset     = ${OFFSET}
@@ -150,12 +150,12 @@ elif [ "status" = "$ACTION" ]; then
 	if [ -n "${MASTER1}" ]; then
 		echo "---  ${MASTER1} ---"
 		${SSHCMD} root@${MASTER1} "mysql -Bse 'SHOW SLAVE STATUS\G'" 2>/dev/null | /usr/bin/awk '$2{print}' # | /usr/bin/egrep -i '(Slave.*Running|Seconds_Behind_Master)'
-		${SSHCMD} root@${MASTER1} "mysql -Bse 'SHOW GLOBAL VARIABLES LIKE "'"'%auto_increment%'"'";'" 2>/dev/null 
+		${SSHCMD} root@${MASTER1} "mysql -Bse 'SHOW GLOBAL VARIABLES LIKE "'"'%auto_increment%'"'";'" 2>/dev/null
 	fi
 	if [ -n "${MASTER2}" ]; then
 		echo "---  ${MASTER2} ---"
 		${SSHCMD} root@${MASTER2} "mysql -Bse 'SHOW SLAVE STATUS\G'" 2>/dev/null | /usr/bin/awk '$2{print}' # | /usr/bin/egrep -i '(Slave.*Running|Seconds_Behind_Master)'
-		${SSHCMD} root@${MASTER2} "mysql -Bse 'SHOW GLOBAL VARIABLES LIKE "'"'%auto_increment%'"'";'" 2>/dev/null 
+		${SSHCMD} root@${MASTER2} "mysql -Bse 'SHOW GLOBAL VARIABLES LIKE "'"'%auto_increment%'"'";'" 2>/dev/null
 	fi
 
 

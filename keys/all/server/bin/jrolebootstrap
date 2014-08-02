@@ -1906,16 +1906,16 @@ make_auto_links (){
 	# "(){"  are not published functions of this script.
 	local thisfile=`/usr/bin/basename $0`
 	for var in `/usr/bin/grep "() {" $0 | /usr/bin/grep "^jrole" | /usr/bin/cut -d' ' -f1` ; do
-		/bin/ln -shf $thisfile /server/bin/$var 2>/dev/null 
+		/bin/ln -shf $thisfile /server/bin/$var 2>/dev/null
 	done
 }
 
 # ---------------------------------------------------------
 
-# If a link is used, run the proper function, else give info about 
+# If a link is used, run the proper function, else give info about
 # how to work with this script and functions.
 if [ -L /server/bin/`/usr/bin/basename $0` ] ; then
-	`/usr/bin/basename $0` $* 
+	`/usr/bin/basename $0` $*
 else
 	echo "Usage: Please use the created links to `/usr/bin/basename $0` in this directory to use the functionality. If this is your first run, some scripts have been created in /server/bin for you." && { make_auto_links ; exit 1 ; }
 fi

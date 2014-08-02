@@ -21,7 +21,7 @@ DOFSSIZE?=200000
 # If you want to build your own kernel and make you own world, you need to set
 # -DCUSTOM or CUSTOM=1
 #
-# To make buildworld use 
+# To make buildworld use
 # -DCUSTOM -DBUILDWORLD or CUSTOM=1 BUILDWORLD=1
 #
 # To make buildkernel use

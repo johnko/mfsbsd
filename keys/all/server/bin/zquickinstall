@@ -96,7 +96,7 @@ doInstall() {
 	fi
 
 	cat <<EOF
-Trying: 
+Trying:
     /server/bin/zfsinstall ${DETECTEDDRIVES} ${ISMIRROR} ${disturl} ${PASSMFSBSD} -p autoroot -s 10G -z 30G -b 1G -E -n
 EOF
 	/server/bin/zfsinstall ${DETECTEDDRIVES} ${ISMIRROR} ${disturl} ${PASSMFSBSD} -p autoroot -s 10G -z 30G -b 1G -E -n || exit 1

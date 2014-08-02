@@ -32,12 +32,12 @@ Version 2.1ko1 (johnko's fork)
 
 ## Description
 
-This is a set of scripts that generates a bootable image, ISO file or boot 
+This is a set of scripts that generates a bootable image, ISO file or boot
 files only, that create a working minimal installation of FreeBSD. This
 minimal installation gets completely loaded into memory.
 
 The image may be written directly using dd(1) onto any bootable block device,
-e.g. a hard disk or a USB stick e.g. /dev/da0, or a bootable slice only, 
+e.g. a hard disk or a USB stick e.g. /dev/da0, or a bootable slice only,
 e.g. /dev/ada0s1
 
 ## Build-time requirements

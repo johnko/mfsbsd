@@ -33,7 +33,7 @@ doInstall() {
 	fi
 
 	cat <<EOF
-Trying: 
+Trying:
     /server/bin/zfsdatapartition ${DETECTEDDRIVES} ${ISMIRROR} -E -n -c
 EOF
 	/server/bin/zfsdatapartition ${DETECTEDDRIVES} ${ISMIRROR} -E -n -c || exit 1

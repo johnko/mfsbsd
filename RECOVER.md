@@ -97,7 +97,7 @@ edit /server/csv/dhcpd/[company].csv
 
 Line                                                             | Description
 -----------------------------------------------------------------|------------
-dhcp-boot,tag:!gpxe,lpxelinux.0,192.168.0.200                    | PXE boot service IP 
+dhcp-boot,tag:!gpxe,lpxelinux.0,192.168.0.200                    | PXE boot service IP
 dhcp-failover,primary,192.168.0.121                              | Primary DHCP service IP
 dhcp-failover,secondary,192.168.0.141                            | Secondary DHCP service IP
 dhcp-option,option:dns-server,192.168.0.200,208.67.222.222       | DNS IP
@@ -169,7 +169,7 @@ chmod a-x /server/bin/buildports ; startmfsbsdbuilder
 ```
 
 > Optionally, you can perform step 11 and 12 at the same time but `buildports` requires a fast Internet connection and would take a few hours:
-> 
+>
 > ```
 > chmod a+x /server/bin/buildports ; startmfsbsdbuilder
 > ```

@@ -148,7 +148,7 @@ rdr-anchor jails
 #        rdr proto tcp from any to any port 80 -> \$web_servers round-robin sticky-address
 anchor loadbalance
 load anchor loadbalance from "/server/savepf/loadbalance.anchor"
-#        5t EXAMPLE jail 
+#        5t EXAMPLE jail
 #        Port redirection (forwarding) from your IP to your jails’s IPs
 #        rdr on re0 proto tcp to port http -> 10.0.0.1 port http
 #        rdr on re0 proto tcp to port imap -> 10.0.0.2 port imap

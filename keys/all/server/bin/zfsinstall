@@ -3,9 +3,9 @@
 #
 # mfsBSD ZFS install script
 # Copyright (c) 2011-2013 Martin Matuska <mm at FreeBSD.org>
-# Modified by @johnko https://github.com/johnko with help from 
+# Modified by @johnko https://github.com/johnko with help from
 # @keltia https://github.com/keltia
-# encryption setup based on input from 
+# encryption setup based on input from
 # http://forums.freebsd.org/showthread.php?t=2775
 #
 /sbin/swapoff -a

@@ -3,7 +3,7 @@
 # This will be the rc.conf file in your image.
 #
 # You may set anything you want here, including network interfaces.
-# If you are not sure about network interface names and/or their order, 
+# If you are not sure about network interface names and/or their order,
 # see the interfaces.conf file in this directory.
 #
 # Set this to any desired hostname
