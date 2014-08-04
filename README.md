@@ -21,7 +21,7 @@ Version 2.1ko1 (johnko's fork)
 > - `/etc/rc.d/jautopkg` to install packages, with fall back to install /packages/*t?z that are not pre-installed
 > - smaller `prunelist` (larger mfsroot)
 > - sample `BIGNKPT` kernel config
-> - lots of useful script in `./keys/all/server/bin/` like `buildallports` (using poudriere) and `stat-all`
+> - lots of useful but ***EXPERIMENTAL*** script in `./keys/all/server/bin/` like `buildallports` (using poudriere) and `stat-all`
 > - lots of useful ***EXPERIMENTAL*** configs in `./keys/all/server/nginx/` (use at your own risk)
 
 ## To-do
