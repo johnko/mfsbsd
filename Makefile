@@ -1,7 +1,7 @@
 # $Id$
 #
 # mfsBSD
-# Copyright (c) 2007-2013 Martin Matuska <mm at FreeBSD.org>
+# Copyright (c) 2007-2013 Martin Matuska <mm at FreeBSD.org>, 2014 John Ko
 #
 # Version 2.1ko1 (johnko's fork)
 #

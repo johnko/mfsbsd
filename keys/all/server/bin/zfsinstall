@@ -2,7 +2,7 @@
 # $Id$
 #
 # mfsBSD ZFS install script
-# Copyright (c) 2011-2013 Martin Matuska <mm at FreeBSD.org>
+# Copyright (c) 2011-2013 Martin Matuska <mm at FreeBSD.org>, 2014 John Ko
 # Modified by @johnko https://github.com/johnko with help from
 # @keltia https://github.com/keltia
 # encryption setup based on input from

@@ -3,6 +3,7 @@
 #
 # mfsBSD ZFS pool and geom partition deleting
 #
+# Copyright (c) 2014 John Ko
 # Copyright (c) 2010-2011
 # Georges Discry <murmex at gathex.net>
 # Martin Matuska <mm at FreeBSD.org>

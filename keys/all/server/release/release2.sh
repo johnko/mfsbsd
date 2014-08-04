@@ -1,6 +1,6 @@
 #!/bin/sh
 #-
-# Copyright (c) 2013 Glen Barber
+# Copyright (c) 2013 Glen Barber, 2014 John Ko
 # Copyright (c) 2011 Nathan Whitehorn
 # All rights reserved.
 #
