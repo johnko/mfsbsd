@@ -120,7 +120,7 @@ echo " done"
 				echo " error"
 				exit 1
 			fi
-			/bin/mv ${file} /bootdir/
+			/bin/mv ${file} /var/backups/
 		else
 			exit 1
 		fi

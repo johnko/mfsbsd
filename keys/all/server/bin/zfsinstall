@@ -860,7 +860,7 @@ if [ -z "${NOINSTALL}" ]; then
 				echo " error"
 				exit 1
 			fi
-			/bin/cp -a ${file} ${MNT}/bootdir/
+			/bin/cp -a ${file} ${MNT}/var/backups/
 		else
 			if ! /usr/bin/tar -C ${MNT} -x -f ${file} > /dev/null 2> /dev/null; then
 				echo " error"
