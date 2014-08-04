@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 /usr/bin/tr -d '\r' | /usr/bin/sed \
 	-e 's#[^:_ ]\{5\}:#_____:#g' -e 's#:[^:_ ]\{5\}#:_____#g' \

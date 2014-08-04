@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 mfsbsdjail=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep mfsbsd | /usr/bin/awk '{print $4}' )
 if [ "x" = "x${mfsbsdjail}" ] ; then

@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 THISSCRIPT=`echo $0 | /usr/bin/awk '{print $1}'`
 unset DIRTYBIT

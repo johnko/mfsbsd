@@ -1,3 +1,4 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 /usr/sbin/usbconfig $*

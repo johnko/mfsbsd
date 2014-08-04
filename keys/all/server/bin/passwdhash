@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 openssl passwd -1
 

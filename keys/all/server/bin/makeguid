@@ -1,3 +1,4 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 echo "${1}$(/bin/cat /dev/random | /usr/bin/tr -cd '[:alnum:]' | /usr/bin/head -c 20)" | /usr/bin/head -c 14

@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 /bin/cat /dev/random | LC_ALL=C /usr/bin/tr -dc 'a-zA-Z0-9' | /usr/bin/fold -w 30 | /usr/bin/head -n 10
 

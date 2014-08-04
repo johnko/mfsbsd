@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 : ${int:=$1}
 : ${int:="lo0"}

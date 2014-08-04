@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 /bin/rm -r /tmp/dwmpkg > /dev/null 2>&1
 /bin/mkdir ~/src > /dev/null 2>&1

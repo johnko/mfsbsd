@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 if [ -n "$*" ]; then
 	cat ~/.ssh/id_rsa.pub | ssh $* "umask 077; test -d ~/.ssh || install -d -m 700 ~/.ssh ; cat >> ~/.ssh/authorized_keys"

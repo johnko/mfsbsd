@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 if /sbin/sysctl security.jail.jailed | /usr/bin/grep 1 >/dev/null 2>&1 ; then
 	for i in `ifconfig -l` ; do

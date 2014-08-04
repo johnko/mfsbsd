@@ -1,3 +1,4 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 /sbin/zfs list -o name,used,available,refer,usedbychildren,usedbysnapshots,quota,mounted,mountpoint,creation $*

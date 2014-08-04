@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 /usr/sbin/sysrc -f /etc/rc.conf php_fpm_enable="YES"
 

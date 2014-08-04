@@ -1,3 +1,4 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 cat -n /usr/share/dict/words | grep -w $(jot -r 1 1 $(cat /usr/share/dict/words | wc -l)) | cut -f2 | tr 'A-Z' 'a-z'

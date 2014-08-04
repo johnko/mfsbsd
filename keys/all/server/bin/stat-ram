@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 echo $( ram-total )"G "$( ram-used )"G "$( ram-free )"G"
 

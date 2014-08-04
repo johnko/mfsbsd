@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 /server/bin/startconfig nginx
 /usr/bin/install -d -m 755 /server/nginx/sites-enabled

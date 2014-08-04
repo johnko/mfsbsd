@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 /bin/ls -1 /dev/ | \
   /usr/bin/egrep ".{0,1}cd[0-9]"

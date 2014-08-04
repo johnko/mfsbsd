@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 if [ -z "${3}" ]; then
   echo "Usage: $0  snapshot  remote_server:remote_port target_pool [last_snapshot]"

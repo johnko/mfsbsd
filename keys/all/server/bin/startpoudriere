@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 # You may need to allow ftp during fetch phase
 # /server/bin/pf-anchor-load ftpout

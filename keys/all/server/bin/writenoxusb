@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 if [ "x" = "x$1" ]; then
 	echo "Usage: $0 [usb_drive]"

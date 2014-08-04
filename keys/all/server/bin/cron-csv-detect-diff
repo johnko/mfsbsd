@@ -1,5 +1,5 @@
 #!/bin/sh
-
+# Copyright (c) 2014 John Ko
 
 if /sbin/ifconfig -l | /usr/bin/grep lagg0 >/dev/null 2>&1 ; then
 	interface=lagg0

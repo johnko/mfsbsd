@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 usage() {
 	echo "Usage: $0 -d geom_provider [-d geom_provider ...]"

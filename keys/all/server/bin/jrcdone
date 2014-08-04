@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 if [ -e /tmp/.jrcdone ]; then
 	exit 0

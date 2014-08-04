@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 # Setup a bare remote git repo you can push to, pull from.
 
 usage() {
