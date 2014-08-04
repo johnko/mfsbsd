@@ -394,7 +394,7 @@ EOF
 					DOFSSIZE=${DOFSSIZE} \
 					KEYCFG="mfsbsdonly all $CSV" \
 					PKGNG=1 \
-					SE=1
+					SE=1 || exit 1
 			fi
 			cd -
 			jrolelinkmfsbsd
