@@ -7,7 +7,7 @@ Version 2.1ko1 (johnko's fork)
 
 > This fork (github.com/johnko/mfsbsd) of mfsBSD has some extra features:
 > - inspired by Joyent's SmartOS: boot a whole Data Center from a USB or PXE boot
-> - how to recover with the USB image in `./doc` (auto-create DHCP, PXE, pkgng repo, distro jails)
+> - how to recover with the USB image in `RECOVER.md` (auto-create DHCP, PXE, pkgng repo, distro jails)
 > - DHCP and PXE auto-configured based on make-your-own network map in `keys/all/server/csv/dhcpd/net.csv`
 > - host network interfaces also auto-configured based on make-your-own network map with `lagg` support
 > - refactored `zfsinstall` to use `geom_label` for identifying partitions
