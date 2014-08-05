@@ -381,6 +381,10 @@ jrolebgstart () {
 		/usr/local/bin/ezjail-admin console ${mfsbsdjail} <<EOF
 cd ~/mfsbsd && chmod a+x tools/doFS.sh && chmod a+x build.sh && ./build.sh nox all $CSV "$MFSMODULES"
 EOF
+		if [ ! -e ${mfsbsdroot}/root/mfsbsd/NOX-${RELEASE}-${ARCH}.iso ]; then
+			echo "ERROR 404: ${mfsbsdroot}/root/mfsbsd/NOX-${RELEASE}-${ARCH}.iso"
+			exit 1
+		fi
 		jrolelinkmfsbsd
 		cd ${mfsbsdroot}/root/mfsbsd
 		if [ -e NOX-${RELEASE}-${ARCH}.iso ]; then
