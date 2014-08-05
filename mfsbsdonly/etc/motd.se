@@ -1,12 +1,12 @@
 Welcome to mfsBSD SE, the memory based FreeBSD distribution.
 This is a special version intended for full-ZFS install of FreeBSD
 
-Visit https://github.com/johnko/mfsbsd-personal
+Visit https://github.com/johnko/mfsbsd
 for bug reports or feature suggestions.
 
 You may find recovery instructions online at:
-https://github.com/johnko/mfsbsd-personal/blob/master/RECOVER.md
+https://github.com/johnko/mfsbsd/blob/master/RECOVER.md
 
 or included by typing:
-more /server/root/mfsbsd-personal/RECOVER.md
+more /server/root/mfsbsd/RECOVER.md
 

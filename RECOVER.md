@@ -177,7 +177,7 @@ chmod a-x /server/bin/buildports ; startmfsbsdbuilder
 ### 13) New USB, CD, and tar `NOX recovery images` can be listed at:
 
 ```
-ls -lh /usr/jails/mfsbsd*/root/mfsbsd-personal/NOX*
+ls -lh /usr/jails/mfsbsd*/root/mfsbsd/NOX*
 ```
 
 Plug in a new USB, and the new `NOX recovery image` can be written to the USB drive with a command like:
