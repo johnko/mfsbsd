@@ -1,4 +1,5 @@
 #!/bin/sh
+# Copyright (c) 2014 John Ko
 
 RELEASE=10.0-RELEASE
 #RELEASE=`uname -r`
