@@ -1,7 +1,7 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
-PKGLIST="pkg rsync screen cmdwatch openssl bash-static git subversion curl wget gnupg ezjail ucarp poudriere iftop"
+PKGLIST="pkg rsync screen cmdwatch openssl bash-static git subversion curl wget gnupg ezjail ucarp poudriere iftop openntpd"
 # gnutls w3m rtorrent cdrtools
 
 if [ "$MFSBSD" != "1" ]; then
