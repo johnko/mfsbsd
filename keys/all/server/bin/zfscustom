@@ -155,7 +155,6 @@ done
 /usr/bin/install -d -m 755						${MNT}/etc/ssh
 /usr/bin/install -m 644 /etc/resolv.conf		${MNT}/etc/
 /usr/bin/install -m 600 /etc/sysctl.conf		${MNT}/etc/
-/usr/bin/touch /etc/ntp.conf
 
 /usr/bin/install -d -m 755						${MNT}/cdrom
 
