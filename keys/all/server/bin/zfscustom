@@ -44,9 +44,10 @@ if [ "$MFSBSD" != "1" ]; then
 ##### NTP
 /usr/sbin/sysrc -f ${MNT}/etc/rc.conf ntpdate_enable="YES"
 #	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf ntpdate_hosts=""
-/usr/sbin/sysrc -f ${MNT}/etc/rc.conf ntpd_enable="YES"
+/usr/sbin/sysrc -f ${MNT}/etc/rc.conf ntpd_enable="NO"
 /usr/sbin/sysrc -f ${MNT}/etc/rc.conf ntpd_sync_on_start="YES"
 /usr/sbin/sysrc -f ${MNT}/etc/rc.conf ntpd_chrootdir="/chroot/ntpd"
+/usr/sbin/sysrc -f ${MNT}/etc/rc.conf openntpd_enable="YES"
 ##### ZFS
 /usr/sbin/sysrc -f ${MNT}/etc/rc.conf zfs_enable="YES"
 ##### audit events, maybe for file sync
