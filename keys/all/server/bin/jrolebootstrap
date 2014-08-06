@@ -323,6 +323,9 @@ jrolebgstart () {
 	elif [ "$role" = "qemu" ]; then
 		/usr/local/bin/ezjail-admin console -e /server/bin/start$role ${hostname}
 ############################################
+	elif [ "$role" = "blank" ]; then
+		echo
+############################################
 	elif [ "$role" = "release" ]; then
 		/usr/local/bin/ezjail-admin console -e /server/bin/start$role ${hostname}
 		jrolelinkrelease
@@ -433,7 +436,7 @@ EOF
 			"$role" = "mysql" -o "$role" = "percona" -o "$role" = "mariadb" -o "$role" = "perconacluster" -o "$role" = "mariadbcluster" -o \
 			"$role" = "wordpress" -o "$role" = "sslproxy" -o "$role" = "sslproxywordpress" -o "$role" = "varnish" -o "$role" = "horde" -o \
 			"$role" = "postfix" -o "$role" = "ntopng" -o "$role" = "dbmail" -o \
-			"$role" = "riak" -o "$role" = "nodejs" -o "$role" = "couchdb" -o "$role" = "littlechef" ]; then
+			"$role" = "riak" -o "$role" = "nodejs" -o "$role" = "couchdb" -o "$role" = "littlechef" -o "$role" = "blank" ]; then
 		if ! /usr/sbin/jls -j ${safehostname} >/dev/null 2>&1 ; then
 			jrolejailcreate ${role} ${hostname} ${nicip}
 			/usr/bin/egrep "jrolecreate" /usr/local/etc/ezjail/${safehostname} >/dev/null 2>&1 || \
@@ -648,7 +651,7 @@ jrolesetupflavours () {
 			elif [ "$localrole" = "poudriere" ]; then
 				jrolesetupservice nginx ${MNT}
 				jrolesetupservice poudriere ${MNT}
-			elif [ "$localrole" = "qemu" -o "$localrole" = "release" -o "$localrole" = "mfsbsd" ]; then
+			elif [ "$localrole" = "qemu" -o "$localrole" = "release" -o "$localrole" = "mfsbsd" -o "$localrole" = "blank" ]; then
 				jrolesetupservice $localrole ${MNT}
 			else
 				echo "Not implemented: jrolesetupflavours $role"
@@ -778,6 +781,8 @@ jrolesetupservice () {
 	elif [ "$service" = "mfsbsd" ]; then
 		echo
 	elif [ "$service" = "qemu" ]; then
+		echo
+	elif [ "$service" = "blank" ]; then
 		echo
 	elif [ "$service" = "release" ]; then
 		if /sbin/zfs list data/distro/releng10 ; then
