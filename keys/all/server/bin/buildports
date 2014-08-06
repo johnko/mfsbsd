@@ -1,6 +1,23 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
+# Building rubygem-chef because it fails during poudriere
+/server/bin/jrolenatcreate riak chef.builder.local 'lo1|10.123.234.1'
+/server/bin/jrolebgstart riak chef.builder.local
+/usr/local/bin/poudriere ports -c
+if [ ! -e /usr/jails/chef.builder.local/usr/ports/devel ]; then
+	/bin/rm /usr/jails/chef.builder.local/usr/ports
+fi
+/server/bin/r -a /poudriere/ports/default/ /usr/jails/chef.builder.local/usr/ports/
+/usr/local/bin/git clone https://github.com/johnko/freebsd-ports-test.git $HOME/freebsd-ports-test
+/server/bin/r -a --exclude .git $HOME/freebsd-ports-test/ /usr/jails/chef.builder.local/usr/ports/
+/sbin/mount -t nullfs /usr/ports/distfiles /usr/jails/chef.builder.local/var/ports/distfiles
+/usr/local/bin/ezjail-admin console chef.builder.local <<EOF
+cd /usr/ports/sysutils/rubygem-chef && make package-recursive
+EOF
+/server/bin/r -a /usr/jails/chef.builder.local/var/ports/packages/All/ /poudriere/data/packages/100amd64-default/All/
+# End of rubygem-chef build
+
 /server/bin/startpoudriereiredmail
 
 /bin/chmod a-x /server/bin/buildports
