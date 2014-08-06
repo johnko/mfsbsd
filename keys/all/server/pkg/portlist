@@ -131,6 +131,7 @@ sysutils/mcelog
 sysutils/pftop
 sysutils/php5-fileinfo
 sysutils/php55-fileinfo
+sysutils/rubygem-chef
 sysutils/screen
 sysutils/smartmontools
 sysutils/syslinux
