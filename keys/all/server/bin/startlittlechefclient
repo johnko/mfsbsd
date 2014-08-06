@@ -1,0 +1,12 @@
+#!/bin/sh
+# Copyright (c) 2014 John Ko
+
+install_pkg (){
+	pkg-static info $1 > /dev/null 2> /dev/null || pkg-static install -y $1 || exit 1
+}
+
+for i in sudo rsync perl5 devel/ruby-gems ; do
+	install_pkg $i
+done
+
+gem install chef || exit 1
