@@ -264,6 +264,12 @@ ${WRKDIR}/.install_done:
 . if !defined(CUSTOM) && exists(${BASE}/lib32.txz)
 	@${CP} ${BASE}/lib32.txz ${_DISTDIR}/lib32.txz
 . endif
+. if !defined(CUSTOM) && exists(${BASE}/games.txz)
+	@${CP} ${BASE}/games.txz ${_DISTDIR}/games.txz
+. endif
+. if !defined(CUSTOM) && exists(${BASE}/src.txz)
+	@${CP} ${BASE}/src.txz ${_DISTDIR}/src.txz
+. endif
 	@echo " done"
 . if defined(ROOTHACK)
 	@${RM} -rf ${_DESTDIR}/boot/kernel
