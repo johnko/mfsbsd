@@ -54,16 +54,6 @@ jroleautoclean () {
 
 # ---------------------------------------------------------
 
-jroleautostart () {
-	jroledhcpdjails
-	jrolebuilderjails
-	#jrolemariadbclusterjails
-	#jrolewordpressjails
-	#jrolepostfixjails
-}
-
-# ---------------------------------------------------------
-
 jrolemailstart () {
 	jrolemariadbclusterjails
 	jroledbmailjails
@@ -281,6 +271,7 @@ jrolebgstart () {
 	/usr/local/bin/ezjail-admin console -e "/bin/mv /etc/pkg/FreeBSD.conf /etc/pkg.FreeBSD.conf.bkp" ${hostname}
 	/usr/local/bin/ezjail-admin console -e "/usr/local/sbin/pkg-static info" ${hostname} | /usr/bin/grep 'pkg-' || \
 		/usr/local/bin/ezjail-admin console -e "/usr/local/sbin/pkg-static install -y pkg" ${hostname}
+	/usr/local/bin/ezjail-admin console -e "/server/bin/startlittlechefclient" ${hostname}
 ############################################
 	if [ "$role" = "dhcpd" ]; then
 		/usr/local/bin/ezjail-admin console -e /server/bin/startdhcpd ${hostname}
@@ -294,7 +285,7 @@ jrolebgstart () {
 		/usr/local/bin/ezjail-admin console -e "/server/bin/start$role ${server}" ${hostname}
 		jroleproductionip $( /usr/local/bin/ezjail-admin list | /usr/bin/grep pxe | /usr/bin/awk '{print $4}' )
 ############################################
-	elif [ "$role" = "pkgng" -o "$role" = "freebsd-dist" -o "$role" = "ntopng" ]; then
+	elif [ "$role" = "pkgng" -o "$role" = "freebsd-dist" -o "$role" = "ntopng" -o "$role" = "littlechef" ]; then
 		/usr/local/bin/ezjail-admin console -e /server/bin/start$role ${hostname}
 ############################################
 	elif [ "$role" = "mysql" -o "$role" = "percona" -o "$role" = "mariadb" ]; then
@@ -442,7 +433,7 @@ EOF
 			"$role" = "mysql" -o "$role" = "percona" -o "$role" = "mariadb" -o "$role" = "perconacluster" -o "$role" = "mariadbcluster" -o \
 			"$role" = "wordpress" -o "$role" = "sslproxy" -o "$role" = "sslproxywordpress" -o "$role" = "varnish" -o "$role" = "horde" -o \
 			"$role" = "postfix" -o "$role" = "ntopng" -o "$role" = "dbmail" -o \
-			"$role" = "riak" -o "$role" = "nodejs" -o "$role" = "couchdb" ]; then
+			"$role" = "riak" -o "$role" = "nodejs" -o "$role" = "couchdb" -o "$role" = "littlechef" ]; then
 		if ! /usr/sbin/jls -j ${safehostname} >/dev/null 2>&1 ; then
 			jrolejailcreate ${role} ${hostname} ${nicip}
 			/usr/bin/egrep "jrolecreate" /usr/local/etc/ezjail/${safehostname} >/dev/null 2>&1 || \
