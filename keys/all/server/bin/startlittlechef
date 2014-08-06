@@ -21,15 +21,15 @@ $HOME/littlechef/fix new_kitchen || exit 1
 cat > $HOME/new_kitchen/littlechef.cfg <<EOF
 [userinfo]
 user = root
-password = none
-keypair-file = ~/.ssh/id_ecdsa
+keypair-file = ~/.ssh/id_rsa
 encrypted_data_bag_secret = 
 [kitchen]
 node_work_path = /tmp/chef-solo/
 EOF
 
-if [ ! -e ~/.ssh/id_ecdsa ]; then
-	ssh-keygen -N '' -t ecdsa -b 521 -f ~/.ssh/id_ecdsa
+# littlechef/fabric/paramiko can't use ecdsa keys
+if [ ! -e ~/.ssh/id_rsa ]; then
+	ssh-keygen -N '' -t rsa -b 4096 -f ~/.ssh/id_rsa
 fi
 
 echo 'You may want to:'
