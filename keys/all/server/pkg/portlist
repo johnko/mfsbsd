@@ -32,6 +32,7 @@ devel/php55-gettext
 devel/py-Jinja2
 devel/py-fabric
 devel/py-pip
+devel/ruby-gems
 devel/subversion
 dns/dnsmasq
 dns/p5-Net-DNS
