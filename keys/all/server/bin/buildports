@@ -2,7 +2,7 @@
 # Copyright (c) 2014 John Ko
 
 # Building rubygem-chef because it fails during poudriere
-if /usr/local/bin/ezjail-admin list | /usr/bin/grep chef.builder.local > /dev/null 2> /dev/null ; then
+if ! /usr/local/bin/ezjail-admin list | /usr/bin/grep chef.builder.local > /dev/null 2> /dev/null ; then
 	/server/bin/jrolenatcreate blank chef.builder.local 'lo1|10.123.234.1'
 	/server/bin/jrolebgstart blank chef.builder.local
 fi
