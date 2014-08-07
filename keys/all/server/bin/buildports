@@ -6,6 +6,18 @@ if ! /usr/local/bin/ezjail-admin list | /usr/bin/grep chef.builder.local > /dev/
 	/server/bin/jrolenatcreate blank chef.builder.local 'lo1|10.123.234.1'
 	/server/bin/jrolebgstart blank chef.builder.local
 fi
+if ! /usr/bin/grep 'WITH_PKGNG=YES' /usr/jails/chef.builder.local/etc/make.conf > /dev/null 2> /dev/null ; then
+	echo 'WITH_PKGNG=YES' >> /usr/jails/chef.builder.local/etc/make.conf
+fi
+if ! /usr/bin/grep 'openssl_UNSET+=MD2' /usr/jails/chef.builder.local/etc/make.conf > /dev/null 2> /dev/null ; then
+	echo 'openssl_UNSET+=MD2' >> /usr/jails/chef.builder.local/etc/make.conf
+fi
+if ! /usr/bin/grep 'CFLAGS+=-DOPENSSL_NO_HEARTBEATS' /usr/jails/chef.builder.local/etc/make.conf > /dev/null 2> /dev/null ; then
+	echo 'CFLAGS+=-DOPENSSL_NO_HEARTBEATS' >> /usr/jails/chef.builder.local/etc/make.conf
+fi
+if ! /usr/bin/grep 'WITH_OPENSSL_PORT=YES' /usr/jails/chef.builder.local/etc/make.conf > /dev/null 2> /dev/null ; then
+	echo 'WITH_OPENSSL_PORT=YES' >> /usr/jails/chef.builder.local/etc/make.conf
+fi
 /server/bin/startpoudriere unattended
 if [ ! -e /poudriere/ports/default ]; then
 	/usr/local/bin/poudriere ports -c
