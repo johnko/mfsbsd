@@ -29,6 +29,7 @@ fi
 /server/bin/r -a --exclude .git $HOME/freebsd-ports-test/ /poudriere/ports/default/
 if [ ! -e /usr/jails/chef.builder.local/usr/ports/devel ]; then
 	/bin/rm /usr/jails/chef.builder.local/usr/ports
+	/bin/mkdir -p /usr/jails/chef.builder.local/usr/ports
 fi
 /sbin/mount -t nullfs -o ro /poudriere/ports/default /usr/jails/chef.builder.local/usr/ports
 /sbin/mount -t nullfs /usr/ports/distfiles /usr/jails/chef.builder.local/var/ports/distfiles
