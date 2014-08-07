@@ -36,6 +36,7 @@ fi
 cd /usr/ports/sysutils/rubygem-chef && make package-recursive
 EOF
 /server/bin/r -a /usr/jails/chef.builder.local/var/ports/packages/All/ /poudriere/data/packages/100amd64-default/All/
+/sbin/umount /usr/jails/chef.builder.local/var/ports/distfiles
 # End of rubygem-chef build
 
 /server/bin/startpoudriereiredmail
