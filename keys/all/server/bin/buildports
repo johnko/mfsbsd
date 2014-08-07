@@ -6,7 +6,13 @@ if /usr/local/bin/ezjail-admin list | /usr/bin/grep chef.builder.local > /dev/nu
 	/server/bin/jrolenatcreate blank chef.builder.local 'lo1|10.123.234.1'
 	/server/bin/jrolebgstart blank chef.builder.local
 fi
-/usr/local/bin/poudriere ports -c
+/server/bin/startpoudriere unattended
+if [ ! -e /poudriere/ports/default ]; then
+	/usr/local/bin/poudriere ports -c
+else
+	echo
+	#/usr/local/bin/poudriere ports -u
+fi
 if [ ! -e /usr/jails/chef.builder.local/usr/ports/devel ]; then
 	/bin/rm /usr/jails/chef.builder.local/usr/ports
 fi
