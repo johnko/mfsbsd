@@ -116,7 +116,11 @@ echo " done"
 	echo -n "Extracting FreeBSD distribution ..."
 	for file in ${EXTRACT_FILES}; do
 		if [ "$MFSBSD" = "1" ]; then
-			if ! /usr/bin/tar -C /bootdir -x -f ${file} > /dev/null 2> /dev/null; then
+			if ! /usr/bin/tar -C /bootdir --exclude=${RELEASE}-${ARCH} -x -f ${file} > /dev/null 2> /dev/null; then
+				echo " error"
+				exit 1
+			fi
+			if ! /usr/bin/tar -C /var/backups --include=${RELEASE}-${ARCH} -x -f ${file} > /dev/null 2> /dev/null; then
 				echo " error"
 				exit 1
 			fi
