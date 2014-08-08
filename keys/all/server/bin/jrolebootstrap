@@ -346,7 +346,7 @@ jrolebgstart () {
 		/bin/mkdir -p ${mfsbsdroot}/root/mfsbsd/pkginstall
 		for i in gnupg ; do
 			/usr/local/bin/ezjail-admin console ${mfsbsdjail} <<EOF
-/usr/local/sbin/pkg-static info ${i} || /usr/local/sbin/pkg-static install -y ${i}
+/usr/local/sbin/pkg-static info ${i} > /dev/null 2> /dev/null || /usr/local/sbin/pkg-static install -y ${i}
 EOF
 		done
 		/usr/local/bin/ezjail-admin console -e '/usr/local/sbin/pkg-static clean -y -a -q' ${mfsbsdjail}

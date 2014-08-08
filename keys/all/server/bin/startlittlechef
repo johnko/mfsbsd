@@ -2,14 +2,16 @@
 # Copyright (c) 2014 John Ko
 
 install_pkg (){
-	pkg-static info $1 > /dev/null 2> /dev/null || pkg-static install -y $1 || exit 1
+	pkg-static info $1 > /dev/null 2> /dev/null || pkg-static install -y $1
 }
 
-for i in git py27-pip py27-fabric ; do
+for i in git py27-pip py27-fabric py27-Jinja2 ; do
 	install_pkg $i
 done
 
-ln -shf python2.7 /usr/local/bin/python || exit 1
+if [ ! -e /usr/local/bin/python ]; then
+	ln -shf python2.7 /usr/local/bin/python || exit 1
+fi
 
 if [ ! -e $HOME/littlechef/fix ]; then
 	git clone https://github.com/johnko-chef/littlechef-freebsd.git $HOME/littlechef || exit 1
@@ -20,7 +22,7 @@ $HOME/littlechef/fix new_kitchen || exit 1
 
 cat > $HOME/new_kitchen/littlechef.cfg <<EOF
 [userinfo]
-user = root
+user = littlechef
 keypair-file = ~/.ssh/id_rsa
 encrypted_data_bag_secret = 
 [kitchen]
@@ -32,8 +34,22 @@ if [ ! -e ~/.ssh/id_rsa ]; then
 	ssh-keygen -N '' -t rsa -b 4096 -f ~/.ssh/id_rsa
 fi
 
-echo 'You may want to:'
-echo '# set path = ($HOME/littlechef $path)'
-echo '# cd $HOME/new_kitchen'
-echo '# echo {} > nodes/10.123.234.35.json'
-echo '# fix node:10.123.234.35 ssh:"uptime"'
+cat <<EOF
+Prepare node 10.123.234.35:
+# pkg install -y rubygem-chef
+# echo "littlechef:::::::/usr/home/chef:/bin/sh:" | /usr/sbin/adduser -w no -S -f -
+# passwd littlechef
+# visudo
+# chmod 755 /usr/home
+# install -d -o littlechef -g littlechef -m 700 /usr/home/littlechef/.ssh
+# install -o littlechef -g littlechef -m 600 ~/.ssh/authorized_keys /usr/home/littlechef/.ssh/authorized_keys
+
+You may want to:
+# set path = (\$HOME/littlechef \$path)
+# cd \$HOME/new_kitchen/cookbooks
+# git clone https://github.com/johnko-chef/motd
+# cd \$HOME/new_kitchen
+# echo '{"name":"base","description":"The base role for all FreeBSD systems.","json_class":"Chef::Role","default_attributes":{},"override_attributes":{},"chef_type":"role","run_list":["recipe[motd]"],"env_run_lists":{}}' > roles/base.json
+# echo '{"run_list":["role[base]"]}' > nodes/10.123.234.35.json
+# fix node:10.123.234.35
+EOF
