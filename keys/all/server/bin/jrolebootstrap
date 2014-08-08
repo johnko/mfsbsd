@@ -1697,12 +1697,12 @@ jrolerecover () {
 # ---------------------------------------------------------
 
 jrolelinkmedia () {
-	local releasedir=$( /usr/bin/find /bootdir -name base.txz | /usr/bin/head -1 )
+	local releasedir=$( /usr/bin/find /var/backups -name base.txz | /usr/bin/head -1 )
 	if [ "x" != "x${releasedir}" ]; then
 		local distdir=$( /usr/bin/find /usr/jails/freebsd-dist*/server/www -name freebsd-dist | /usr/bin/head -1 )
 		if [ "x" != "x${distdir}" ]; then
 			#/sbin/umount ${distdir}/${RELEASE}-${ARCH}
-			/server/bin/r -tcW ${releasedir%/*}/ ${distdir}/${RELEASE}-${ARCH}/
+			/server/bin/r -tcW --exclude '*.sig' ${releasedir%/*}/ ${distdir}/${RELEASE}-${ARCH}/
 
 			/bin/ln -shf /server/www/freebsd-dist/${RELEASE}-${ARCH} ${distdir}/${RELEASE}-${ARCH}/FreeBSD
 			/bin/ln -shf /server/www/freebsd-dist/${RELEASE}-${ARCH} ${distdir}/${RELEASE}-${ARCH}/releases
