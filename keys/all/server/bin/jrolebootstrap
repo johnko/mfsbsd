@@ -344,6 +344,9 @@ jrolebgstart () {
 		/server/bin/r -ctp --delete /server/root/mfsbsd/  ${mfsbsdroot}/root/mfsbsd/keys/all/server/root/mfsbsd/
 		/bin/mkdir -p ${mfsbsdroot}/root/mfsbsd/packages/noauto
 		/bin/mkdir -p ${mfsbsdroot}/root/mfsbsd/pkginstall
+		for i in gnupg ; do
+			/usr/local/bin/ezjail-admin console -e "/usr/local/sbin/pkg-static install -y -q ${i}" ${mfsbsdjail} || exit 1
+		done
 		/usr/local/bin/ezjail-admin console -e '/usr/local/sbin/pkg-static clean -y -a -q' ${mfsbsdjail}
 		/usr/local/bin/ezjail-admin console -e '/usr/local/sbin/pkg-static update' ${mfsbsdjail} || exit 1
 		/usr/local/bin/ezjail-admin console -e '/usr/local/sbin/pkg-static upgrade -y' ${mfsbsdjail} || exit 1
@@ -1805,8 +1808,8 @@ jrolelinkpkgng () {
 	if [ "x" != "x${releasedir}" ]; then
 		local distdir=$( /usr/bin/find /usr/jails/pkgng*/server/www -name pkgng | /usr/bin/head -1 )
 		if [ "x" != "x${distdir}" ]; then
-			echo "/server/bin/r -tcW --delete ${releasedir%/*}/ ${distdir}/"
-				  /server/bin/r -tcW --delete ${releasedir%/*}/ ${distdir}/
+			echo "/server/bin/r -ltcW --delete ${releasedir%/*}/ ${distdir}/"
+				  /server/bin/r -ltcW --delete ${releasedir%/*}/ ${distdir}/
 			#cd ${distdir}/ ; /usr/local/sbin/pkg-static repo ./ ; cd -
 
 			/usr/bin/find ${distdir} -type l -exec /bin/chmod -h 755 {} \;

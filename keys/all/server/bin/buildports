@@ -1,23 +1,7 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
-# Building rubygem-chef because it fails during poudriere
-if ! /usr/local/bin/ezjail-admin list | /usr/bin/grep chef.builder.local > /dev/null 2> /dev/null ; then
-	/server/bin/jrolenatcreate blank chef.builder.local 'lo1|10.123.234.1'
-	/server/bin/jrolebgstart blank chef.builder.local
-fi
-if ! /usr/bin/grep 'WITH_PKGNG=YES' /usr/jails/chef.builder.local/etc/make.conf > /dev/null 2> /dev/null ; then
-	echo 'WITH_PKGNG=YES' >> /usr/jails/chef.builder.local/etc/make.conf
-fi
-if ! /usr/bin/grep 'openssl_UNSET+=MD2' /usr/jails/chef.builder.local/etc/make.conf > /dev/null 2> /dev/null ; then
-	echo 'openssl_UNSET+=MD2' >> /usr/jails/chef.builder.local/etc/make.conf
-fi
-if ! /usr/bin/grep 'CFLAGS+=-DOPENSSL_NO_HEARTBEATS' /usr/jails/chef.builder.local/etc/make.conf > /dev/null 2> /dev/null ; then
-	echo 'CFLAGS+=-DOPENSSL_NO_HEARTBEATS' >> /usr/jails/chef.builder.local/etc/make.conf
-fi
-if ! /usr/bin/grep 'WITH_OPENSSL_PORT=YES' /usr/jails/chef.builder.local/etc/make.conf > /dev/null 2> /dev/null ; then
-	echo 'WITH_OPENSSL_PORT=YES' >> /usr/jails/chef.builder.local/etc/make.conf
-fi
+# Fetch rubygem-chef Makefiles for 11.14.2
 /server/bin/startpoudriere unattended
 if [ ! -e /poudriere/ports/default ]; then
 	/usr/local/bin/poudriere ports -c
@@ -27,18 +11,6 @@ else
 fi
 /usr/local/bin/git clone https://github.com/johnko/freebsd-ports-test.git $HOME/freebsd-ports-test
 /server/bin/r -a --exclude .git $HOME/freebsd-ports-test/ /poudriere/ports/default/
-if [ ! -e /usr/jails/chef.builder.local/usr/ports/devel ]; then
-	/bin/rm /usr/jails/chef.builder.local/usr/ports
-	/bin/mkdir -p /usr/jails/chef.builder.local/usr/ports
-fi
-/sbin/mount -t nullfs -o ro /poudriere/ports/default /usr/jails/chef.builder.local/usr/ports
-/sbin/mount -t nullfs /usr/ports/distfiles /usr/jails/chef.builder.local/var/ports/distfiles
-/usr/local/bin/ezjail-admin console chef.builder.local <<EOF
-cd /usr/ports/sysutils/rubygem-chef && make package-recursive
-EOF
-/sbin/umount /usr/jails/chef.builder.local/usr/ports
-/sbin/umount /usr/jails/chef.builder.local/var/ports/distfiles
-/server/bin/r -a /usr/jails/chef.builder.local/var/ports/packages/All/ /poudriere/data/packages/100amd64-default/All/
 # End of rubygem-chef build
 
 /server/bin/startpoudriereiredmail
