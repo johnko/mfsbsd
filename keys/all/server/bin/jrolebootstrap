@@ -387,7 +387,7 @@ EOF
 		jrolelinkmfsbsd
 		cd ${mfsbsdroot}/root/mfsbsd
 		if [ -e NOX-${RELEASE}-${ARCH}.iso ]; then
-			local DOFSSIZE=$(( `/bin/ls -l NOX-${RELEASE}-${ARCH}.iso | /usr/bin/awk '{print $5}'` / 1000 ))
+			local DOFSSIZE=$(( `/bin/ls -l NOX-${RELEASE}-${ARCH}.iso | /usr/bin/awk '{print $5}'` / 450 ))
 			if [ -n "${DOFSSIZE}" ]; then
 				/usr/bin/make encimage \
 					RELEASE=${RELEASE}  ARCH=${ARCH} \
