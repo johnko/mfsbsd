@@ -72,38 +72,8 @@ fi
 /sbin/zfs set mountpoint=none data${POUDIR}
 /sbin/zfs set mountpoint=none data${POUDIR}/ports
 
-
-if [ ! -d ${POUDIR}/ports/default/databases/percona56-xtradb-cluster ]; then
-	RESTOREDIR=`pwd`
-	cd ${POUDIR}/ports/default/databases
-	/bin/sh /server/patch/percona56-xtradb-cluster.txt
-	cd $RESTOREDIR
-fi
-if [ ! -d ${POUDIR}/ports/default/databases/mariadb55-galera-server ]; then
-	RESTOREDIR=`pwd`
-	cd ${POUDIR}/ports/default/databases
-	/bin/sh /server/patch/mariadb55-galera-server.txt
-	cd $RESTOREDIR
-fi
-/usr/bin/sed -i .bkp 's#XTRABACKUP_RUN_DEPENDS.*xtrabackup.*databases.xtrabackup##' ${POUDIR}/ports/default/databases/mariadb55-galera-server/Makefile
-if [ ! -d ${POUDIR}/ports/default/databases/mariadb55-galera-client ]; then
-	RESTOREDIR=`pwd`
-	cd ${POUDIR}/ports/default/databases
-	/bin/sh /server/patch/mariadb55-galera-client.txt
-	cd $RESTOREDIR
-fi
-if ! /usr/bin/grep 'MariaDB-Galera' ${POUDIR}/ports/default/Mk/bsd.database.mk >/dev/null 2>&1 ; then
-	/usr/bin/patch -Np1 ${POUDIR}/ports/default/Mk/bsd.database.mk < /server/patch/bsd.database.mk.diff.txt
-fi
-/usr/bin/sed -i .bkp 's#1.6 1.7#1.7#' ${POUDIR}/ports/default/net-im/openfire/Makefile
-if ! /usr/bin/grep 'JAVA_VERSION= *1.7' ${POUDIR}/ports/default/devel/apache-ant/Makefile >/dev/null 2>&1 ; then
-	/usr/bin/sed -i .bkp 's#USE_JAVA=.*#&\
-JAVA_VERSION= 1.7#' ${POUDIR}/ports/default/devel/apache-ant/Makefile
-fi
-if ! /usr/bin/grep 'JAVA_VERSION= *1.7' ${POUDIR}/ports/default/devel/slf4j/Makefile >/dev/null 2>&1 ; then
-	/usr/bin/sed -i .bkp 's#USE_JAVA=.*#&\
-JAVA_VERSION= 1.7#' ${POUDIR}/ports/default/devel/slf4j/Makefile
-fi
+/usr/local/bin/git clone https://github.com/johnko/freebsd-ports-test.git /server/root/freebsd-ports-test
+/server/bin/r -a --exclude .git /server/root/freebsd-ports-test/ /poudriere/ports/default/
 
 /usr/bin/install -d -m 700	/usr/local/etc/poudriere.d
 
@@ -188,23 +158,15 @@ WITH_OPENSSL_PORT=YES
 #WITH_MYSQL_VER=55mg
 EOF
 
-if /bin/cat ${POUDIR}/ports/default/sysutils/busybox/distinfo | /usr/bin/egrep 9917257771ab715480427a6b744785b035d381e7ec0de381faf945bc7abadb97 >/dev/null 2>&1 ; then
-	/bin/cat > ${POUDIR}/ports/default/sysutils/busybox/distinfo <<EOF
-SHA256 (busybox-1.22.1.tar.bz2) = ae0b029d0a9e4dd71a077a790840e496dd838998e4571b87b60fed7462b6678b
-SIZE (busybox-1.22.1.tar.bz2) = 2218650
-SHA256 (busybox-1.22.1-ash.patch) = c3b5b5c5522fda8014b12a23c370d7f70f6d1625fefa93a62c5c14414528ad12
-SIZE (busybox-1.22.1-ash.patch) = 344
-EOF
-fi
-if /bin/cat ${POUDIR}/ports/default/sysutils/syslinux/Makefile | /usr/bin/egrep 6.02 ; then
+#if /bin/cat ${POUDIR}/ports/default/sysutils/syslinux/Makefile | /usr/bin/egrep 6.02 ; then
 #	/usr/bin/fetch -o ${POUDIR}/ports/default/sysutils/syslinux/Makefile 'http://svnweb.freebsd.org/ports/head/sysutils/syslinux/Makefile?revision=333988&view=co'
-fi
-if /bin/cat ${POUDIR}/ports/default/sysutils/syslinux/distinfo | /usr/bin/egrep 6.02 ; then
+#fi
+#if /bin/cat ${POUDIR}/ports/default/sysutils/syslinux/distinfo | /usr/bin/egrep 6.02 ; then
 #	/usr/bin/fetch -o ${POUDIR}/ports/default/sysutils/syslinux/distinfo 'http://svnweb.freebsd.org/ports/head/sysutils/syslinux/distinfo?revision=323035&view=co'
-fi
-if /bin/cat ${POUDIR}/ports/default/sysutils/syslinux/pkg-plist | /usr/bin/egrep debug.c32 ; then
+#fi
+#if /bin/cat ${POUDIR}/ports/default/sysutils/syslinux/pkg-plist | /usr/bin/egrep debug.c32 ; then
 #	/usr/bin/fetch -o ${POUDIR}/ports/default/sysutils/syslinux/pkg-plist 'http://svnweb.freebsd.org/ports/head/sysutils/syslinux/pkg-plist?revision=333988&view=co'
-fi
+#fi
 
 #/bin/cat /server/pkg/portlist | /usr/bin/sed 's#/usr/ports/##g' >/server/pkg/poudrierelist
 /usr/local/bin/poudriere bulk -f /server/pkg/portlist -j 100amd64
