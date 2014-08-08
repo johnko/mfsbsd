@@ -350,16 +350,16 @@ jrolebgstart () {
 EOF
 		done
 		/usr/local/bin/ezjail-admin console -e '/usr/local/sbin/pkg-static clean -y -a -q' ${mfsbsdjail}
-		/usr/local/bin/ezjail-admin console -e '/usr/local/sbin/pkg-static update' ${mfsbsdjail} || exit 1
-		/usr/local/bin/ezjail-admin console -e '/usr/local/sbin/pkg-static upgrade -y' ${mfsbsdjail} || exit 1
+		/usr/local/bin/ezjail-admin console -e '/usr/local/sbin/pkg-static update' ${mfsbsdjail}
+		/usr/local/bin/ezjail-admin console -e '/usr/local/sbin/pkg-static upgrade -y' ${mfsbsdjail}
 		for i in $( /usr/local/sbin/pkg-static info | /usr/bin/awk '{print $1}' | /usr/bin/sed 's#-[[:digit:]]*\.*[[:digit:]]*\.*[[:digit:]]*\.*[[:digit:]]*\.*[[:digit:]]*\.*[[:digit:]]*_*[[:digit:]]*,*[[:digit:]]*$##' | /usr/bin/tr '\n' ' ' ) ; do
-			/usr/local/bin/ezjail-admin console -e "/usr/local/sbin/pkg-static fetch -y -d -q ${i}" ${mfsbsdjail} || exit 1
+			/usr/local/bin/ezjail-admin console -e "/usr/local/sbin/pkg-static fetch -y -d -q ${i}" ${mfsbsdjail}
 			#/bin/cp -av ${pkgngroot}/server/www/pkgng/All/${i}*     ${mfsbsdroot}/root/mfsbsd/packages/
 		done
 		/usr/bin/find ${mfsbsdroot}/var/cache/pkg -type f -name '*txz' -exec /bin/cp -av {} ${mfsbsdroot}/root/mfsbsd/packages/ \;
 		/usr/local/bin/ezjail-admin console -e '/usr/local/sbin/pkg-static clean -y -a -q' ${mfsbsdjail}
 		for i in dnsmasq syslinux nginx isc-dhcp43-server ; do
-			/usr/local/bin/ezjail-admin console -e "/usr/local/sbin/pkg-static fetch -y -d -q ${i}" ${mfsbsdjail} || exit 1
+			/usr/local/bin/ezjail-admin console -e "/usr/local/sbin/pkg-static fetch -y -d -q ${i}" ${mfsbsdjail}
 		done
 		/usr/bin/find ${mfsbsdroot}/var/cache/pkg -type f -name '*txz' -exec /bin/cp -av {} ${mfsbsdroot}/root/mfsbsd/packages/noauto/ \;
 		for i in $( /usr/bin/find ${mfsbsdroot}/root/mfsbsd/packages/noauto/ -type f ); do
@@ -368,7 +368,7 @@ EOF
 			fi
 		done
 		/usr/local/bin/ezjail-admin console -e '/usr/local/sbin/pkg-static clean -y -a -q' ${mfsbsdjail}
-		/usr/local/bin/ezjail-admin console -e '/usr/local/sbin/pkg-static fetch -y -d -q pkg' ${mfsbsdjail} || exit 1
+		/usr/local/bin/ezjail-admin console -e '/usr/local/sbin/pkg-static fetch -y -d -q pkg' ${mfsbsdjail}
 		/usr/bin/find ${mfsbsdroot}/var/cache/pkg -type f -name '*txz' -exec /bin/cp -av {} ${mfsbsdroot}/root/mfsbsd/pkginstall/ \;
 		#local releaseiso=$( /bin/ls -1tr ${releaseroot}/scratch/R/FreeBSD*${RELEASE}*${ARCH}*disc1.iso | /usr/bin/head -1 )
 		local distftp="${distroot}/server/www/freebsd-dist/10.0-RELEASE-amd64/"
