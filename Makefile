@@ -705,7 +705,7 @@ ${GCEFILE}:
 	@${LS} -l ${GCEFILE}
 .endif
 
-enciso: includetar install prune config genkeys customfiles boot compress-usr encmfsroot delfbsddist encsign ${ISOIMAGE}
+enciso: install prune config genkeys customfiles boot compress-usr encmfsroot delfbsddist encsign ${ISOIMAGE}
 gpgiso: install prune config genkeys customfiles boot gpgusr gpgmfsroot fbsddist gpgsign ${ISOIMAGE}
 iso: install prune config genkeys customfiles boot compress-usr mfsroot fbsddist ${ISOIMAGE}
 ${ISOIMAGE}:
