@@ -984,8 +984,8 @@ jrolesetupbasejail () {
 			fi
 		fi
 		if [ ! -d /usr/jails/basejail ]; then
-			# last try with /bootdir
-			/usr/local/bin/ezjail-admin install -h file:///bootdir/${RELEASE}-${ARCH}
+			# last try with /var/backups
+			/usr/local/bin/ezjail-admin install -h file:///var/backups/${RELEASE}-${ARCH}
 		fi
 		/bin/chmod 755 /usr/jails/basejail
 		/bin/chmod 755 /usr/jails/basejail/usr
@@ -1722,7 +1722,7 @@ jrolelinkmedia () {
 	local distdir=$( /usr/bin/find /usr/jails/freebsd-dist*/server/www -name mfsbsd | /usr/bin/head -1 )
 	if [ "x" != "x${distdir}" ]; then
 		/bin/mkdir -p ${distdir}/${RELEASE}-${ARCH}
-		local releasedir=$( /usr/bin/find /bootdir -name 'NOX*tar' | /usr/bin/head -1 )
+		local releasedir=$( /usr/bin/find /var/backups -name 'NOX*tar' | /usr/bin/head -1 )
 		if [ "x" != "x${releasedir}" ]; then
 			/server/bin/r -tcW ${releasedir} ${distdir}/${RELEASE}-${ARCH}/
 		fi

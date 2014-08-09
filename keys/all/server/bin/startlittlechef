@@ -46,9 +46,9 @@ Prepare node 10.123.234.35:
 
 You may want to:
 # set path = (\$HOME/littlechef \$path)
-# cd \$HOME/new_kitchen/cookbooks
-# git clone https://github.com/johnko-chef/motd
 # cd \$HOME/new_kitchen
+# rmdir cookbooks
+# git clone https://github.com/johnko-chef/cookbooks
 # echo '{"name":"base","description":"The base role for all FreeBSD systems.","json_class":"Chef::Role","default_attributes":{},"override_attributes":{},"chef_type":"role","run_list":["recipe[motd]"],"env_run_lists":{}}' > roles/base.json
 # echo '{"run_list":["role[base]"]}' > nodes/10.123.234.35.json
 # fix node:10.123.234.35
