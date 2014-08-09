@@ -609,7 +609,7 @@ jrolesetupflavours () {
 			for dir in .ssh .vim .vim/autoload .vim/syntax .vim/colors .vim/swaps .vim/undo .vim/backups .rtorrent.session ; do
 				/usr/bin/install -d -m 700 ${MNT}/root/${dir}
 			done
-			for fil in .csh_aliases .cshrc .curlrc .extra .functions .gen.cfg .gitconfig .gitignore .hushlogin .inputrc .mbsyncrc .rtorrent.rc .screenrc .vim/autoload/togglebg.vim .vim/syntax/json.vim .vim/colors/railscat.vim .vim/colors/molokai.vim .vim/colors/solarized.vim .vimrc .wgetrc ; do
+			for fil in .csh_aliases .cshrc .curlrc .extra .functions .gen.cfg .gitconfig .gitignore .inputrc .mbsyncrc .rtorrent.rc .screenrc .vim/autoload/togglebg.vim .vim/syntax/json.vim .vim/colors/railscat.vim .vim/colors/molokai.vim .vim/colors/solarized.vim .vimrc .wgetrc ; do
 				/usr/bin/install    -m 600 /server/root/${fil} ${MNT}/root/${fil}
 			done
 
