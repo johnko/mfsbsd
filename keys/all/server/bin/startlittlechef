@@ -51,7 +51,6 @@ You may want to:
 # git clone --recursive https://github.com/johnko-chef/cookbooks
 # rm -r roles
 # git clone https://github.com/johnko-chef/roles
-# echo '{"name":"base","description":"The base role for all FreeBSD systems.","json_class":"Chef::Role","default_attributes":{},"override_attributes":{},"chef_type":"role","run_list":["recipe[motd]"],"env_run_lists":{}}' > roles/base.json
 # echo '{"run_list":["role[base]"]}' > nodes/10.123.234.35.json
 # fix node:10.123.234.35
 EOF
