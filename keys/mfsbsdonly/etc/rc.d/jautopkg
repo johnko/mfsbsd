@@ -15,6 +15,7 @@ stop_cmd=":"
 
 jautopkg_start()
 {
+	local trylocal="NO"
 	if [ -e /etc/pkg/FreeBSD.conf ]; then
 		/bin/mv /etc/pkg/FreeBSD.conf /etc/pkg.FreeBSD.conf.bkp
 	fi
@@ -32,9 +33,12 @@ jautopkg_start()
 			for i in ${autopkg} ; do
 				/usr/local/sbin/pkg-static install -y $i || echo "ERROR: pkg install $i"
 			done
+			if ! /usr/local/sbin/pkg info | /usr/bin/grep 'rsync' > /dev/null 2> /dev/null; then
+				local trylocal="YES"
+			fi
 		fi
 	fi
-	if ! /usr/local/sbin/pkg info | /usr/bin/grep 'rsync' > /dev/null 2> /dev/null; then
+	if [ "x$trylocal" = "xYES" ]; then
 		PACKAGES=`/bin/ls -1 /packages/*.t?z 2>/dev/null`
 		if /bin/test -n "$PACKAGES"; then
 			echo -n "Installing from /packages"
