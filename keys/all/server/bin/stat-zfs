@@ -28,7 +28,7 @@ case `/usr/bin/uname -s` in
 			#echo -n $( /sbin/zfs list -H -o used,available $a 2> /dev/null )
 			echo -n $( /usr/bin/grep "^$a " /server/zfs/zl.txt | /usr/bin/awk '{print $2,$3}' )
 			echo -n "  "
-			/sbin/zpool status ${a} | /usr/bin/egrep '(state\:|scan\:|errors\:|to go|% done)' | \
+			/sbin/zpool status ${a} | /usr/bin/egrep '(state\:|scan\:|errors\:|status\:|to go|% done)' | \
 				/usr/bin/tr '\n' '`' | /usr/bin/sed \
 					-e 's/ *pool\: / /g' \
 					-e 's/`/ /g' \
@@ -43,7 +43,9 @@ case `/usr/bin/uname -s` in
 					-e 's/ 0 repaired,//' \
 					-e 's/  / /' \
 					-e 's/[^ ]* scanned/\
-         &/'
+           &/' \
+                    -e 's/[^ ]* scan: started/\
+          &/'
          done
 			
 #			egrep '(pool\:|state\:|scan\:|errors\:)' | \
