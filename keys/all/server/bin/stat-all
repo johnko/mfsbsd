@@ -1,12 +1,6 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
-/server/bin/stat-gpg
-
-/usr/bin/uname -i -p -r -s
-echo "SSHR `/server/bin/ssh-finger-rsa`"
-echo "SSHE `/server/bin/ssh-finger-ecdsa`"
-
 line="DATE `/server/bin/date-dr`"
 echo -n "$line"
 if [ ${#line} -lt 40 ]; then
@@ -17,6 +11,12 @@ if [ ${#line} -lt 40 ]; then
 fi
 echo -n "$tab"
 echo "HOST `/bin/hostname -f`"
+
+/server/bin/stat-gpg
+
+/usr/bin/uname -i -p -r -s
+echo "SSHR `/server/bin/ssh-finger-rsa`"
+echo "SSHE `/server/bin/ssh-finger-ecdsa`"
 
 line="CPU  `/server/bin/stat-cpu`"
 echo -n "$line"
@@ -39,7 +39,6 @@ if [ ${#line} -lt 40 ]; then
 fi
 echo -n "$tab"
 echo "USR  `/server/bin/stat-usr`"
-
 
 line="HDD  `/server/bin/stat-disk`"
 echo -n "$line"

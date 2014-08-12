@@ -43,9 +43,9 @@ case `/usr/bin/uname -s` in
 					-e 's/ 0 repaired,//' \
 					-e 's/  / /' \
 					-e 's/[^ ]* scanned/\
-           &/' \
-                    -e 's/[^ ]* scan: started/\
-          &/'
+.                       &/' \
+                    -e 's/[^ ]* scan:/\
+.                      &/'
          done
 			
 #			egrep '(pool\:|state\:|scan\:|errors\:)' | \
