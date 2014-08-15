@@ -159,13 +159,13 @@ startsvnbuilder
 **This step is optional, and requires a fast Internet connection!*
 
 ```
-chmod a+x /server/bin/buildports ; buildports
+startmfsbsdbuilder ports
 ```
 
 ### 12) Build a new `NOX recovery image` (takes a few minutes):
 
 ```
-chmod a-x /server/bin/buildports ; startmfsbsdbuilder
+startmfsbsdbuilder
 ```
 
 > Optionally, you can perform step 11 and 12 at the same time but `buildports` requires a fast Internet connection and would take a few hours:

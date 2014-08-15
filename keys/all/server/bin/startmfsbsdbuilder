@@ -1,9 +1,15 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
+if [ "xports" = "x$1" ]; then
+	/bin/chmod a+x /server/bin/buildports
+else
+	/bin/chmod a-x /server/bin/buildports
+fi
+
 mfsbsdjail=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep mfsbsd | /usr/bin/awk '{print $4}' )
 if [ "x" = "x${mfsbsdjail}" ] ; then
-	jrolemfsbsdjails
+	/server/bin/jrolemfsbsdjails
 else
 	/server/bin/jrolebgstart mfsbsd ${mfsbsdjail}
 fi
