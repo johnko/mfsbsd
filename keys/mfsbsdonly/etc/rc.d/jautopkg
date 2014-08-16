@@ -53,6 +53,11 @@ jautopkg_start()
 			echo " done"
 		fi
 	fi
+	if /usr/sbin/service -e | /usr/bin/grep usr/local > /dev/null 2> /dev/null; then
+		for i in `/usr/sbin/service -e | /usr/bin/grep usr/local` ; do
+			$i start
+		done
+	fi
 }
 
 load_rc_config $name
