@@ -7,11 +7,13 @@ if [ "x" = "x$1" ]; then
 	echo "$0 /dev/da0"
 	exit 1
 else
-	if ! /bin/ls -1 /usr/jails/mfsbsd*/root/mfsbsd/NOX*img | /usr/bin/grep img > /dev/null 2> /dev/null ; then
-		echo "Can't find /usr/jails/mfsbsd*/root/mfsbsd/NOX*img"
+	seek="/usr/jails/mfsbsd*/root/mfsbsd/NOX*img"
+	#seek="/usr/jails/freebsd*/server/www/mfsbsd/*RELEASE*/NOX*img"
+	if ! /bin/ls -1 ${seek} | /usr/bin/grep img > /dev/null 2> /dev/null ; then
+		echo "Can't find ${seek}"
 		exit 1
 	else
-		imgfile=$( /bin/ls -1 /usr/jails/mfsbsd*/root/mfsbsd/NOX*img | /usr/bin/grep img )
+		imgfile=$( /bin/ls -1 ${seek} | /usr/bin/grep img )
 		if [ ! -e "$1" ]; then
 			echo "Can't find $1"
 			exit 1
