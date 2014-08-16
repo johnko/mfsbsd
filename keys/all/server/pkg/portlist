@@ -36,7 +36,10 @@ devel/ruby-gems
 devel/subversion
 dns/dnsmasq
 dns/p5-Net-DNS
+emulators/kqemu-kmod
+emulators/kqemu-kmod-devel
 emulators/qemu-devel
+emulators/virtualbox-ose
 ftp/curl
 ftp/php5-ftp
 ftp/php55-ftp
@@ -63,6 +66,8 @@ mail/postfix
 mail/postfix-postfwd
 mail/roundcube
 mail/spamassassin
+mail/thunderbird
+multimedia/vlc
 net-im/ejabberd
 net-im/openfire
 net-mgmt/iftop
@@ -86,6 +91,7 @@ net/py-netifaces
 net/rsync
 net/samba-libsmbclient
 net/socat
+net/tightvnc
 net/ucarp
 net/zsync
 ports-mgmt/dialog4ports
@@ -143,6 +149,7 @@ textproc/php55-xml
 www/apache22
 www/awstats
 www/bigbluebutton
+www/firefox
 www/mod_auth_mysql_another
 www/mod_auth_pgsql2
 www/mod_php5
@@ -157,3 +164,5 @@ www/php55-tidy
 www/varnish
 www/w3m
 www/webpy
+x11-wm/xfce4
+x11/slim
