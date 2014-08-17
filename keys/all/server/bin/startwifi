@@ -1,0 +1,42 @@
+#!/bin/sh
+# Copyright (c) 2014 John Ko
+
+DEV="$1"
+SSID="$2"
+PASSWORD="$3"
+
+if [ "x" = "x${DEV}" ]; then
+	echo "Usage: $0 wifi_dev SSID password"
+	echo "Example: $0 iwn0 test 1234567890"
+fi
+
+if ! /sbin/ifconfig ${DEV} ; then
+	echo "Interface ${DEV} doesn't exist."
+	exit 1
+fi
+
+for i in wlan wlan_ccmp wlan_tkip wlan_wep ; do
+	/sbin/kldload ${i} > /dev/null 2> /dev/null
+done
+
+/sbin/ifconfig wlan0 create wlandev ${DEV}
+
+if [ "x" = "x${SSID}" ]; then
+	/sbin/ifconfig wlan0 up scan
+	exit 1
+fi
+
+/bin/cat > /etc/wpa_supplicant.conf <<EOF
+network={
+	ssid="${SSID}"
+	psk="${PASSWORD}"
+}
+EOF
+
+/sbin/ifconfig wlan0 ssid ${SSID}
+
+/sbin/ifconfig wlan0 up
+
+wpa_supplicant -i wlan0 -c /etc/wpa_supplicant.conf
+
+/sbin/dhclient wlan0

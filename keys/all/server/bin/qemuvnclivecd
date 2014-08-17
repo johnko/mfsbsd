@@ -1,0 +1,23 @@
+#!/bin/sh
+# Copyright (c) 2014 John Ko
+
+ISO="$1"
+
+if [ "x" = "x${ISO}" ]; then
+	echo "Usage: $0 /path/to/iso"
+	exit 1
+fi
+
+/sbin/ifconfig bridge0 addm tap0 addm `/server/bin/net-nic` up
+
+/bin/cat <<EOF
+For Mac OS X VNC, you may need to type below:
+change vnc password
+
+EOF
+
+qemu-system-x86_64 \
+	-net nic,model=e1000 -net tap \
+	-vnc 0.0.0.0:0,password -monitor stdio \
+	-m 2G \
+	-cdrom ${ISO}
