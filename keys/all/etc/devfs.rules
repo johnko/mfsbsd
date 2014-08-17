@@ -45,3 +45,9 @@ add path 'tap*' unhide mode 0660 group wheel
 
 [system=10]
 add path 'tap*' mode 0660 group wheel
+
+[devfsrules_ezjail_tapX=20]
+add include $devfsrules_hide_all
+add include $devfsrules_unhide_basic
+add include $devfsrules_unhide_login
+add path 'tap*' unhide mode 0660 group wheel
