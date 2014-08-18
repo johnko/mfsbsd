@@ -29,8 +29,10 @@ doDelete() {
 		DRIVELIST="$DEVS"
 	fi
 	for drive in ${DRIVELIST} ; do
-		if /sbin/gpart show "${drive##*/}" >/dev/null 2>/dev/null ; then
-			DETECTEDDRIVES="${DETECTEDDRIVES} -d ${drive##*/}"
+		if ! echo "${drive##*/}" | /usr/bin/egrep "cd[0-9]" > /dev/null 2> /dev/null ; then
+			if /sbin/gpart show "${drive##*/}" >/dev/null 2>/dev/null ; then
+				DETECTEDDRIVES="${DETECTEDDRIVES} -d ${drive##*/}"
+			fi
 		fi
 	done
 

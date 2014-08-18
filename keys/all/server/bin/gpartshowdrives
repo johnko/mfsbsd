@@ -23,7 +23,9 @@ doShow() {
 		DRIVELIST="$DEVS"
 	fi
 	for drive in ${DRIVELIST} ; do
-		/sbin/gpart show ${drive##*/}
+		if ! echo "${drive##*/}" | /usr/bin/egrep "cd[0-9]" > /dev/null 2> /dev/null ; then
+			/sbin/gpart show ${drive##*/}
+		fi
 	done
 }
 

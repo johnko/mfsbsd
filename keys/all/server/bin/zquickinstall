@@ -39,13 +39,15 @@ doInstall() {
 		DRIVELIST="$DEVS"
 	fi
 	for drive in ${DRIVELIST} ; do
-		echo -n "${drive##*/}... "
-		if /sbin/gpart show "${drive##*/}" >/dev/null 2>/dev/null ; then
-			echo "Drives not empty, use destroygeom"
-			exit 1
-		else
-			DETECTEDDRIVES="${DETECTEDDRIVES}-d ${drive##*/} "
-			DRIVECOUNT=$(( DRIVECOUNT + 1 ))
+		if ! echo "${drive##*/}" | /usr/bin/egrep "cd[0-9]" > /dev/null 2> /dev/null ; then
+			echo -n "${drive##*/}... "
+			if /sbin/gpart show "${drive##*/}" >/dev/null 2>/dev/null ; then
+				echo "Drives not empty, use destroygeom"
+				exit 1
+			else
+				DETECTEDDRIVES="${DETECTEDDRIVES}-d ${drive##*/} "
+				DRIVECOUNT=$(( DRIVECOUNT + 1 ))
+			fi
 		fi
 	done
 	if [ $DRIVECOUNT -gt 1 ]; then
