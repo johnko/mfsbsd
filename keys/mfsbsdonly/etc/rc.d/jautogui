@@ -15,7 +15,7 @@ stop_cmd=":"
 jautogui_start()
 {
 	autogui=`/bin/kenv -q autogui`
-	case ${gui} in
+	case ${autogui} in
 		[yY][eE][sS])
 			/server/bin/startgui
 			;;
