@@ -20,6 +20,12 @@ for i in ${SERVICES} ; do
 	/usr/sbin/sysrc -f /etc/rc.conf ${i}_enable=YES
 done
 
+/usr/local/bin/Xorg -configure
+
+/bin/mv ~/xorg.conf.new /etc/X11/xorg.conf
+
+echo 'Option "AutoAddDevices" "Off"' | /server/bin/insertafterfirst /etc/X11/xorg.conf ServerLayout
+
 for i in ${SERVICES} ; do
 	/usr/sbin/service ${i} restart
 done
