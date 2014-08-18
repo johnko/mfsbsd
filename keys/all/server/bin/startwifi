@@ -44,3 +44,11 @@ sysrc -f /etc/rc.conf wpa_supplicant_conf_file="/etc/wpa_supplicant.conf"
 sleep 5
 
 /sbin/dhclient wlan0
+
+if [ -e /etc/rc.d/jpfconf ]; then
+	/etc/rc.d/jpfconf restart
+fi
+
+if [ -e /etc/rc.d/pf ]; then
+	/etc/rc.d/pf reload
+fi
