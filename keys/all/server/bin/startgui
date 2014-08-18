@@ -3,7 +3,7 @@
 
 PACKAGES="xf86-video-vesa xf86-video-fbdev xf86-input-mouse xf86-input-keyboard \
 xineramaproto xinit xrdb xauth \
-slim xfce4 xfce4-battery-plugin xfce4-bsdcpufreq-plugin xfce4-clipman-plugin \
+slim xfce xfce4-battery-plugin xfce4-bsdcpufreq-plugin xfce4-clipman-plugin \
 xfce4-cpugraph-plugin xfce4-datetime-plugin xfce4-dict-plugin xfce4-diskperf-plugin \
 xfce4-fsguard-plugin xfce4-genmon-plugin xfce4-minicmd-plugin xfce4-mount-plugin \
 xfce4-netload-plugin xfce4-notification-daemon xfce4-print xfce4-quicklauncher-plugin \
