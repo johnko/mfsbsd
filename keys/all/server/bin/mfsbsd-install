@@ -23,7 +23,7 @@ doInstall() {
 	fi
 	for drive in ${DRIVELIST} ; do
 		echo -n "${drive##*/}... "
-		if /sbin/gpart show "${drive##*/}" >/dev/null 2>/dev/null ; then
+		if [ -e "/dev/${drive##*/}" ]; then
 			echo "Skipping ${drive##*/}"
 		else
 			DETECTEDDRIVES="${DETECTEDDRIVES}-d ${drive##*/} "
