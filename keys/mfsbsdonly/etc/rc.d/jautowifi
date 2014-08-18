@@ -1,0 +1,25 @@
+#!/bin/sh
+# Copyright (c) 2014 John Ko
+# $Id$
+
+# PROVIDE: jautowifi
+# REQUIRE: mountcritlocal disks jautomount mdinit tmp var
+# BEFORE: jroute jautopkg
+# KEYWORD: FreeBSD
+
+. /etc/rc.subr
+
+name="jautowifi"
+start_cmd="jautowifi_start"
+stop_cmd=":"
+
+jautowifi_start()
+{
+	autowifi=`/bin/kenv -q autowifi`
+	if [ "x" != "x${autowifi}" ]; then
+		/server/bin/startwifi ${autowifi}
+	fi
+}
+
+load_rc_config $name
+run_rc_command "$1"

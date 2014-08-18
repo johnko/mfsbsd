@@ -1,0 +1,26 @@
+#!/bin/sh
+# Copyright (c) 2014 John Ko
+# $Id$
+
+# PROVIDE: jautogui
+# REQUIRE: mountcritlocal disks jautomount mdinit tmp var jroute jautopkg
+# KEYWORD: FreeBSD
+
+. /etc/rc.subr
+
+name="jautogui"
+start_cmd="jautogui_start"
+stop_cmd=":"
+
+jautogui_start()
+{
+	autogui=`/bin/kenv -q autogui`
+	case ${gui} in
+		[yY][eE][sS])
+			/server/bin/startgui
+			;;
+	esac
+}
+
+load_rc_config $name
+run_rc_command "$1"

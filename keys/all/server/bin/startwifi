@@ -8,6 +8,7 @@ PASSWORD="$3"
 if [ "x" = "x${DEV}" ]; then
 	echo "Usage: $0 wifi_dev SSID password"
 	echo "Example: $0 iwn0 test 1234567890"
+	exit 1
 fi
 
 if ! /sbin/ifconfig ${DEV} ; then
@@ -34,9 +35,12 @@ network={
 EOF
 
 /sbin/ifconfig wlan0 ssid ${SSID}
-
 /sbin/ifconfig wlan0 up
 
-wpa_supplicant -i wlan0 -c /etc/wpa_supplicant.conf
+sysrc -f /etc/rc.conf wpa_supplicant_program="/usr/sbin/wpa_supplicant"
+sysrc -f /etc/rc.conf wpa_supplicant_conf_file="/etc/wpa_supplicant.conf"
+/etc/rc.d/wpa_supplicant start wlan0
+
+sleep 5
 
 /sbin/dhclient wlan0
