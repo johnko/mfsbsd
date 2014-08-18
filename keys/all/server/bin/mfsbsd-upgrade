@@ -145,6 +145,8 @@ echo " done"
 	/usr/sbin/sysrc -f ${MNT}/boot/loader.conf vfs.root.mountfrom="zfs:autoboot/bootdir"
 	/usr/bin/grep "^geli_label_" ${MNT}/boot/loader.conf.bkp >> ${MNT}/boot/loader.conf
 	/usr/bin/grep "^automount" ${MNT}/boot/loader.conf.bkp >> ${MNT}/boot/loader.conf
+	/usr/bin/grep "^autowifi" ${MNT}/boot/loader.conf.bkp >> ${MNT}/boot/loader.conf
+	/usr/bin/grep "^autogui" ${MNT}/boot/loader.conf.bkp >> ${MNT}/boot/loader.conf
 	echo " done"
 
 	echo ""
