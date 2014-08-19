@@ -20,11 +20,21 @@ for i in ${SERVICES} ; do
 	/usr/sbin/sysrc -f /etc/rc.conf ${i}_enable=YES
 done
 
-/usr/local/bin/Xorg -configure
+if [ ! -e /etc/X11/xorg.conf ]; then
+	/usr/local/bin/Xorg -configure
+	/bin/mv ~/xorg.conf.new /etc/X11/xorg.conf
+fi
 
-/bin/mv ~/xorg.conf.new /etc/X11/xorg.conf
+if [ -e /etc/X11/xorg.conf ]; then
+	if ! /usr/bin/egrep 'Option.*AutoAddDevices.*Off' /etc/X11/xorg.conf > /dev/null 2> /dev/null ; then
+		echo 'Option "AutoAddDevices" "Off"' | /server/bin/insertafterfirst /etc/X11/xorg.conf ServerLayout
+	fi
+fi
 
-echo 'Option "AutoAddDevices" "Off"' | /server/bin/insertafterfirst /etc/X11/xorg.conf ServerLayout
+if [ -e ~/.xinitrc ]; then
+	/bin/chmod +x ~/.xinitrc
+	/bin/chmod +x -h ~/.xinitrc
+fi
 
 for i in ${SERVICES} ; do
 	/usr/sbin/service ${i} restart
