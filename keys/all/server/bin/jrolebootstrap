@@ -1054,62 +1054,49 @@ EOF
 
 # Setup the host to only listen on real ip
 jrolesetuphost () {
-	if [ ! -e /usr/local/bin/ezjail-admin ]; then
-		/usr/local/sbin/pkg-static install -y ezjail
-	fi
-	for ip in $( /server/bin/net-ipreal -F ' ' ) ; do
-		if ! /usr/bin/egrep "ListenAddress $ip" /etc/ssh/sshd_config \
-			> /dev/null 2> /dev/null ; then
-			/bin/cat >>/etc/ssh/sshd_config <<EOF
-##### Added by jrolesetuphost
-ListenAddress $ip
-##### End of addition
-EOF
-			/bin/chflags schg /etc/ssh/sshd_config
-			/etc/rc.d/sshd onereload 2> /dev/null
-		fi
-	done
-	/usr/bin/sed -i '' \
-		's#etc/fstab\.#usr/local/etc/ezjail/fstab.#' \
-		/usr/local/bin/ezjail-admin
-	/usr/bin/sed -i '' \
-		's#ls -A | xargs#ls -A | egrep -v "(fstab\.|ezjail\.conf|\.sig$)" | xargs#' \
-		/usr/local/bin/ezjail-admin
-	/usr/bin/sed -i '' \
-		's#ls | xargs rcorder#ls | egrep -v "(fstab\.|ezjail\.conf|\.sig$)" | xargs#' \
-		/usr/local/etc/rc.d/ezjail
-	if ! /usr/bin/grep '^ezjail_jailzfs="data/ezjail"' /usr/local/etc/ezjail.conf \
-		> /dev/null 2> /dev/null; then
-		/bin/cat >/usr/local/etc/ezjail.conf <<EOF
-ezjail_use_zfs="YES"
-ezjail_use_zfs_for_jails="YES"
-ezjail_jailzfs="data/ezjail"
-EOF
-	fi
+
+
+	# Run startezjail if exists
+	test -x /server/bin/startezjail \
+	&& /server/bin/startezjail
+
+
+	# Set devfs and disable ezjail for persistence after reboot
+	# (we onestart ezjail during rc.d/jezjail)
 	/usr/sbin/sysrc -f /etc/rc.conf ezjail_enable="NO"
 	/usr/sbin/sysrc -f /etc/rc.conf devfs_load_rulesets="YES"
-	##### Host Routing
+
+
+	# Set gateway for persistence after reboot
 	/usr/sbin/sysrc -f /etc/rc.conf gateway_enable="YES"
 	/usr/sbin/sysrc -f /etc/rc.conf ipv6_gateway_enable="YES"
+
+
+	# Activate sysctl network forwarding
 	/sbin/sysctl net.inet.ip.forwarding=1 > /dev/null 2> /dev/null
 	/sbin/sysctl net.inet.ip.fastforwarding=1 > /dev/null 2> /dev/null
 	/sbin/sysctl net.inet6.ip6.forwarding=1 > /dev/null 2> /dev/null
+
+
+	# Set sysctl for persistence after reboot
+	/bin/chflags noschg /etc/sysctl.conf
 	/usr/bin/grep "net.inet.ip.forwarding=1" /etc/sysctl.conf \
-		> /dev/null 2> /dev/null ||\
-		echo "net.inet.ip.forwarding=1" >> /etc/sysctl.conf
+		> /dev/null 2> /dev/null \
+	|| echo "net.inet.ip.forwarding=1" >> /etc/sysctl.conf
 	/usr/bin/grep "net.inet.ip.fastforwarding=1" /etc/sysctl.conf \
-		> /dev/null 2> /dev/null ||\
-		echo "net.inet.ip.fastforwarding=1" >> /etc/sysctl.conf
+		> /dev/null 2> /dev/null \
+	|| echo "net.inet.ip.fastforwarding=1" >> /etc/sysctl.conf
 	/usr/bin/grep "net.inet6.ip6.forwarding=1" /etc/sysctl.conf \
-		> /dev/null 2> /dev/null ||\
-		echo "net.inet6.ip6.forwarding=1" >> /etc/sysctl.conf
+		> /dev/null 2> /dev/null \
+	|| echo "net.inet6.ip6.forwarding=1" >> /etc/sysctl.conf
 	/usr/bin/grep "net.link.tap.user_open=1" /etc/sysctl.conf \
-		> /dev/null 2> /dev/null ||\
-		echo "net.link.tap.user_open=1" >> /etc/sysctl.conf
+		> /dev/null 2> /dev/null \
+	|| echo "net.link.tap.user_open=1" >> /etc/sysctl.conf
 	/usr/bin/grep "net.link.tap.up_on_open=1" /etc/sysctl.conf \
-		> /dev/null 2> /dev/null ||\
-		echo "net.link.tap.up_on_open=1" >> /etc/sysctl.conf
+		> /dev/null 2> /dev/null \
+	|| echo "net.link.tap.up_on_open=1" >> /etc/sysctl.conf
 	/bin/chflags schg /etc/sysctl.conf
+
 
 }
 
@@ -1117,52 +1104,118 @@ EOF
 
 # Setup the basejail with ezjail-admin
 jrolesetupbasejail () {
+
+
+	# Make sure we ran jrolesetuphost
 	jrolesetuphost
+	testezjailadmin
+
+
+	# If basejail folder doesn't exist, create it
 	if [ ! -d /usr/jails/basejail ]; then
+
+
+		# Create the /usr/local/etc/ezjail folder
 		/usr/bin/install -d -m 755 /usr/local/etc/ezjail
+
+
+		# If we have an iso
 		if [ -e "~/FreeBSD-${RELEASE}-${ARCH}-disc1.iso" ]; then
-			/server/bin/mount_iso "~/FreeBSD-${RELEASE}-${ARCH}-disc1.iso" /cdrom
+
+
+			# Mount iso
+			test -x /server/bin/mount_iso \
+			&& /server/bin/mount_iso "~/FreeBSD-${RELEASE}-${ARCH}-disc1.iso" /cdrom
+
+
 			# port?
 			#/usr/local/bin/ezjail-admin install -s -p -h file:///cdrom/usr/freebsd-dist
 			# no port
 			# no -s for source since we have a svn in data/distro/releng10
-			/usr/local/bin/ezjail-admin install -h file:///cdrom/usr/freebsd-dist
-			/sbin/umount /cdrom
+
+
+			# Install basejail from path /cdrom/usr/freebsd-dist
+			test -d /cdrom/usr/freebsd-dist \
+			&& /usr/local/bin/ezjail-admin install -h file:///cdrom/usr/freebsd-dist
+
+
+			# Clean up
+			/sbin/umount /cdrom 2> /dev/null
 			for md in $( /sbin/mdconfig -lv |\
 				/usr/bin/grep "/root/FreeBSD-${RELEASE}-${ARCH}-disc1.iso" |\
 				/usr/bin/awk '{print $1}' ); do
-				/sbin/mdconfig -d -u "{$md}"
+				/sbin/mdconfig -d -u "${md}"
 			done
+
+
+		# If no iso
 		else
+
+
+			# Test 10.7.7.4
 			if /usr/bin/fetch -o /dev/null -T 10 \
 "http://${PRODIP}.4/freebsd-dist/pub/FreeBSD/releases/amd64/amd64/10.0-RELEASE/base.txz" ; then
+
+
 				# no -s for source since we have a svn in data/distro/releng10
+
+
+				# Install basejail from 10.7.7.4
 				/usr/local/bin/ezjail-admin install \
-					-h "http://${PRODIP}.4/freebsd-dist" -r "${RELEASE}"
+				-h "http://${PRODIP}.4/freebsd-dist" -r "${RELEASE}"
+
+
 			fi
+
+
 		fi
+
+
+		# If basejail still missing
 		if [ ! -d /usr/jails/basejail ]; then
+
+
 			# last try with /var/backups
 			/usr/local/bin/ezjail-admin install \
-				-h "file:///var/backups/${RELEASE}-${ARCH}"
+			-h "file:///var/backups/${RELEASE}-${ARCH}"
+
+
 		fi
-		/bin/chmod 755 /usr/jails/basejail
-		/bin/chmod 755 /usr/jails/basejail/usr
+
+
+		# If basejail still missing
 		if [ ! -d /usr/jails/basejail ]; then
 			echo "Error: base jail does not exist."
 			exit 1
+
+
+		# Basejail exists
 		else
+
+
+			# Reset some permissions for basejail
+			/bin/chmod 755 /usr/jails/basejail
+			/bin/chmod 755 /usr/jails/basejail/usr
+
+
 			if [ "xyes" = "x${continueyesno}" -o "xYES" = "x${continueyesno}" ]; then
 				#update if using standard
 				/usr/local/bin/ezjail-admin update -u
 			fi
+
+
 		fi
+
+
 	fi
+
+
 	# New Freebsd 10 uses these options
 	/usr/sbin/sysrc -f /usr/jails/flavours/example/etc/periodic.conf \
 		security_status_ipfwlimit_enable="NO"
 	/usr/sbin/sysrc -f /usr/jails/flavours/example/etc/periodic.conf \
 		security_status_ipfwdenied_enable="NO"
+
 
 }
 
@@ -1182,7 +1235,7 @@ jrolesetuprc () {
 	##### audit events, maybe for file sync
 	/usr/sbin/sysrc -f "${MNT}/etc/rc.conf" auditd_enable="YES"
 	##### SSH
-	/usr/sbin/sysrc -f "${MNT}/etc/rc.conf" sshd_enable="NO"
+	/usr/sbin/sysrc -f "${MNT}/etc/rc.conf" sshd_enable="YES"
 	/usr/sbin/sysrc -f "${MNT}/etc/rc.conf" sshd_rsa1_enable="NO"
 	/usr/sbin/sysrc -f "${MNT}/etc/rc.conf" sshd_rsa_enable="YES"
 	/usr/sbin/sysrc -f "${MNT}/etc/rc.conf" sshd_dsa_enable="NO"
@@ -1232,6 +1285,7 @@ jrolesetuprc () {
 
 # nat AND create start
 jrolenatcreate () {
+	testforx /usr/local/bin/ezjail-admin
 	[ $# -lt 3 ] && echo "Usage: `basename $0` role jailname 'nic|ip'" && exit 1
 	local role="$1"
 	local jailname="$2"
@@ -1614,65 +1668,6 @@ jrolemfsbsdjails () {
 
 # ---------------------------------------------------------
 
-jrolehordejails () {
-	local arg="$1"
-	local standalone="horde"
-	local upstream=""
-	local proxies=""
-	local roles="${standalone} ${upstream} ${proxies}"
-	local clustercount=0
-	local nodes=""
-	local mydomain="group.local"
-	local realjailjailnames=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep "${mydomain}" | /usr/bin/awk '{print $4}' )
-	local jailname=""
-	case "$arg" in
-		clean|remove|delete|destroy|reinstall)
-			for jailname in ${realjailjailnames} ; do
-				echo jroledestroyjail "${jailname}"
-				jroledestroyjail "${jailname}"
-			done
-			for role in ${roles} ; do
-				echo jroledestroyflavour ${role}
-				jroledestroyflavour ${role}
-			done
-			;;
-	esac
-	if [ "$arg" = "clean" -o "$arg" = "remove" -o "$arg" = "delete" -o "$arg" = "destroy" ]; then
-		echo # return nothing
-	else
-		jrolesetupbasejail
-		for role in ${standalone} ; do
-			LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
-			local jailname="${role}.${mydomain}"
-			jrolenatcreate "${role}" "${jailname}" "${LOCALNIC}|${LOCALIP}.${LOCALIPCOUNT}"
-			echo "${role} ${jailname}" >> "${TMPFILE}"
-		done
-		for role in ${upstream} ; do
-			LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
-			local jailname="${role}${LOCALIPCOUNT}.${mydomain}"
-			jrolenatcreate "${role}" "${jailname}" "${LOCALNIC}|${LOCALIP}.${LOCALIPCOUNT}"
-			echo "${role} ${jailname}" >> "${TMPFILE}"
-		done
-		for role in ${proxies} ; do
-			LOCALIPCOUNT=$(( LOCALIPCOUNT + 1 ))
-			local jailname="${role}${LOCALIPCOUNT}.${mydomain}"
-			jrolenatcreate "${role}" "${jailname}" "${LOCALNIC}|${LOCALIP}.${LOCALIPCOUNT}"
-			echo "${role} ${jailname}" >> "${TMPFILE}"
-		done
-		local realjailjailnames=$( /usr/bin/awk '{print $2}' "${TMPFILE}" )
-		for jailname in ${realjailjailnames} ; do
-			local role=$( /usr/bin/grep "${jailname}" "${TMPFILE}" | /usr/bin/awk '{print $1}' )
-			if ! /usr/bin/grep "${jailname}" /var/log/jrolebgstart.log > /dev/null 2> /dev/null ; then
-				echo "${role} ${jailname}" >> /var/log/jrolebgstart.log
-				jrolebgstart "${role}" "${jailname}"
-				/bin/sleep 1
-			fi
-		done
-	fi
-}
-
-# ---------------------------------------------------------
-
 jrolemariadbclusterjails () {
 	local mynic="${LOCALNIC}"
 	if [ "x" = "x${IPS}" ]; then
@@ -1759,6 +1754,11 @@ jroledestroyflavour () {
 # ---------------------------------------------------------
 
 jroledestroyjail () {
+
+
+	testforx /usr/local/bin/ezjail-admin
+
+
 	local jailname="$1"
 	if [ "x" != "${jailname}x" ]; then
 		/usr/local/bin/ezjail-admin onestop   "$jailname"
@@ -1788,167 +1788,318 @@ jroledestroyboth () {
 # ---------------------------------------------------------
 
 jrolerecover () {
+
+
+	testforx /usr/local/bin/ezjail-admin
+
+
+	# Create lan control jails
 	local service="$1"
 	if [ "xdhcp" = "x${service}" -o "xdhcpd" = "x${service}" ]; then
 		jroledhcpdjails nostart
 	else
 		jrolepxejails nostart
 	fi
+
+
+	# Copy USB media
 	jrolelinkmedia
-	local pkgjailname=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep "pkgng" | /usr/bin/awk '{print $4}' )
-	local pkgfile=$( /usr/local/bin/ezjail-admin console -e 'find /server/www/pkgng' "${pkgjailname}" | /usr/bin/grep "openssl-.*txz" )
+
+
+	# Bootstrap pkgng jail
+	local pkgjailname=$( /usr/local/bin/ezjail-admin list \
+	| /usr/bin/grep "pkgng" | /usr/bin/awk '{print $4}' )
+	local pkgfile=$( /usr/local/bin/ezjail-admin console \
+	-e 'find /server/www/pkgng' "${pkgjailname}" | /usr/bin/grep "openssl-.*txz" )
 	/usr/local/bin/ezjail-admin console -e "pkg-static add ${pkgfile}" "${pkgjailname}"
-	local pkgfile=$( /usr/local/bin/ezjail-admin console -e 'find /server/www/pkgng' "${pkgjailname}" | /usr/bin/grep "pcre-.*txz" )
+	local pkgfile=$( /usr/local/bin/ezjail-admin console \
+	-e 'find /server/www/pkgng' "${pkgjailname}" | /usr/bin/grep "pcre-.*txz" )
 	/usr/local/bin/ezjail-admin console -e "pkg-static add ${pkgfile}" "${pkgjailname}"
-	local pkgfile=$( /usr/local/bin/ezjail-admin console -e 'find /server/www/pkgng' "${pkgjailname}" | /usr/bin/grep "nginx-.*txz" )
+	local pkgfile=$( /usr/local/bin/ezjail-admin console \
+	-e 'find /server/www/pkgng' "${pkgjailname}" | /usr/bin/grep "nginx-.*txz" )
 	/usr/local/bin/ezjail-admin console -e "pkg-static add ${pkgfile}" "${pkgjailname}"
-	local pkgfile=$( /usr/local/bin/ezjail-admin console -e 'find /server/www/pkgng' "${pkgjailname}" | /usr/bin/grep "pkg-.*txz" )
+	local pkgfile=$( /usr/local/bin/ezjail-admin console \
+	-e 'find /server/www/pkgng' "${pkgjailname}" | /usr/bin/grep "pkg-.*txz" )
 	/usr/local/bin/ezjail-admin console -e "pkg-static add ${pkgfile}" "${pkgjailname}"
 	jrolebgstart "pkgng" "${pkgjailname}"
-	jrolebgstart "freebsd-dist" $( /usr/local/bin/ezjail-admin list | /usr/bin/grep "freebsd-dist" | /usr/bin/awk '{print $4}' )
-	jrolebgstart "pxe" $( /usr/local/bin/ezjail-admin list | /usr/bin/grep "pxe" | /usr/bin/awk '{print $4}' )
+
+
+	# Start freebsd-dist jail
+	jrolebgstart "freebsd-dist" $( /usr/local/bin/ezjail-admin list \
+	| /usr/bin/grep "freebsd-dist" | /usr/bin/awk '{print $4}' )
+
+
+	# Start pxe jail
+	jrolebgstart "pxe" $( /usr/local/bin/ezjail-admin list \
+	| /usr/bin/grep "pxe" | /usr/bin/awk '{print $4}' )
+
+
+	# Start dhcpd jail, if required
 	if [ "xdhcp" = "x${service}" -o "xdhcpd" = "x${service}" ]; then
-		jrolebgstart "dhcpd" $( /usr/local/bin/ezjail-admin list | /usr/bin/grep "dhcpd" | /usr/bin/awk '{print $4}' )
+		jrolebgstart "dhcpd" $( /usr/local/bin/ezjail-admin list \
+		| /usr/bin/grep "dhcpd" | /usr/bin/awk '{print $4}' )
 	fi
 }
 
 # ---------------------------------------------------------
 
 jrolelinkmedia () {
-	local releasedir=$( /usr/bin/find "/var/backups" -name "base.txz" | /usr/bin/head -1 )
-	if [ "x" != "x${releasedir}" ]; then
-		local distdir=$( /usr/bin/find "/usr/jails/freebsd-dist*/server/www" -name "freebsd-dist" | /usr/bin/head -1 )
-		if [ "x" != "x${distdir}" ]; then
-			#/sbin/umount "${distdir}/${RELEASE}-${ARCH}"
-			/server/bin/r -tcW --exclude '*.sig' "${releasedir%/*}/" "${distdir}/${RELEASE}-${ARCH}/"
 
-			/bin/ln -shf "/server/www/freebsd-dist/${RELEASE}-${ARCH}" "${distdir}/${RELEASE}-${ARCH}/FreeBSD"
-			/bin/ln -shf "/server/www/freebsd-dist/${RELEASE}-${ARCH}" "${distdir}/${RELEASE}-${ARCH}/releases"
-			/bin/ln -shf "/server/www/freebsd-dist/${RELEASE}-${ARCH}" "${distdir}/${RELEASE}-${ARCH}/${ARCH}"
-			/bin/ln -shf "/server/www/freebsd-dist/${RELEASE}-${ARCH}" "${distdir}/${RELEASE}-${ARCH}/${RELEASE}"
 
-			/usr/bin/find "${distdir}" -type l -exec /bin/chmod -h 755 {} \;
-			/usr/bin/find "${distdir}" -type d -exec /bin/chmod 755 {} \;
-			/usr/bin/find "${distdir}" -type f -exec /bin/chmod 644 {} \;
+	testforx /usr/local/sbin/pkg-static
 
-			jroleproductionip $( /usr/local/bin/ezjail-admin list | /usr/bin/grep "freebsd-dist" | /usr/bin/awk '{print $4}' )
-		fi
+
+	local releasedir=$( /usr/bin/find "/var/backups" -name "base.txz" \
+	| /usr/bin/head -1 )
+	local distdir=$( /usr/bin/find \
+	"/usr/jails/freebsd-dist*/server/www" -name "freebsd-dist" \
+	| /usr/bin/head -1 )
+	if [ "x" != "x${releasedir}" -a "x" != "x${distdir}" ]; then
+
+
+		# Copy to freebsd-dist jail
+		/server/bin/r -tcW --exclude '*.sig' \
+		"${releasedir%/*}/" \
+		"${distdir}/${RELEASE}-${ARCH}/"
+
+
+		# Set soft link like ftp server
+		/bin/ln -shf \
+		"/server/www/freebsd-dist/${RELEASE}-${ARCH}" \
+		"${distdir}/${RELEASE}-${ARCH}/FreeBSD"
+		/bin/ln -shf \
+		"/server/www/freebsd-dist/${RELEASE}-${ARCH}" \
+		"${distdir}/${RELEASE}-${ARCH}/releases"
+		/bin/ln -shf \
+		"/server/www/freebsd-dist/${RELEASE}-${ARCH}" \
+		"${distdir}/${RELEASE}-${ARCH}/${ARCH}"
+		/bin/ln -shf \
+		"/server/www/freebsd-dist/${RELEASE}-${ARCH}" \
+		"${distdir}/${RELEASE}-${ARCH}/${RELEASE}"
+
+
+		# Set permissions so nginx can serve
+		/usr/bin/find "${distdir}" -type l -exec /bin/chmod -h 755 {} \;
+		/usr/bin/find "${distdir}" -type d -exec /bin/chmod 755 {} \;
+		/usr/bin/find "${distdir}" -type f -exec /bin/chmod 644 {} \;
+
+
+		# Change IP for freebsd-dist
+		jroleproductionip $( /usr/local/bin/ezjail-admin list \
+		| /usr/bin/grep "freebsd-dist" | /usr/bin/awk '{print $4}' )
+
+
 	fi
-	local distdir=$( /usr/bin/find "/usr/jails/freebsd-dist*/server/www" -name "mfsbsd" | /usr/bin/head -1 )
-	if [ "x" != "x${distdir}" ]; then
+
+
+	# Restore NOX*.tar too
+	local releasedir=$( /usr/bin/find /var/backups -name 'NOX*tar' | /usr/bin/head -1 )
+	local distdir=$( /usr/bin/find "/usr/jails/freebsd-dist*/server/www" -name "mfsbsd" \
+	| /usr/bin/head -1 )
+	if [ "x" != "x${releasedir}" -a "x" != "x${distdir}" ]; then
 		/bin/mkdir -p "${distdir}/${RELEASE}-${ARCH}"
-		local releasedir=$( /usr/bin/find /var/backups -name 'NOX*tar' | /usr/bin/head -1 )
-		if [ "x" != "x${releasedir}" ]; then
-			/server/bin/r -tcW "${releasedir}"		"${distdir}/${RELEASE}-${ARCH}/"
-		fi
+		/server/bin/r -tcW "${releasedir}"		"${distdir}/${RELEASE}-${ARCH}/"
+
+
+		# Set permissions so nginx can serve
+		/usr/bin/find "${distdir}" -type l -exec /bin/chmod -h 755 {} \;
+		/usr/bin/find "${distdir}" -type d -exec /bin/chmod 755 {} \;
+		/usr/bin/find "${distdir}" -type f -exec /bin/chmod 644 {} \;
 	fi
+
+
+	# Restore pkgng too
 	local POUDIR="/poudriere"
-	local releasedir=$( /usr/bin/find "/packages" -name 'rsync*txz' | /usr/bin/head -1 )
-	if [ "x" != "x${releasedir}" ]; then
-		local distdir=$( /usr/bin/find "/usr/jails/pkgng*/server/www" -name "pkgng" | /usr/bin/head -1 )
-		if [ "x" != "x${distdir}" ]; then
-			mkdir -p "${distdir}/All"
-			echo "/server/bin/r -tcW --delete --exclude noauto  ${releasedir%/*}/   ${distdir}/All/"
-				  /server/bin/r -tcW --delete --exclude noauto "${releasedir%/*}/" "${distdir}/All/"
-			if [ -e "${releasedir%/*}/noauto" ]; then
-				echo "/server/bin/r -tcW  ${releasedir%/*}/noauto/   ${distdir}/All/"
-					  /server/bin/r -tcW "${releasedir%/*}/noauto/" "${distdir}/All/"
-			fi
-			cd "${distdir}/" ; /usr/local/sbin/pkg-static repo ./ ; cd -
-
-			/usr/bin/find "${distdir}" -type l -exec /bin/chmod -h 755 {} \;
-			/usr/bin/find "${distdir}" -type d -exec /bin/chmod 755 {} \;
-			/usr/bin/find "${distdir}" -type f -exec /bin/chmod 644 {} \;
-
-			jroleproductionip $( /usr/local/bin/ezjail-admin list | /usr/bin/grep "pkgng" | /usr/bin/awk '{print $4}' )
+	local releasedir=$( /usr/bin/find "/packages" -name 'rsync*txz' \
+	| /usr/bin/head -1 )
+	local distdir=$( /usr/bin/find "/usr/jails/pkgng*/server/www" -name "pkgng" \
+	| /usr/bin/head -1 )
+	if [ "x" != "x${releasedir}" -a "x" != "x${distdir}" ]; then
+		mkdir -p "${distdir}/All"
+		echo "/server/bin/r -tcW --delete --exclude noauto  ${releasedir%/*}/   ${distdir}/All/"
+			  /server/bin/r -tcW --delete --exclude noauto "${releasedir%/*}/" "${distdir}/All/"
+		if [ -e "${releasedir%/*}/noauto" ]; then
+			echo "/server/bin/r -tcW  ${releasedir%/*}/noauto/   ${distdir}/All/"
+				  /server/bin/r -tcW "${releasedir%/*}/noauto/" "${distdir}/All/"
 		fi
+
+
+		# Create repo
+		cd "${distdir}/" ; /usr/local/sbin/pkg-static repo ./ ; cd -
+
+
+		# Set permissions so nginx can serve
+		/usr/bin/find "${distdir}" -type l -exec /bin/chmod -h 755 {} \;
+		/usr/bin/find "${distdir}" -type d -exec /bin/chmod 755 {} \;
+		/usr/bin/find "${distdir}" -type f -exec /bin/chmod 644 {} \;
+
+
+		# Change IP for pkgng
+		jroleproductionip $( /usr/local/bin/ezjail-admin list | /usr/bin/grep "pkgng" \
+		| /usr/bin/awk '{print $4}' )
+
+
 	fi
+
+
 }
 
 # ---------------------------------------------------------
 
 jrolelinkrelease () {
-	local releasedir=$( /usr/bin/find "/usr/jails/release*builder.local/scratch/R" -name ftp | /usr/bin/head -1 )
-	if [ "x" != "x${releasedir}" ]; then
-		local distdir=$( /usr/bin/find "/usr/jails/freebsd-dist*/server/www" -name "freebsd-dist" | /usr/bin/head -1 )
-		if [ "x" != "x${distdir}" ]; then
-			#/sbin/umount ${distdir}/${RELEASE}-${ARCH}
-			/server/bin/r -tcW "${releasedir}/" "${distdir}/${RELEASE}-${ARCH}/"
 
-			/bin/ln -shf "/server/www/freebsd-dist/${RELEASE}-${ARCH}" "${distdir}/${RELEASE}-${ARCH}/FreeBSD"
-			/bin/ln -shf "/server/www/freebsd-dist/${RELEASE}-${ARCH}" "${distdir}/${RELEASE}-${ARCH}/releases"
-			/bin/ln -shf "/server/www/freebsd-dist/${RELEASE}-${ARCH}" "${distdir}/${RELEASE}-${ARCH}/${ARCH}"
-			/bin/ln -shf "/server/www/freebsd-dist/${RELEASE}-${ARCH}" "${distdir}/${RELEASE}-${ARCH}/${RELEASE}"
 
-			/usr/bin/find "${distdir}" -type l -exec /bin/chmod -h 755 {} \;
-			/usr/bin/find "${distdir}" -type d -exec /bin/chmod 755 {} \;
-			/usr/bin/find "${distdir}" -type f -exec /bin/chmod 644 {} \;
+	testforx /server/bin/r
 
-			jroleproductionip $( /usr/local/bin/ezjail-admin list | /usr/bin/grep "freebsd-dist" | /usr/bin/awk '{print $4}' )
-		fi
+
+	local releasedir=$( /usr/bin/find \
+	"/usr/jails/release*builder.local/scratch/R" -name ftp \
+	| /usr/bin/head -1 )
+	local distdir=$( /usr/bin/find \
+	"/usr/jails/freebsd-dist*/server/www" -name "freebsd-dist" \
+	| /usr/bin/head -1 )
+	if [ "x" != "x${releasedir}" -a "x" != "x${distdir}" ]; then
+
+
+		# Copy to freebsd-dist jail
+		/server/bin/r -tcW "${releasedir}/" "${distdir}/${RELEASE}-${ARCH}/"
+
+
+		# Set soft link like ftp server
+		/bin/ln -shf \
+		"/server/www/freebsd-dist/${RELEASE}-${ARCH}" \
+		"${distdir}/${RELEASE}-${ARCH}/FreeBSD"
+		/bin/ln -shf \
+		"/server/www/freebsd-dist/${RELEASE}-${ARCH}" \
+		"${distdir}/${RELEASE}-${ARCH}/releases"
+		/bin/ln -shf \
+		"/server/www/freebsd-dist/${RELEASE}-${ARCH}" \
+		"${distdir}/${RELEASE}-${ARCH}/${ARCH}"
+		/bin/ln -shf \
+		"/server/www/freebsd-dist/${RELEASE}-${ARCH}" \
+		"${distdir}/${RELEASE}-${ARCH}/${RELEASE}"
+
+
+		# Set permissions so nginx can serve
+		/usr/bin/find "${distdir}" -type l -exec /bin/chmod -h 755 {} \;
+		/usr/bin/find "${distdir}" -type d -exec /bin/chmod 755 {} \;
+		/usr/bin/find "${distdir}" -type f -exec /bin/chmod 644 {} \;
+
+
+		# Change IP for freebsd-dist
+		jroleproductionip $( /usr/local/bin/ezjail-admin list \
+		| /usr/bin/grep "freebsd-dist" | /usr/bin/awk '{print $4}' )
+
+
 	fi
 }
 
 # ---------------------------------------------------------
 
 jrolelinkmfsbsd () {
-	local releasedir=$( /usr/bin/find "/usr/jails/mfsbsd*builder.local/root/mfsbsd" -name 'NOX*iso' | /usr/bin/head -1 )
-	if [ "x" != "x${releasedir}" ]; then
-		local distdir=$( /usr/bin/find "/usr/jails/pxe*/server" -name tftp | /usr/bin/head -1 )
-		if [ "x" != "x${distdir}" ]; then
-			/usr/bin/install -d -m 555 -o nobody -g wheel "${distdir}/distro/mfsbsd"
-			/server/bin/r -tcW "${releasedir}"		"${distdir}/distro/mfsbsd/mfsbsd.iso"
-			/usr/sbin/chown nobody:wheel "${distdir}/distro/mfsbsd/mfsbsd.iso"
-			/bin/chmod -h 444 "${distdir}/distro/mfsbsd/mfsbsd.iso"
-		fi
-		local distdir=$( /usr/bin/find "/usr/jails/freebsd-dist*/server/www" -name "mfsbsd" | /usr/bin/head -1 )
-		if [ "x" != "x${distdir}" ]; then
-			/bin/mkdir -p "${distdir}/${RELEASE}-${ARCH}"
-			/server/bin/r -tcW "${releasedir}"		"${distdir}/${RELEASE}-${ARCH}/"
-			local releasedir=$( /usr/bin/find "/usr/jails/mfsbsd*builder.local/root/mfsbsd" -name 'NOX*tar' | /usr/bin/head -1 )
-			if [ "x" != "x${releasedir}" ]; then
-				/server/bin/r -tcW "${releasedir}"		"${distdir}/${RELEASE}-${ARCH}/"
-			fi
-			local releasedir=$( /usr/bin/find "/usr/jails/mfsbsd*builder.local/root/mfsbsd" -name 'NOX*img' | /usr/bin/head -1 )
-			if [ "x" != "x${releasedir}" ]; then
-				/server/bin/r -tcW "${releasedir}"		"${distdir}/${RELEASE}-${ARCH}/"
-			fi
-			/usr/bin/find "${distdir}" -type l -exec /bin/chmod -h 755 {} \;
-			/usr/bin/find "${distdir}" -type d -exec /bin/chmod 755 {} \;
-			/usr/bin/find "${distdir}" -type f -exec /bin/chmod 644 {} \;
-		fi
+
+
+	testforx /server/bin/r
+
+
+	# Find iso and pxe jail
+	local releasedir=$( /usr/bin/find \
+	"/usr/jails/mfsbsd*/root/mfsbsd" -name 'NOX*iso' \
+	| /usr/bin/head -1 )
+	local distdir=$(    /usr/bin/find \
+	"/usr/jails/pxe*/server" -name "tftp" \
+	| /usr/bin/head -1 )
+
+
+	# Copy to pxe jail
+	if [ "x" != "x${releasedir}" -a "x" != "x${distdir}" ]; then
+		/usr/bin/install -d -m 555 -o nobody -g wheel "${distdir}/distro/mfsbsd"
+		/server/bin/r -tcW "${releasedir}"		"${distdir}/distro/mfsbsd/mfsbsd.iso"
+		/usr/sbin/chown nobody:wheel "${distdir}/distro/mfsbsd/mfsbsd.iso"
+		/bin/chmod -h 444 "${distdir}/distro/mfsbsd/mfsbsd.iso"
 	fi
+
+
+	# Copy to freebsd-dist jail
+	local distdir=$( /usr/bin/find "/usr/jails/freebsd-dist*/server/www" -name "mfsbsd" \
+	| /usr/bin/head -1 )
+	if [ "x" != "x${releasedir}" -a "x" != "x${distdir}" ]; then
+		/server/bin/r -tcW "${releasedir%/*}/NOX*"	"${distdir}/${RELEASE}-${ARCH}/"
+	fi
+
+
+	# Set permissions so nginx can serve
+	if [ "x" != "x${distdir}" ]; then
+		/usr/bin/find "${distdir}" -type l -exec /bin/chmod -h 755 {} \;
+		/usr/bin/find "${distdir}" -type d -exec /bin/chmod 755 {} \;
+		/usr/bin/find "${distdir}" -type f -exec /bin/chmod 644 {} \;
+	fi
+
+
 }
 
 # ---------------------------------------------------------
 
 jrolelinkpkgng () {
+
+
+	testforx /server/bin/r
+
+
 	local POUDIR=/poudriere
-	local releasedir=$( /usr/bin/find "${POUDIR}/data/packages" -name All -type d | /usr/bin/head -1 )
-	if [ "x" != "x${releasedir}" ]; then
-		local distdir=$( /usr/bin/find "/usr/jails/pkgng*/server/www" -name "pkgng" | /usr/bin/head -1 )
-		if [ "x" != "x${distdir}" ]; then
-			echo "/server/bin/r -ltcW --delete  ${releasedir%/*}/   ${distdir}/"
-				  /server/bin/r -ltcW --delete "${releasedir%/*}/" "${distdir}/"
-			#cd ${distdir}/ ; /usr/local/sbin/pkg-static repo ./ ; cd -
+	local releasedir=$( /usr/bin/find \
+	"${POUDIR}/data/packages" -name All -type d  \
+	| /usr/bin/head -1 )
+	local distdir=$(    /usr/bin/find \
+	"/usr/jails/pkgng*/server/www" -name "pkgng" \
+	| /usr/bin/head -1 )
 
-			/usr/bin/find "${distdir}" -type l -exec /bin/chmod -h 755 {} \;
-			/usr/bin/find "${distdir}" -type d -exec /bin/chmod 755 {} \;
-			/usr/bin/find "${distdir}" -type f -exec /bin/chmod 644 {} \;
 
-			jroleproductionip $( /usr/local/bin/ezjail-admin list | /usr/bin/grep "pkgng" | /usr/bin/awk '{print $4}' )
-		fi
+	if [ "x" != "x${releasedir}" -a "x" != "x${distdir}" ]; then
+
+
+		# rsync
+		echo "/server/bin/r -ltcW --delete  ${releasedir%/*}/   ${distdir}/"
+			  /server/bin/r -ltcW --delete "${releasedir%/*}/" "${distdir}/"
+
+
+		# Create repo
+#		cd "${distdir}/" ; /usr/local/sbin/pkg-static repo ./ ; cd -
+
+
+		# Set permissions so nginx can serve
+		/usr/bin/find "${distdir}" -type l -exec /bin/chmod -h 755 {} \;
+		/usr/bin/find "${distdir}" -type d -exec /bin/chmod 755 {} \;
+		/usr/bin/find "${distdir}" -type f -exec /bin/chmod 644 {} \;
+
+
+		# Change IP for pkgng
+		jroleproductionip $( /usr/local/bin/ezjail-admin list | /usr/bin/grep "pkgng" \
+		| /usr/bin/awk '{print $4}' )
+
+
 	fi
+
+
 }
 
 # ---------------------------------------------------------
 
+# Turns ip in ezjail's jail config from 10.123.234.X to 10.7.7.X
 jroleproductionip () {
+
+
+	testforx /usr/local/bin/ezjail-admin
+
+
 	[ $# -lt 1 ] && echo "Usage: `basename $0` jailname" && exit 1
 	local jailname="$1"
 	local safejailname=$( echo -n "$jailname" | /usr/bin/tr -c '[:alnum:]' _ )
+
+
 	# now stop and switch ip from 10.123.234 to 10.7.7
-	local oldip=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep "/usr/jails/${jailname}" | /usr/bin/awk '{print $3}' )
+	local oldip=$( /usr/local/bin/ezjail-admin list \
+	| /usr/bin/grep "/usr/jails/${jailname}" | /usr/bin/awk '{print $3}' )
 	local newip="${PRODIP}.${oldip##*.}"
 	if echo "$oldip" | /usr/bin/grep "$LOCALIP" > /dev/null 2> /dev/null ; then
 		/bin/cat >> "/usr/local/etc/ezjail/${safejailname}" <<EOF
@@ -1957,7 +2108,19 @@ EOF
 		/usr/local/bin/ezjail-admin onestop  "${jailname}"
 		/usr/local/bin/ezjail-admin onestart "${jailname}"
 	fi
-	/server/bin/startucarp
+
+
+	test -x /server/bin/startucarp \
+	&& /server/bin/startucarp
+
+
+}
+
+# ---------------------------------------------------------
+
+testforx (){
+	test -x "$1" \
+	|| { echo "Error: $1 not found"; exit 1 }
 }
 
 # ---------------------------------------------------------
@@ -1965,12 +2128,20 @@ EOF
 # Creates the auto_links giving the user new functionallity from the
 # command line. Creates link files to this script.
 make_auto_links (){
+
+
 	# "() {" are     published functions of this script.
 	# "(){"  are not published functions of this script.
 	local thisfile=`/usr/bin/basename $0`
-	for var in $( /usr/bin/grep "() {" "$0" | /usr/bin/grep "^jrole" | /usr/bin/cut -d' ' -f1 ) ; do
+
+
+	# But only the jrole functions
+	for var in $( /usr/bin/grep "() {" "$0" \
+	| /usr/bin/grep "^jrole" | /usr/bin/cut -d' ' -f1 ) ; do
 		/bin/ln -shf "$thisfile"	"/server/bin/$var" 2>/dev/null
 	done
+
+
 }
 
 # ---------------------------------------------------------
@@ -1980,10 +2151,13 @@ make_auto_links (){
 if [ -L /server/bin/`/usr/bin/basename $0` ] ; then
 	`/usr/bin/basename $0` $*
 else
-	echo "Usage: Please use the created links to `/usr/bin/basename $0` in this directory to use the functionality. If this is your first run, some scripts have been created in /server/bin for you." && { make_auto_links ; exit 1 ; }
+	echo "Usage: Please use the created links to `/usr/bin/basename $0` in this \
+directory to use the functionality. If this is your first run, some scripts have \
+been created in /server/bin for you." && { make_auto_links ; exit 1 ; }
 fi
 
 
+# Delete the tmpfile
 if [ -e "${TMPFILE}" ]; then
 	/bin/rm "${TMPFILE}"
 fi

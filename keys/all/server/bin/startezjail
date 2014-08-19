@@ -1,30 +1,76 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
-	if [ ! -e /usr/local/bin/ezjail-admin ]; then
-		/usr/local/sbin/pkg-static install -y ezjail
-	fi
-	for ip in $( /server/bin/net-ipreal -F ' ' ) ; do
-		if ! /usr/bin/egrep "ListenAddress $ip" /etc/ssh/sshd_config >/dev/null 2>&1 ; then
-			/bin/cat >>/etc/ssh/sshd_config <<EOF
+
+# Install ezjail if ezjail-admin doesn't exist
+test -e /usr/local/bin/ezjail-admin \
+|| /usr/local/sbin/pkg-static install -y ezjail
+
+
+# Test for net-ipreal as we use it below
+test -x /server/bin/net-ipreal \
+|| { echo "Error: /server/bin/net-ipreal not found"; exit 1 }
+
+
+# Add ListenAddress to ssh
+/bin/chflags noschg /etc/ssh/sshd_config
+for ip in $( /server/bin/net-ipreal -F ' ' ) ; do
+	/usr/bin/egrep \
+		"ListenAddress $ip" \
+		/etc/ssh/sshd_config \
+		> /dev/null 2> /dev/null \
+	|| /bin/cat >>/etc/ssh/sshd_config <<EOF
 ##### Added by jrolesetuphost
 ListenAddress $ip
 ##### End of addition
 EOF
-			/bin/chflags schg /etc/ssh/sshd_config
-			/etc/rc.d/sshd onereload 2> /dev/null
-		fi
-	done
-	/usr/bin/sed -i '' 's#etc/fstab\.#usr/local/etc/ezjail/fstab.#' /usr/local/bin/ezjail-admin
-	/usr/bin/sed -i '' 's#ls -A | xargs#ls -A | egrep -v "(fstab\.|ezjail\.conf|\.sig$)" | xargs#' /usr/local/bin/ezjail-admin
-	/usr/bin/sed -i '' 's#ls | xargs rcorder#ls | egrep -v "(fstab\.|ezjail\.conf|\.sig$)" | xargs#' /usr/local/etc/rc.d/ezjail
-	if ! /usr/bin/grep '^ezjail_jailzfs="data/ezjail"' /usr/local/etc/ezjail.conf > /dev/null 2> /dev/null; then
-		/bin/cat >/usr/local/etc/ezjail.conf <<EOF
+done
+/bin/chflags schg /etc/ssh/sshd_config
+
+
+# If rc.d/sshd exists, onereload it
+test -x /etc/rc.d/sshd \
+&& /etc/rc.d/sshd onereload 2> /dev/null
+
+
+# If ezjail-admin exists, modify it to look for fstab in /usr/local/etc/ezjail
+test -e /usr/local/bin/ezjail-admin \
+&& /usr/bin/sed -i '' \
+'s#etc/fstab\.#usr/local/etc/ezjail/fstab.#' \
+/usr/local/bin/ezjail-admin
+
+
+# If ezjail-admin exists, modify it to ignore fstab, ezjail.conf, and sig as jails
+test -e /usr/local/bin/ezjail-admin \
+&& /usr/bin/sed -i '' \
+'s#ls -A | xargs#ls -A | egrep -v "(fstab\.|ezjail\.conf|\.sig$)" | xargs#' \
+/usr/local/bin/ezjail-admin
+
+
+# If rc.d/ezjail exists, modify it to ignore fstab, ezjail.conf, and sig as jails
+test -e /usr/local/etc/rc.d/ezjail \
+&& /usr/bin/sed -i '' \
+'s#ls | xargs rcorder#ls | egrep -v "(fstab\.|ezjail\.conf|\.sig$)" | xargs#' \
+/usr/local/etc/rc.d/ezjail
+
+
+# If ezjail.conf is not configured, do so now
+/usr/bin/grep \
+'^ezjail_jailzfs="data/ezjail"' \
+/usr/local/etc/ezjail.conf \
+> /dev/null 2> /dev/null \
+|| /bin/cat >/usr/local/etc/ezjail.conf <<EOF
 ezjail_use_zfs="YES"
 ezjail_use_zfs_for_jails="YES"
 ezjail_jailzfs="data/ezjail"
 EOF
-	fi
 
-/usr/local/etc/rc.d/ezjail onestart
-/server/bin/startucarp
+
+# If rc.d/ezjail exists, onestart it
+test -x /usr/local/etc/rc.d/ezjail \
+&& /usr/local/etc/rc.d/ezjail onestart
+
+
+# If startucarp exists, run it
+test -x /server/bin/startucarp \
+&& /server/bin/startucarp
