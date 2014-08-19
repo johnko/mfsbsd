@@ -2004,10 +2004,10 @@ jrolelinkmfsbsd () {
 
 	# Find iso and pxe jail
 	local releasedir=$( /usr/bin/find \
-	"/usr/jails/mfsbsd*/root/mfsbsd" -name 'NOX*iso' \
+	/usr/jails/mfsbsd*/root/mfsbsd -name 'NOX*iso' \
 	| /usr/bin/head -1 )
 	local distdir=$(    /usr/bin/find \
-	"/usr/jails/pxe*/server" -name "tftp" \
+	/usr/jails/pxe*/server -name "tftp" \
 	| /usr/bin/head -1 )
 
 
@@ -2024,7 +2024,7 @@ jrolelinkmfsbsd () {
 	local distdir=$( /usr/bin/find /usr/jails/freebsd-dist*/server/www -name "mfsbsd" \
 	| /usr/bin/head -1 )
 	if [ "x" != "x${releasedir}" -a "x" != "x${distdir}" ]; then
-		/server/bin/r -tcW "${releasedir%/*}/NOX*"	"${distdir}/${RELEASE}-${ARCH}/"
+		/server/bin/r -tcW "${releasedir%/*}"/NOX*	"${distdir}/${RELEASE}-${ARCH}/"
 	fi
 
 
