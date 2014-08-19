@@ -657,7 +657,7 @@ jrolesetupflavours () {
 
 #####		SPECIFIC	#####
 
-			if [ "$localrole" = "dhcpd"  ]; then
+			if [ "$localrole" = "dhcpd" ]; then
 				jrolesetupservice "dhcpd" "${MNT}"
 			elif [ "$localrole" = "pxe" ]; then
 				jrolesetupservice "nginx" "${MNT}"
@@ -894,7 +894,7 @@ jrolesetupservice () {
 				"${fil}" \
 				"${MNT}${fil}"
 		done
-	elif [ "$service" = "mfsbsd"
+	elif [ "$service" = "mfsbsd" \
 		-o "$service" = "blank" ]; then
 		echo
 	elif [ "$service" = "qemu" ]; then
