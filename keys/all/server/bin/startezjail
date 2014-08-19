@@ -9,7 +9,7 @@ test -e /usr/local/bin/ezjail-admin \
 
 # Test for net-ipreal as we use it below
 test -x /server/bin/net-ipreal \
-|| { echo "Error: /server/bin/net-ipreal not found"; exit 1 }
+|| ( echo "Error: /server/bin/net-ipreal not found"; exit 1 )
 
 
 # Add ListenAddress to ssh

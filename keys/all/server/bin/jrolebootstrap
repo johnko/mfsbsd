@@ -1017,8 +1017,8 @@ jrolejailcreate () {
 	local nicip="$3"
 	local ip=$( echo "$nicip" | /usr/bin/awk -F'|' '{print $2}' )
 	local safejailname=$( echo -n "$jailname" | /usr/bin/tr -c '[:alnum:]' _ )
-	if ! /usr/local/bin/ezjail-admin list | /usr/bin/awk "\$4 ~ /$role/ {print \$4}" |\
-		/usr/bin/egrep "^${role}\$" > /dev/null 2> /dev/null ; then
+	if ! /usr/local/bin/ezjail-admin list | /usr/bin/grep "${jailname}" \
+		> /dev/null 2> /dev/null ; then
 		/usr/local/bin/ezjail-admin create -f "${role}" "${jailname}" "${nicip}"
 	fi
 	/usr/bin/egrep "fstab" "/usr/local/etc/ezjail/${safejailname}" \
@@ -1435,8 +1435,8 @@ jroleperconaclusterjails (){
 				jroledestroyjail "${jailname}"
 			done
 			for role in ${roles} ; do
-				echo jroledestroyflavour ${role}
-				jroledestroyflavour ${role}
+				echo jroledestroyflavour "${role}"
+				jroledestroyflavour "${role}"
 			done
 			;;
 	esac
@@ -1462,7 +1462,7 @@ jroleperconaclusterjails (){
 				# Wait for first to start
 				if ! /usr/bin/grep "${jailname}" /var/log/jrolebgstart.log > /dev/null 2> /dev/null ; then
 					echo "perconacluster ${jailname} ${clustercount} ${nodes}" >> /var/log/jrolebgstart.log
-					jrolebgstart perconacluster "${jailname}" ${clustercount} ${nodes}
+					jrolebgstart perconacluster "${jailname}" "${clustercount}" "${nodes}"
 					/bin/sleep 1
 				fi
 			else
@@ -1471,7 +1471,7 @@ jroleperconaclusterjails (){
 				# Now others can start in background
 				if ! /usr/bin/grep "${jailname}" /var/log/jrolebgstart.log > /dev/null 2> /dev/null ; then
 					echo "perconacluster ${jailname} ${clustercount} ${nodes}" >> /var/log/jrolebgstart.log
-					( jrolebgstart perconacluster "${jailname}" ${clustercount} ${nodes} ) &
+					( jrolebgstart perconacluster "${jailname}" "${clustercount}" "${nodes}" ) &
 					/bin/sleep 1
 				fi
 			fi
@@ -1499,8 +1499,8 @@ jrolewordpressjails () {
 				jroledestroyjail "${jailname}"
 			done
 			for role in ${roles} ; do
-				echo jroledestroyflavour ${role}
-				jroledestroyflavour ${role}
+				echo jroledestroyflavour "${role}"
+				jroledestroyflavour "${role}"
 			done
 			;;
 	esac
@@ -2120,7 +2120,7 @@ EOF
 
 testforx (){
 	test -x "$1" \
-	|| { echo "Error: $1 not found"; exit 1 }
+	|| ( echo "Error: $1 not found"; exit 1 )
 }
 
 # ---------------------------------------------------------
