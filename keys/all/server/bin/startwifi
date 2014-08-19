@@ -52,3 +52,7 @@ fi
 if [ -e /etc/rc.d/pf ]; then
 	/etc/rc.d/pf reload
 fi
+
+if [ -e /etc/rc.d/sshd ]; then
+	/etc/rc.d/sshd onereload
+fi
