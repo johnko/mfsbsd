@@ -1894,7 +1894,7 @@ jrolelinkmedia () {
 
 	# Restore NOX*.tar too
 	local releasedir=$( /usr/bin/find /var/backups -name 'NOX*tar' | /usr/bin/head -1 )
-	local distdir=$( /usr/bin/find "/usr/jails/freebsd-dist*/server/www" -name "mfsbsd" \
+	local distdir=$( /usr/bin/find /usr/jails/freebsd-dist*/server/www -name "mfsbsd" \
 	| /usr/bin/head -1 )
 	if [ "x" != "x${releasedir}" -a "x" != "x${distdir}" ]; then
 		/bin/mkdir -p "${distdir}/${RELEASE}-${ARCH}"
@@ -1912,7 +1912,7 @@ jrolelinkmedia () {
 	local POUDIR="/poudriere"
 	local releasedir=$( /usr/bin/find "/packages" -name 'rsync*txz' \
 	| /usr/bin/head -1 )
-	local distdir=$( /usr/bin/find "/usr/jails/pkgng*/server/www" -name "pkgng" \
+	local distdir=$( /usr/bin/find /usr/jails/pkgng*/server/www -name "pkgng" \
 	| /usr/bin/head -1 )
 	if [ "x" != "x${releasedir}" -a "x" != "x${distdir}" ]; then
 		mkdir -p "${distdir}/All"
@@ -2021,7 +2021,7 @@ jrolelinkmfsbsd () {
 
 
 	# Copy to freebsd-dist jail
-	local distdir=$( /usr/bin/find "/usr/jails/freebsd-dist*/server/www" -name "mfsbsd" \
+	local distdir=$( /usr/bin/find /usr/jails/freebsd-dist*/server/www -name "mfsbsd" \
 	| /usr/bin/head -1 )
 	if [ "x" != "x${releasedir}" -a "x" != "x${distdir}" ]; then
 		/server/bin/r -tcW "${releasedir%/*}/NOX*"	"${distdir}/${RELEASE}-${ARCH}/"
