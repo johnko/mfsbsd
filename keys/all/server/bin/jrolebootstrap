@@ -1852,7 +1852,7 @@ jrolelinkmedia () {
 	local releasedir=$( /usr/bin/find "/var/backups" -name "base.txz" \
 	| /usr/bin/head -1 )
 	local distdir=$( /usr/bin/find \
-	"/usr/jails/freebsd-dist*/server/www" -name "freebsd-dist" \
+	/usr/jails/freebsd-dist*/server/www -name "freebsd-dist" \
 	| /usr/bin/head -1 )
 	if [ "x" != "x${releasedir}" -a "x" != "x${distdir}" ]; then
 
@@ -1953,10 +1953,10 @@ jrolelinkrelease () {
 
 
 	local releasedir=$( /usr/bin/find \
-	"/usr/jails/release*builder.local/scratch/R" -name ftp \
+	/usr/jails/release*/scratch/R -name ftp \
 	| /usr/bin/head -1 )
 	local distdir=$( /usr/bin/find \
-	"/usr/jails/freebsd-dist*/server/www" -name "freebsd-dist" \
+	/usr/jails/freebsd-dist*/server/www -name "freebsd-dist" \
 	| /usr/bin/head -1 )
 	if [ "x" != "x${releasedir}" -a "x" != "x${distdir}" ]; then
 
@@ -2051,7 +2051,7 @@ jrolelinkpkgng () {
 	"${POUDIR}/data/packages" -name All -type d  \
 	| /usr/bin/head -1 )
 	local distdir=$(    /usr/bin/find \
-	"/usr/jails/pkgng*/server/www" -name "pkgng" \
+	/usr/jails/pkgng*/server/www -name "pkgng" \
 	| /usr/bin/head -1 )
 
 
