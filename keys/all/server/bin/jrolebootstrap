@@ -93,7 +93,8 @@ jrolebgstart () {
 
 	local safejailname=$( echo -n "$2" | /usr/bin/tr -c '[:alnum:]' _ )
 
-	/bin/mv "/usr/jails/${2}/etc/pkg/FreeBSD.conf" \
+	test -e "/usr/jails/${2}/etc/pkg/FreeBSD.conf" \
+	&& /bin/mv "/usr/jails/${2}/etc/pkg/FreeBSD.conf" \
 	"/usr/jails/${2}/etc/pkg.FreeBSD.conf.bkp"
 
 	test -e "/usr/jails/${2}/usr/local/sbin/pkg" \
@@ -146,9 +147,6 @@ jrolebgstart () {
 	elif [ "$1" = "mfsbsd" ]; then
 
 		jailbuildmfsbsd
-
-		jrolebgstart "pxe" $( /usr/local/bin/ezjail-admin list \
-		| /usr/bin/grep "pxe" | /usr/bin/awk '{print $4}' )
 
 ############################################
 
@@ -446,6 +444,15 @@ EOF
 		fi
 
 		#/sbin/umount ${mfsbsdroot}/cdrom
+
+		/usr/local/bin/ezjail-admin onestop		$( /usr/local/bin/ezjail-admin list \
+		| /usr/bin/grep "pxe" | /usr/bin/awk '{print $4}' )
+
+		/usr/local/bin/ezjail-admin onestart	$( /usr/local/bin/ezjail-admin list \
+		| /usr/bin/grep "pxe" | /usr/bin/awk '{print $4}' )
+
+		jrolebgstart "pxe" $( /usr/local/bin/ezjail-admin list \
+		| /usr/bin/grep "pxe" | /usr/bin/awk '{print $4}' )
 
 }
 
