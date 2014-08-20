@@ -12,6 +12,8 @@ usage() {
 	echo "Usage: $0 [-h] -t|-T dist_url [-m mount_point] [-p zfs_pool_name] [-f zfs_fs_name]"
 }
 
+MFSBSD=1
+
 help() {
 	echo; echo "Upgrade FreeBSD's mfsroot.gz by fetching a compressed archive"
 	echo; echo "Required flags:"
@@ -28,137 +30,138 @@ help() {
 }
 
 if [ $# -gt 0 ]; then
-while getopts t:T:p:f:m:h o; do
-	case "$o" in
-		t) ARCHIVE="${OPTARG}" ;;
-		T) FETCH="${OPTARG}"; ARCHIVE="$FETCH" ;;
-		p) POOL="${OPTARG}" ;;
-		f) RFS="${OPTARG}" ;;
-		m) MNT="${OPTARG}" ;;
-		h) help; exit 1;;
-		[?]) usage; exit 1;;
-	esac
-done
+
+	while getopts t:T:p:f:m:h o; do
+		case "$o" in
+			t) ARCHIVE="${OPTARG}" ;;
+			T) FETCH="${OPTARG}"; ARCHIVE="$FETCH" ;;
+			p) POOL="${OPTARG}" ;;
+			f) RFS="${OPTARG}" ;;
+			m) MNT="${OPTARG}" ;;
+			h) help; exit 1 ;;
+			[?]) usage; exit 1 ;;
+		esac
+	done
+
 fi
 
-MFSBSD=1
-
 if [ -z "$FETCH" ]; then
+
 	FETCH="http://${server}:${port}/mfsbsd/${RELEASE}-${ARCH}/NOX-${RELEASE}-${ARCH}.tar"
 	ARCHIVE="$FETCH"
+
 fi
 
 if [ -z "$ARCHIVE" ]; then
-	usage
-	exit 1
+	usage ; exit 1
 fi
 
-if [ -z "$POOL" ]; then
-	POOL=autoboot
+test -z "$POOL" && POOL=autoboot
+
+test -z "$RFS" && RFS=bootdir
+
+test -z "$MNT" && MNT=/bootdir
+
+if ! /sbin/zpool list "$POOL" > /dev/null 2> /dev/null ; then
+	echo "Error: ZFS pool $POOL doesn't exists" ; exit 1
 fi
 
-if [ -z "$RFS" ]; then
-	RFS=bootdir
-fi
-
-if ! /sbin/zpool list $POOL > /dev/null 2> /dev/null; then
-	echo "Error: ZFS pool $POOL doesn't exists"
-	exit 1
-fi
-
-if ! /sbin/zfs list -o mounted,mountpoint $POOL/$RFS | /usr/bin/grep "$MNT" | /usr/bin/grep "yes" ; then
-	echo "Error: ZFS FS $POOL/$RFS not mounted"
-	exit 1
+if ! /sbin/zfs list -o mounted,mountpoint "$POOL/$RFS" | /usr/bin/grep "$MNT" | /usr/bin/grep "yes" > /dev/null 2> /dev/null ; then
+	echo "Error: ZFS FS $POOL/$RFS not mounted" ; exit 1
 fi
 
 if [ -z "${URL}" ]; then
+
 	if [ -n "${FETCH}" ]; then
+
 		echo "Fetching ... ${FETCH}"
-		if ! /usr/bin/fetch -o "/tmp/${FETCH##*/}" "${FETCH}"; then
-			echo "Error fetching ${FETCH}"
-			exit 1
+
+		if ! /usr/bin/fetch -o "/tmp/${FETCH##*/}" "${FETCH}" ; then
+			echo "Error fetching ${FETCH}" ; exit 1
 		fi
+
 		ARCHIVE="/tmp/${FETCH##*/}"
-		ARCHSIZE="`/bin/ls -l ${ARCHIVE} | /usr/bin/awk '{print $5}'`"
-		if [ $ARCHSIZE -lt 10000000 ]; then #10 MB
-			echo "Archive too small, fetch probably failed."
-			exit 1
+
+		ARCHSIZE=$( /bin/ls -l "${ARCHIVE}" | /usr/bin/awk '{print $5}' )
+
+		if [ $ARCHSIZE -lt 10000000 ]; then
+			echo "Archive too small, fetch probably failed." ; exit 1
 		fi
+
 	fi
-	if ! [ -f "${ARCHIVE}" ]; then
-		echo "Error: file $ARCHIVE does not exist"
-		exit 1
-	else
-		EXTRACT_FILES=${ARCHIVE}
+
+	if [ -f "${ARCHIVE}" ]; then
+		echo "Error: file $ARCHIVE does not exist" ; exit 1
 	fi
+
+	EXTRACT_FILES="${ARCHIVE}"
+
 fi
 
-if [ -z "$MNT" ]; then
-	MNT=/bootdir
+if [ ! -d "${MNT}" ]; then
+	echo "Error: $MNT is not a directory" ; exit 1
 fi
-
-if ! [ -d "${MNT}" ]; then
-	echo "Error: $MNT is not a directory"
-	exit 1
-fi
-
 
 TIMESTAMP=$( /bin/date '+%Y%m%dT%H%M%S%Z' )
+
 echo -n "Snapshotting autoboot/bootdir@upgrade-${TIMESTAMP} ..."
-if ! /sbin/zfs snapshot autoboot/bootdir@upgrade-${TIMESTAMP} > /dev/null 2> /dev/null; then
-	echo " error"
-	exit 1
+
+if ! /sbin/zfs snapshot "autoboot/bootdir@upgrade-${TIMESTAMP}" > /dev/null 2> /dev/null ; then
+	echo " error" ; exit 1
 fi
+
 echo " done"
 
-	/bin/mv ${MNT}/boot/loader.conf ${MNT}/boot/loader.conf.bkp
+/bin/mv "${MNT}/boot/loader.conf" "${MNT}/boot/loader.conf.bkp"
 
-	echo -n "Extracting FreeBSD distribution ..."
-	for file in ${EXTRACT_FILES}; do
-		if [ "$MFSBSD" = "1" ]; then
-			if ! /usr/bin/tar -C /bootdir --exclude=${RELEASE}-${ARCH} -x -f ${file} > /dev/null 2> /dev/null; then
-				echo " error"
-				exit 1
-			fi
-			if ! /usr/bin/tar -C /var/backups --include=${RELEASE}-${ARCH} -x -f ${file} > /dev/null 2> /dev/null; then
-				echo " error"
-				exit 1
-			fi
-			/bin/mv ${file} /var/backups/
-		else
-			exit 1
-		fi
-	done
-	echo " done"
+echo -n "Extracting FreeBSD distribution ..."
 
-	# Adjust configuration files
+for file in ${EXTRACT_FILES}; do
 
-	echo -n "Writing /boot/loader.conf..."
-	/usr/sbin/sysrc -f ${MNT}/boot/loader.conf aesni_load="YES"
-	/usr/sbin/sysrc -f ${MNT}/boot/loader.conf ahci_load="YES"
-	/usr/sbin/sysrc -f ${MNT}/boot/loader.conf geom_label_load="YES"
-	/usr/sbin/sysrc -f ${MNT}/boot/loader.conf geom_mirror_load="YES"
-	/usr/sbin/sysrc -f ${MNT}/boot/loader.conf kern.cam.boot_delay="10000"
-	/usr/sbin/sysrc -f ${MNT}/boot/loader.conf nullfs_load="YES"
-	/usr/sbin/sysrc -f ${MNT}/boot/loader.conf zfs_load="YES"
-	/usr/sbin/sysrc -f ${MNT}/boot/loader.conf geom_eli_load="YES"
-	/usr/sbin/sysrc -f ${MNT}/boot/loader.conf vfs.root.mountfrom="zfs:autoboot/bootdir"
-	/usr/bin/grep "^geli_label_" ${MNT}/boot/loader.conf.bkp >> ${MNT}/boot/loader.conf
-	/usr/bin/grep "^automount" ${MNT}/boot/loader.conf.bkp >> ${MNT}/boot/loader.conf
-	/usr/bin/grep "^autowifi" ${MNT}/boot/loader.conf.bkp >> ${MNT}/boot/loader.conf
-	/usr/bin/grep "^autogui" ${MNT}/boot/loader.conf.bkp >> ${MNT}/boot/loader.conf
-	echo " done"
-
-	echo ""
-	echo "Upgrade complete."
-	echo ""
-	echo "! ! ! ! ! ! ! ! ! !"
-	echo "! REBOOT REQUIRED !"
-	echo "! ! ! ! ! ! ! ! ! !"
-
-	if [ -e "/server/bin/zfscustom" ]; then
-		if [ -x /server/bin/zfscustom ]; then
-			MFSBSD=${MFSBSD} UPGRADE=1 /server/bin/zfscustom
-		fi
+	if [ "$MFSBSD" != "1" ]; then
+		echo "Not mfsbsd, aborting" ; exit 1
 	fi
 
+	if ! /usr/bin/tar -C /bootdir --exclude="${RELEASE}-${ARCH}" -x -f "${file}" > /dev/null 2> /dev/null ; then
+		echo " error" ; exit 1
+	fi
+
+	if ! /usr/bin/tar -C /var/backups --include="${RELEASE}-${ARCH}" -x -f "${file}" > /dev/null 2> /dev/null ; then
+		echo " error" ; exit 1
+	fi
+
+	/bin/mv "${file}" /var/backups/
+
+done
+
+echo " done"
+
+# Adjust configuration files
+
+echo -n "Writing /boot/loader.conf..."
+/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" aesni_load="YES"
+/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" ahci_load="YES"
+/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" geom_label_load="YES"
+/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" geom_mirror_load="YES"
+/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" kern.cam.boot_delay="10000"
+/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" nullfs_load="YES"
+/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" zfs_load="YES"
+/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" geom_eli_load="YES"
+/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" vfs.root.mountfrom="zfs:autoboot/bootdir"
+/usr/bin/grep "^geli_label_" "${MNT}/boot/loader.conf.bkp" >> "${MNT}/boot/loader.conf"
+/usr/bin/grep "^automount" "${MNT}/boot/loader.conf.bkp" >> "${MNT}/boot/loader.conf"
+/usr/bin/grep "^autowifi" "${MNT}/boot/loader.conf.bkp" >> "${MNT}/boot/loader.conf"
+/usr/bin/grep "^autogui" "${MNT}/boot/loader.conf.bkp" >> "${MNT}/boot/loader.conf"
+echo " done"
+
+/bin/cat <<EOF
+
+Upgrade complete.
+
+! ! ! ! ! ! ! ! ! !
+! REBOOT REQUIRED !
+! ! ! ! ! ! ! ! ! !
+
+EOF
+
+test -x /server/bin/zfscustom && MFSBSD="${MFSBSD}" UPGRADE=1 /server/bin/zfscustom

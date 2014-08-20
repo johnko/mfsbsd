@@ -23,8 +23,8 @@ IPCOUNT=$( echo "${PUBLICIP}" | /usr/bin/cut -d. -f4 )
 LOCALIPCOUNT=$( /usr/local/bin/ezjail-admin list |\
 	/usr/bin/grep -v "JID.*IP.*Hostname.*Directory" | /usr/bin/grep -v "\-\-\-" |\
 	/usr/bin/wc -l )
-if [ -e /server/csv/csv ]; then
-	CSV=$( /bin/cat /server/csv/csv | /usr/bin/tr -d '\n' )
+if [ -e /server/csv/id ]; then
+	CSV=$( /bin/cat /server/csv/id | /usr/bin/tr -d '\n' )
 else
 	CSV=''
 fi
@@ -125,14 +125,14 @@ jrolebgstart () {
 		| /usr/bin/grep "pxe" | /usr/bin/awk '{print $4}' )
 
 ############################################
-	elif [ "$1" = "pkgng" \
-	-o "$1" = "freebsd-dist" \
-	-o "$1" = "littlechef" ]; then
+	elif [ "$1" = "pkgng" -o "$1" = "freebsd-dist" -o "$1" = "littlechef" ]; then
 
 		/usr/local/bin/ezjail-admin console -e "/server/bin/start$1" "${2}"
 
 ############################################
-	elif [ "$1" = "blank" ]; then echo
+	elif [ "$1" = "blank" ]; then
+
+		echo
 
 ############################################
 	elif [ "$1" = "release" ]; then
@@ -150,7 +150,9 @@ jrolebgstart () {
 
 ############################################
 
-	else echo "Not implemented: jrolebgstart ${1} ${2}" ; exit 1
+	else
+
+		echo "Not implemented: jrolebgstart ${1} ${2}" ; exit 1
 
 	fi
 }
@@ -462,7 +464,7 @@ EOF
 jrolecreate (){
 
 	[ $# -lt 3 ] && echo "Usage: `basename $0` role jailname 'nic|ip'" && exit 1
-	
+
 	testforx /usr/local/bin/ezjail-admin
 
 	local safejailname=$( echo -n "$2" | /usr/bin/tr -c '[:alnum:]' _ )
@@ -475,7 +477,7 @@ jrolecreate (){
 
 ############################################
 	if [ "$1" = "dhcpd" ]; then
-		
+
 		/usr/bin/egrep "jrolecreate" "/usr/local/etc/ezjail/${safejailname}" \
 		> /dev/null 2> /dev/null \
 		|| /bin/cat >> "/usr/local/etc/ezjail/${safejailname}" <<EOF
@@ -487,11 +489,7 @@ export jail_${safejailname}_parameters="allow.raw_sockets=1"
 EOF
 
 ############################################
-	elif [ "$1" = "pxe" \
-	-o "$1" = "pkgng" \
-	-o "$1" = "freebsd-dist" \
-	-o "$1" = "littlechef" \
-	-o "$1" = "blank" ]; then
+	elif [ "$1" = "pxe" -o "$1" = "pkgng" -o "$1" = "freebsd-dist" -o "$1" = "littlechef" -o "$1" = "blank" ]; then
 
 		/usr/bin/egrep "jrolecreate" "/usr/local/etc/ezjail/${safejailname}" \
 		> /dev/null 2> /dev/null \
@@ -527,7 +525,9 @@ export jail_${safejailname}_parameters="allow.chflags allow.mount allow.mount.de
 EOF
 
 ############################################
-	else echo "Not implemented: jrolecreate $1" ; exit 1
+	else
+
+		echo "Not implemented: jrolecreate $1" ; exit 1
 
 	fi
 
@@ -611,7 +611,6 @@ jrolesetupflavours (){
 		"/server/pkg/key.pub" \
 		"${MNT}/server/pkg/key.pub"
 
-
 		for fil in /server/bin/* ; do
 
 			/usr/bin/install    -m 700 \
@@ -644,14 +643,15 @@ jrolesetupflavours (){
 
 		done
 
-
 		/bin/cat /root/.ssh/authorized_keys > "${MNT}/root/.ssh/authorized_keys"
 
 		/bin/chmod 600 "${MNT}/root/.ssh/authorized_keys"
 
 #####		SPECIFIC	#####
 
-		if [ "$1" = "dhcpd" ]; then jrolesetupservice "dhcpd" "${MNT}"
+		if [ "$1" = "dhcpd" ]; then
+
+			jrolesetupservice "dhcpd" "${MNT}"
 
 		elif [ "$1" = "pxe" ]; then
 
@@ -668,14 +668,13 @@ jrolesetupflavours (){
 			jrolesetupservice "nginx" "${MNT}"
 			jrolesetupservice "freebsd-dist" "${MNT}"
 
-		elif [ "$1" = "release" \
-		-o "$1" = "mfsbsd" \
-		-o "$1" = "blank" \
-		-o "$1" = "littlechef" ]; then
+		elif [ "$1" = "release" -o "$1" = "mfsbsd" -o "$1" = "blank" -o "$1" = "littlechef" ]; then
 
 			jrolesetupservice "$1" "${MNT}"
 
-		else echo "Not implemented: jrolesetupflavours $1" ; exit 1
+		else
+
+			echo "Not implemented: jrolesetupflavours $1" ; exit 1
 
 		fi
 
@@ -798,13 +797,17 @@ jrolesetupservice (){
 
 		done
 
-	elif [ "$1" = "mfsbsd" \
-	-o "$1" = "blank" \
-	-o "$1" = "littlechef" ]; then echo
+	elif [ "$1" = "mfsbsd" -o "$1" = "blank" -o "$1" = "littlechef" ]; then
 
-	elif [ "$1" = "release" ]; then jrolelinksrc "$2"
+		echo
 
-	else echo "Not implemented: jrolesetupservice $1" ; exit 1
+	elif [ "$1" = "release" ]; then
+
+		jrolelinksrc "$2"
+
+	else
+
+		echo "Not implemented: jrolesetupservice $1" ; exit 1
 
 	fi
 
@@ -816,15 +819,14 @@ jrolesetupservice (){
 jrolejailcreate (){
 
 	[ $# -lt 3 ] && echo "Usage: `basename $0` role jailname 'nic|ip'" && exit 1
-	
+
 	testforx /usr/local/bin/ezjail-admin
 
 	local ip=$( echo "$3" | /usr/bin/awk -F'|' '{print $2}' )
 
 	local safejailname=$( echo -n "$2" | /usr/bin/tr -c '[:alnum:]' _ )
 
-	if ! /usr/local/bin/ezjail-admin list | /usr/bin/grep "${2}" \
-	> /dev/null 2> /dev/null ; then
+	if ! /usr/local/bin/ezjail-admin list | /usr/bin/grep "${2}" > /dev/null 2> /dev/null ; then
 
 		/usr/local/bin/ezjail-admin create -f "${1}" "${2}" "${3}"
 
@@ -960,8 +962,7 @@ jrolesetupbasejail () {
 		else
 
 			# Test 10.7.7.4
-			if /usr/bin/fetch -T 10 \
-			-o /dev/null "http://${PRODIP}.4/freebsd-dist/10.0-RELEASE/base.txz" ; then
+			if /usr/bin/fetch -T 10 -o /dev/null "http://${PRODIP}.4/freebsd-dist/10.0-RELEASE/base.txz" ; then
 
 				# no -s for source since we have a svn in data/distro/releng10
 
@@ -986,7 +987,8 @@ jrolesetupbasejail () {
 
 	# If basejail still missing
 	if [ ! -d /usr/jails/basejail ]; then
-	echo "Error: base jail does not exist." ; exit 1 ; fi
+		echo "Error: base jail does not exist." ; exit 1
+	fi
 
 	# Reset some permissions for basejail
 	/bin/chmod 755 /usr/jails/basejail
@@ -1080,8 +1082,7 @@ jrolenatcreate (){
 	jrolenat     "${1}" "${2}" "${3}"
 
 	# If jail doesn't exist
-	if ! /usr/local/bin/ezjail-admin list | /usr/bin/grep "${2}" \
-	> /dev/null 2> /dev/null ; then
+	if ! /usr/local/bin/ezjail-admin list | /usr/bin/grep "${2}" > /dev/null 2> /dev/null ; then
 
 		jrolecreate  "${1}" "${2}" "${3}"
 
@@ -1140,7 +1141,9 @@ jrolesendjail () {
 	local REMOTE_CONNECTION="/usr/bin/ssh -p ${REMOTE_PORT} ${REMOTE_HOST}"
 
 	# Catch unknown host key
-	if ! ${REMOTE_CONNECTION} echo ; then exit 1 ; fi
+	if ! ${REMOTE_CONNECTION} echo ; then
+		exit 1
+	fi
 
 	if /sbin/zfs list "data/ezjail/${1}" ; then
 
@@ -1213,7 +1216,9 @@ jrolesenddata () {
 	local REMOTE_CONNECTION="/usr/bin/ssh -p ${REMOTE_PORT} ${REMOTE_HOST}"
 
 	# Catch unknown host key
-	if ! ${REMOTE_CONNECTION} echo ; then exit 1 ; fi
+	if ! ${REMOTE_CONNECTION} echo ; then
+		exit 1
+	fi
 
 	if [ "$1" = "poudriere" ]; then
 
@@ -1381,7 +1386,6 @@ jrolemfsbsdjails () {
 
 }
 
-
 # ---------------------------------------------------------
 
 # Destroy flavour
@@ -1447,6 +1451,16 @@ jrolerecover () {
 	[ $# -lt 1 ] && echo "Usage: `basename $0` dhcpd|pxe" && exit 1
 
 	testforx /usr/local/bin/ezjail-admin
+
+	if /bin/ls -1 /bootdir/*.csv > /dev/null 2> /dev/null ; then
+
+		for i in $( /bin/ls -1 /bootdir/*.csv ); do
+
+			/bin/cp -av "${i}" /server/csv/dhcpd/ || exit 1
+
+		done
+
+	fi
 
 	# Create lan control jails
 	if [ "xdhcp" = "x${1}" -o "xdhcpd" = "x${1}" ]; then
@@ -1581,7 +1595,7 @@ jrolelinkmedia () {
 	# Restore pkgng too
 	local releasedir=$( /usr/bin/find "/packages" -name 'rsync*txz' \
 	| /usr/bin/head -1 )
-	
+
 	local distdir=$( /usr/bin/find /usr/jails/pkgng*/server/www -name "pkgng" \
 	| /usr/bin/head -1 )
 
@@ -1658,9 +1672,7 @@ jrolelinksrc () {
 
 	else
 
-		if ! /usr/bin/egrep 'sm_close_on_exec\(lowest' \
-		"${BASEJAIL}/usr/src/contrib/sendmail/src/conf.c" \
-		> /dev/null 2> /dev/null ; then
+		if ! /usr/bin/egrep 'sm_close_on_exec\(lowest' "${BASEJAIL}/usr/src/contrib/sendmail/src/conf.c" > /dev/null 2> /dev/null ; then
 
 			#/server/bin/aslr-patch
 			/usr/bin/patch -Np1 -d "${BASEJAIL}/usr/src" \
@@ -1835,7 +1847,7 @@ jrolelinkpkgng () {
 #		cd "${distdir}/" ; /usr/local/sbin/pkg-static repo ./ ; cd -
 
 	fi
-	
+
 	if [ "x" != "x${distdir}" ]; then
 
 		# Set permissions so nginx can serve
@@ -1866,8 +1878,7 @@ jroleproductionip () {
 
 	local newip="${PRODIP}.${oldip##*.}"
 
-	if echo "$oldip" | /usr/bin/grep "$LOCALIP" \
-	> /dev/null 2> /dev/null ; then
+	if echo "$oldip" | /usr/bin/grep "$LOCALIP" > /dev/null 2> /dev/null ; then
 
 		/bin/cat >> "/usr/local/etc/ezjail/${safejailname}" <<EOF
 export jail_${safejailname}_ip="${LOCALNIC}|${newip}"
@@ -1891,8 +1902,9 @@ testforx (){
 
 	[ $# -lt 1 ] && echo "Usage: `basename $0` file" && exit 1
 
-	test -x "$1" \
-	|| ( echo "Error: $1 not found"; exit 1 )
+	if [ ! -x "$1" ]; then
+		echo "Error: $1 not found or executable"; exit 1
+	fi
 
 }
 
@@ -1925,7 +1937,7 @@ getremotehost (){
 		echo "${1}"
 
 	fi
-	
+
 }
 # ---------------------------------------------------------
 
@@ -1943,7 +1955,7 @@ getremoteport (){
 		echo 22
 
 	fi
-	
+
 }
 
 # ---------------------------------------------------------
@@ -1981,7 +1993,6 @@ directory to use the functionality. If this is your first run, some scripts have
 been created in /server/bin for you." && { make_auto_links ; exit 1 ; }
 
 fi
-
 
 # Delete the tmpfile
 if [ -e "${TMPFILE}" ]; then

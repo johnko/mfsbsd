@@ -1,8 +1,8 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
-
-RESTOREMASK=`umask`
-
+RESTOREMASK=$( umask )
+BOOTDIR=/bootdir
+/bin/df -H / | /usr/bin/grep '/dev/md[0-9]' > /dev/null 2> /dev/null && MFSBSD=1
 # bsdconfig has a neat way of defining zfs datasets, let's build on that
 debug=0
 DEBUG_SELF_INITIALIZE=0
@@ -13,42 +13,30 @@ f_include $BSDCFG_SHARE/device.subr > /dev/null 2> /dev/null
 f_include $BSDCFG_SHARE/dialog.subr > /dev/null 2> /dev/null
 f_include $BSDCFG_SHARE/password/password.subr > /dev/null 2> /dev/null
 f_include $BSDCFG_SHARE/variable.subr > /dev/null 2> /dev/null
-
-#FS_LIST="${FS_REG} ${FS_NOX}"
 ZFSBOOT_DATASETS="
 	# DATASET	OPTIONS (comma or space separated; or both)
-
 	# Boot Environment [BE] root and default boot dataset
 	#/$ZFSBOOT_BEROOT_NAME				mountpoint=none
 	#/$ZFSBOOT_BEROOT_NAME/$ZFSBOOT_BOOTFS_NAME	mountpoint=/
-
-
 	#/apple						atime=off,exec=off,setuid=off,mountpoint=/apple
-	#/git						atime=off,exec=off,setuid=off,mountpoint=/git
+	#/git							atime=off,exec=off,setuid=off,mountpoint=/git
 	#/media						atime=off,exec=off,setuid=off,mountpoint=/media
 	/distro						atime=off,exec=off,setuid=off,mountpoint=/server/tftp/distro
-	/distfiles 					atime=off,exec=off,setuid=off,mountpoint=/usr/ports/distfiles
-
-
+	/distfiles 				atime=off,exec=off,setuid=off,mountpoint=/usr/ports/distfiles
 	# Custom /server folder
 	/server						canmount=off,mountpoint=/server
-	/server/ezjail				atime=off,setuid=off,mountpoint=/usr/local/etc/ezjail
+	/server/ezjail		atime=off,setuid=off,mountpoint=/usr/local/etc/ezjail
 "
-
 SIZES="3725 3614 2794 2683 1850 1739 931 820"  # Preferred descending order in GB
-MNT=""
-
 hdd-serial() {
-	DISK=${1}
 	if [ ${#} -gt 0 ]; then
-		/usr/sbin/diskinfo -v ${DISK}
-		/sbin/camcontrol identify ${DISK} || /sbin/camcontrol inquiry ${DISK}
+		/usr/sbin/diskinfo -v "${1}"
+		/sbin/camcontrol identify "${1}" || /sbin/camcontrol inquiry "${1}"
 	fi
 }
-
 sizeinMB() {
-	number=`echo "${1}" | /usr/bin/sed "s/[[:alpha:]]*$//"`
-	suffix=`echo "${1}" | /usr/bin/sed "s/^[[:digit:]]*//"`
+	number=$( echo "${1}" | /usr/bin/sed "s/[[:alpha:]]*$//" )
+	suffix=$( echo "${1}" | /usr/bin/sed "s/^[[:digit:]]*//" )
 	case "$suffix" in
 		K|KB) multiplier=1; divisor=1024 ;;
 		M|MB) multiplier=1; divisor=1 ;;
@@ -59,11 +47,9 @@ sizeinMB() {
 	VAL=$(( ${number} * ${multiplier} / ${divisor} ))
 	echo $VAL
 }
-
 makeguid() {
 	echo "${1}$(/bin/cat /dev/random | /usr/bin/tr -cd '[:alnum:]' | /usr/bin/head -c 20)" | /usr/bin/head -c 14
 }
-
 usage() {
 	echo "Usage: $0 -d geom_provider [-d geom_provider ...] [-r mirror|raidz{1,2,3}] [-p zfs_pool_name] [-V zfs_pool_version] [-s swap_partition_size] [-E] [-n] [-c]"
 	echo ; echo "Example:"
@@ -71,7 +57,6 @@ usage() {
 	echo "Or if you want swap added too:"
 	echo "  $0 -d ada0 -d ada1 -d ada2 -d ada3 -r mirror -s 10G -E -n -c"
 }
-
 while getopts d:r:p:s:V:cENn o; do
 	case "$o" in
 		d) DEVS="$DEVS ${OPTARG##/dev/}" ;;
@@ -83,133 +68,102 @@ while getopts d:r:p:s:V:cENn o; do
 		n) HEADLESS=1; NOATIME=1 ;;
 		N) NOINSTALL=1 ;;
 		c) LZJB=1 ;;
-		[?]) usage; exit 1;;
-esac
+		[?]) usage; exit 1 ;;
+	esac
 done
-
-if ! `/sbin/kldstat -m zfs >/dev/null 2>/dev/null`; then
+if ! /sbin/kldstat -m zfs >/dev/null 2>/dev/null ; then
 	/sbin/kldload zfs >/dev/null 2>/dev/null
 fi
-
-ZFS_VERSION=`/sbin/sysctl -n vfs.zfs.version.spa 2>/dev/null`
-
+ZFS_VERSION=$( /sbin/sysctl -n vfs.zfs.version.spa 2>/dev/null )
 if [ -z "$ZFS_VERSION" ]; then
-	echo "Error: failed to load ZFS module"
-	exit 1
+	echo "Error: failed to load ZFS module" ; exit 1
 elif [ "$ZFS_VERSION" -lt "13" ]; then
-	echo "Error: ZFS module too old, version 13 or higher required"
-	exit 1
+	echo "Error: ZFS module too old, version 13 or higher required" ; exit 1
 fi
-
 if [ -z "$DEVS" ]; then
-	usage
-	exit 1
+	usage ; exit 1
 fi
-
-if [ -z "$POOL" ]; then
-	POOL=data
-fi
-
+test -z "$POOL" && POOL=data
 if [ -z "$VERSION" ]; then
-	VERSION=${ZFS_VERSION}
+	VERSION="${ZFS_VERSION}"
 elif [ "$VERSION" -gt "$ZFS_VERSION" ]; then
-	echo "Error: invalid ZFS pool version (maximum: $ZFS_VERSION)"
-	exit 1
+	echo "Error: invalid ZFS pool version (maximum: $ZFS_VERSION)" ; exit 1
 fi
-
 if [ "$VERSION" = "5000" ]; then
 	VERSION=
 else
 	VERSION="-o version=${VERSION}"
 fi
-
 if [ -z "${NOINSTALL}" ]; then
-
-	if /sbin/zpool list $POOL > /dev/null 2> /dev/null; then
-		echo Error: ZFS pool \"$POOL\" already exists
-		echo Please choose another pool name or rename/destroy the existing pool.
+	if /sbin/zpool list $POOL > /dev/null 2> /dev/null ; then
+		echo "Error: ZFS pool already exists: $POOL"
+		echo "Please choose another pool name or rename/destroy the existing pool."
 		exit 1
 	fi
-
-	EXPOOLS=`/sbin/zpool import | /usr/bin/grep pool: | /usr/bin/awk '{ print $2 }'`
-
+	EXPOOLS=$( /sbin/zpool import | /usr/bin/grep "pool:" | /usr/bin/awk '{ print $2 }' )
 	if [ -n "${EXPOOLS}" ]; then
 		for P in ${EXPOOLS}; do
 			if [ "$P" = "$POOL" ]; then
-				echo Error: An exported ZFS pool \"$POOL\" already exists
-				echo Please choose another pool name or rename/destroy the exported pool.
+				echo "Error: An exported ZFS pool already exists: $POOL"
+				echo "Please choose another pool name or rename/destroy the exported pool."
 				exit 1
 			fi
 		done
 	fi
 fi
-
-COUNT=`echo ${DEVS} | /usr/bin/wc -w | /usr/bin/awk '{ print $1 }'`
+COUNT=$( echo "${DEVS}" | /usr/bin/wc -w | /usr/bin/awk '{ print $1 }' )
 if [ "$COUNT" -lt "3" -a "$RAID" = "raidz" ]; then
-	echo "Error: raidz needs at least three devices (-d switch)"
-	exit 1
+	echo "Error: raidz needs at least three devices (-d switch)" ; exit 1
 elif [ "$COUNT" -lt "4" -a "$RAID" = "raidz2" ]; then
-	echo "Error: raidz needs at least four devices (-d switch)"
-	exit 1
+	echo "Error: raidz needs at least four devices (-d switch)" ; exit 1
 elif [ "$COUNT" -lt "5" -a "$RAID" = "raidz3" ]; then
-	echo "Error: raidz needs at least five devices (-d switch)"
-	exit 1
+	echo "Error: raidz needs at least five devices (-d switch)" ; exit 1
 elif [ "$COUNT" = "1" -a "$RAID" = "mirror" ]; then
-	echo "Error: mirror needs at least two devices (-d switch)"
-	exit 1
+	echo "Error: mirror needs at least two devices (-d switch)" ; exit 1
 elif [ "$COUNT" = "2" -a "$RAID" != "mirror" ]; then
 	echo "Notice: two drives selected, automatically choosing mirror mode"
 	RAID="mirror"
 elif [ "$COUNT" -gt "2" -a "$RAID" != "mirror" -a "$RAID" != "raidz" -a "$RAID" != "raidz2" -a "$RAID" != "raidz3" ]; then
-	echo "Error: please choose raid mode with the -r switch (mirror or raidz{1,2,3})"
-	exit 1
+	echo "Error: please choose raid mode with the -r switch (mirror or raidz{1,2,3})" ; exit 1
 fi
-
 for DEV in ${DEVS}; do
-	if ! /sbin/gpart show $DEV > /dev/null 2> /dev/null; then
+	if [ ! -c "/dev/${DEV}" ]; then
+		echo "Error: /dev/${DEV} is not a block device" ; exit 1
+	fi
+	if ! /sbin/gpart show $DEV > /dev/null 2> /dev/null ; then
 		echo -n "Creating GUID partitions on ${DEV} ..."
-		if ! /sbin/gpart create -s GPT /dev/${DEV} > /dev/null; then
-			echo " error"
-			exit 1
+		if ! /sbin/gpart create -s GPT /dev/${DEV} > /dev/null ; then
+			echo " error" ; exit 1
 		fi
 		/bin/sleep 1
 	fi
-	if ! [ -c "/dev/${DEV}" ]; then
-		echo "Error: /dev/${DEV} is not a block device"
-		exit 1
-	fi
 done
-
-SLICE=""
-SWAPSLICE="p1"
-DELIM="gptid"
-PDELIM="label"
-GELISECTOR="4096"
-ALIGN4="-a 4k"
-
+test -z "$MNT" \
+&& MNT=""
+	SLICE=""
+	SWAPSLICE="p1"
+	DELIM="label"
+	GELISECTOR="4096"
+	ALIGN4="-a 4k"
 if [ "${ALIGN4K}" = "1" ]; then
 	GELISECTOR="4096"
 	ALIGN4="-a 4k"
 fi
-
 if [ "${NOALIGN4K}" = "1" ]; then
 	GELISECTOR="512"
 	ALIGN4=""
 fi
-
 # Create GPT
-
 for DEV in ${DEVS}; do
-#part swap
+	# part swap
 	if [ -n "${SWAP}" ]; then
 		if [ "${MBR}" != "1" ]; then
-			if ! /sbin/gpart add -t freebsd-swap ${ALIGN4} -s "${SWAP}" ${DEV}${SLICE} > /dev/null; then
-				echo " error swap"
-				exit 1
+			if ! /sbin/gpart add -t freebsd-swap ${ALIGN4} -s "${SWAP}" "${DEV}${SLICE}" > /dev/null ; then
+				echo " error swap" ; exit 1
 			fi
-			LASTADDED=`/sbin/gpart show -p ${DEV}${SLICE} | /usr/bin/grep freebsd | /usr/bin/awk '{ print $3 }' | /usr/bin/tail -1`
-			/bin/dd if=/dev/zero of=/dev/${LASTADDED} bs=512 count=560 > /dev/null 2> /dev/null
-			/sbin/zpool labelclear -f /dev/${LASTADDED} > /dev/null 2> /dev/null
+			LASTADDED=$( /sbin/gpart show -p "${DEV}${SLICE}" | /usr/bin/grep freebsd | /usr/bin/awk '{ print $3 }' | /usr/bin/tail -1 )
+			/bin/dd if=/dev/zero of="/dev/${LASTADDED}" bs=512 count=560 > /dev/null 2> /dev/null
+			/sbin/zpool labelclear -f "/dev/${LASTADDED}" > /dev/null 2> /dev/null
 		fi
 	fi
 	PARTCREATED=0
@@ -219,9 +173,9 @@ for DEV in ${DEVS}; do
 				if /sbin/gpart add -t freebsd-zfs ${ALIGN4} -s ${GSIZE}G ${DEV}${SLICE} > /dev/null 2> /dev/null ; then
 					echo "  success adding partition sized ${GSIZE}G at ${DEV}"
 					PARTCREATED=1
-					LASTADDED=`/sbin/gpart show -p ${DEV}${SLICE} | /usr/bin/grep freebsd | /usr/bin/awk '{ print $3 }' | /usr/bin/tail -1`
-					/bin/dd if=/dev/zero of=/dev/${LASTADDED} bs=512 count=560 > /dev/null 2> /dev/null
-					/sbin/zpool labelclear -f /dev/${LASTADDED} > /dev/null 2> /dev/null
+					LASTADDED=$( /sbin/gpart show -p "${DEV}${SLICE}" | /usr/bin/grep freebsd | /usr/bin/awk '{ print $3 }' | /usr/bin/tail -1 )
+					/bin/dd if=/dev/zero of="/dev/${LASTADDED}" bs=512 count=560 > /dev/null 2> /dev/null
+					/sbin/zpool labelclear -f "/dev/${LASTADDED}" > /dev/null 2> /dev/null
 					ZFSLABEL="${LASTADDED}"
 				else
 					GSIZE=$(( GSIZE - 1 ))
@@ -234,133 +188,118 @@ for DEV in ${DEVS}; do
 		done
 	done
 	[ "${PARTCREATED}" != "1" ] && exit 1
-	MAKEGUID=`makeguid ${POOL}`
-	if ! /sbin/glabel label ${MAKEGUID} /dev/${ZFSLABEL} > /dev/null; then
-		echo " error zfsslice"
-		exit 1
+	MAKEGUID=$( makeguid "${POOL}" )
+	if ! /sbin/glabel label "${MAKEGUID}" "/dev/${ZFSLABEL}" > /dev/null 2> /dev/null ; then
+		echo " error zfsslice" ; exit 1
 	fi
-	/sbin/zpool labelclear -f /dev/label/${MAKEGUID}
+	/bin/dd if=/dev/zero of="/dev/label/${MAKEGUID}" bs=512 count=560 > /dev/null 2> /dev/null
+	/sbin/zpool labelclear -f "/dev/label/${MAKEGUID}"
+	/sbin/gpart show "${DEV}${SLICE}"
 done
 /bin/sleep 1
 for DEV in ${DEVS}; do
 	if [ -n "${SWAP}" ]; then
 		# Detect swap part here because we dd above
-		SWAPPARTUUID=`/sbin/glabel list ${DEV}${SWAPSLICE} | /usr/bin/grep ${DELIM} | /usr/bin/awk '{ print $3 }'`
-		if [ -z "${SWAPPARTUUID}" ]; then
-			echo " error determining swap partition"
-		fi
+		SWAPPARTUUID="${DEV}${SWAPSLICE}"
+		test -z "${SWAPPARTUUID}" && echo " error determining swap partition"
 		FSWAP="${FSWAP} ${SWAPPARTUUID}"
 	fi
 done
-
 if [ -z "${NOINSTALL}" ]; then
 	# Create mirrored swap, FSWAP is the list of swap part.
 	if [ -n "${FSWAP}" ]; then
 		/sbin/gmirror load > /dev/null 2> /dev/null
 		/sbin/gmirror label -b round-robin swap ${FSWAP}
-		#echo "/dev/mirror/swap.eli	none		swap	sw,aalgo=HMAC/SHA256	0	0" >> /etc/fstab
-		echo "/dev/mirror/swap.eli	none		swap	sw						0	0" >> /etc/fstab
+	 #echo "/dev/mirror/swap.eli	none	swap	sw,aalgo=HMAC/SHA256	0	0" >> /etc/fstab
+		if [ "$MFSBSD" != "1" ]; then
+			echo "/dev/mirror/swap.eli	none	swap	sw	0	0" >> /etc/fstab
+		fi
 		/sbin/swapon /dev/mirror/swap.eli
 	fi
 fi
-
+# Create zpool and zfs
 for DEV in ${DEVS}; do
-	DISKSERIAL=`hdd-serial ${DEV} | /usr/bin/grep -i "serial number" | /usr/bin/awk '{ print $NF }'`
-	PART=`/sbin/gpart show -p ${DEV}${SLICE} | /usr/bin/grep freebsd-zfs | /usr/bin/awk '{ print $3 }' | /usr/bin/tail -1`
+	DISKSERIAL=$( hdd-serial "${DEV}" | /usr/bin/grep -i "serial number" | /usr/bin/awk '{ print $NF }' )
+	PART=$( /sbin/gpart show -p "${DEV}${SLICE}" | /usr/bin/grep freebsd-zfs | /usr/bin/awk '{ print $3 }' | /usr/bin/tail -1 )
 	if [ -z "${PART}" ]; then
-		echo Error: freebsd-zfs partition not found on /dev/$DEV
-		exit 1
+		echo "Error: freebsd-zfs partition not found on /dev/$DEV" ; exit 1
 	fi
-	PARTUUID=`/sbin/glabel list ${PART} | /usr/bin/grep ${PDELIM} | /usr/bin/awk '{ print $3 }'`
+	PARTUUID=$( /sbin/glabel list "${PART}" | /usr/bin/grep "${DELIM}" | /usr/bin/awk '{ print $3 }' )
 	PARTS="${PARTS} ${PARTUUID}"
 	if [ "${GELI}" = "1" ]; then
-		/usr/bin/install -d -m 700	/bootdir/boot/keys > /dev/null 2> /dev/null
-		/sbin/mount | /usr/bin/grep "/bootdir" || exit 1
-
+		/usr/bin/install -d -m 700 "${BOOTDIR}/boot/keys"
+		/sbin/mount | /usr/bin/grep \
+		"/bootdir" || exit 1
 		##### Generate an alphanumeric key
 		umask 077
-		TMPKEY="/bootdir/boot/keys/`/bin/hostname -s`.${DISKSERIAL}.${PARTUUID##*/}"
-		if [ -e /bootdir/boot/keys/bootpkg ]; then
-			TMPKEY="/bootdir/boot/keys/bootpkg/`/bin/hostname -s`.${DISKSERIAL}.${PARTUUID##*/}"
-		fi
-		/bin/dd if=/dev/random of=${TMPKEY} bs=128k count=1
+		TMPKEY="${BOOTDIR}/boot/keys/`/bin/hostname -s`.${DISKSERIAL}.${PARTUUID##*/}"
+		test -d "${BOOTDIR}/boot/keys/bootpkg" \
+		&& TMPKEY="${BOOTDIR}/boot/keys/bootpkg/`/bin/hostname -s`.${DISKSERIAL}.${PARTUUID##*/}"
+		/bin/dd if=/dev/random of="${TMPKEY}" bs=128k count=1
 		umask $RESTOREMASK
-		/bin/chmod go-rwx /bootdir/boot/keys
-		/bin/chmod go-rwx ${TMPKEY}
-	fi
-	if [ "${GELI}" = "1" ]; then
+		/bin/chmod go-rwx "${BOOTDIR}/boot/keys"
+		/bin/chmod go-rwx "${TMPKEY}"
 		if [ -n "${HEADLESS}" ]; then
 			##### PASSWORDLESS
-			/sbin/geli init -b -P -K ${TMPKEY} -e AES-XTS -s ${GELISECTOR} ${PARTUUID}
-			/sbin/geli attach  -p -k ${TMPKEY} ${PARTUUID}
+			/sbin/geli init -b -P -K "${TMPKEY}" -e AES-XTS -s ${GELISECTOR} "${PARTUUID}"
+			/sbin/geli attach  -p -k "${TMPKEY}" "${PARTUUID}"
 		else
 			##### PASSWORD AT CONSOLE
-			/sbin/geli init -b    -K ${TMPKEY} -e AES-XTS -s ${GELISECTOR} ${PARTUUID}
-			/sbin/geli attach     -k ${TMPKEY} ${PARTUUID}
+			/sbin/geli init -b    -K "${TMPKEY}" -e AES-XTS -s ${GELISECTOR} "${PARTUUID}"
+			/sbin/geli attach     -k "${TMPKEY}" "${PARTUUID}"
 		fi
 		EPARTS="${EPARTS} ${PARTUUID}.eli"
 		umask 077
-		SAFEPARTUUID=`echo ${PARTUUID} | /usr/bin/sed 's#/#_#'`
-		if [ ! -e /bootdir/boot/keys/bootpkg ]; then
-			/usr/sbin/sysrc -f /tmp/loader.keys geli_${SAFEPARTUUID}_keyfile0_load="YES"
-			/usr/sbin/sysrc -f /tmp/loader.keys geli_${SAFEPARTUUID}_keyfile0_type="${PARTUUID}:geli_keyfile0"
-			/usr/sbin/sysrc -f /tmp/loader.keys geli_${SAFEPARTUUID}_keyfile0_name="${TMPKEY}"
+		SAFEPARTUUID=$( echo "${PARTUUID}" | /usr/bin/sed 's#/#_#' )
+		if [ ! -d "${BOOTDIR}/boot/keys/bootpkg" ]; then
+			/usr/sbin/sysrc -f /tmp/loader.keys "geli_${SAFEPARTUUID}_keyfile0_load=YES"
+			/usr/sbin/sysrc -f /tmp/loader.keys "geli_${SAFEPARTUUID}_keyfile0_type=${PARTUUID}:geli_keyfile0"
+			/usr/sbin/sysrc -f /tmp/loader.keys "geli_${SAFEPARTUUID}_keyfile0_name=${TMPKEY}"
 		fi
 		umask $RESTOREMASK
 	fi
 done
-
-oldautomount="$( sysrc -n -f /bootdir/boot/loader.conf automount )"
-/usr/sbin/sysrc -f /bootdir/boot/loader.conf automount="${oldautomount} data"
-
-POOLPARTS=${PARTS}
+oldautomount=$( sysrc -n -f "${BOOTDIR}/boot/loader.conf" automount )
+/usr/sbin/sysrc -f "${BOOTDIR}/boot/loader.conf" automount="${oldautomount} data"
+POOLPARTS="${PARTS}"
 if [ "${GELI}" = "1" ]; then
-	POOLPARTS=${EPARTS}
-	if [ -e "/server/bin/bp" ]; then
-		if [ -x /server/bin/bp ]; then
-			/server/bin/bp umount
-		fi
-	fi
+	POOLPARTS="${EPARTS}"
+	test -x /server/bin/bp && /server/bin/bp umount
 fi
-
 if [ -z "${NOINSTALL}" ]; then
 	echo -n "Creating ZFS pool ${POOL} on ${POOLPARTS} ..."
-	if ! /sbin/zpool create -f ${VERSION} ${POOL} ${RAID} ${POOLPARTS} > /dev/null 2> /dev/null; then
-		echo " error"
-		exit 1
+	if ! /sbin/zpool create -f ${VERSION} "${POOL}" ${RAID} ${POOLPARTS} > /dev/null 2> /dev/null ; then
+		echo " error" ; exit 1
 	fi
 	echo " done"
-
+	# LZJB
 	if [ "${LZJB}" = "1" ]; then
 		echo -n "Setting default compression to lzjb for ${POOL} ..."
-		if ! /sbin/zfs set compression=lzjb ${POOL} > /dev/null 2> /dev/null; then
-			echo " error"
-			exit 1
+		if ! /sbin/zfs set compression=lzjb "${POOL}" > /dev/null 2> /dev/null ; then
+			echo " error" ; exit 1
 		fi
 		echo " done"
 	fi
-
+	# NOATIME
 	if [ "${NOATIME}" = "1" ]; then
 		echo -n "Setting default atime to off for ${POOL} ..."
-		if ! /sbin/zfs set atime=off ${POOL} > /dev/null 2> /dev/null; then
-			echo " error"
-			exit 1
+		if ! /sbin/zfs set atime=off "${POOL}" > /dev/null 2> /dev/null ; then
+			echo " error" ; exit 1
 		fi
 		echo " done"
 	fi
-
 	if [ "${POOL}" = "data" ]; then
 		DISABLEDATASETS="
 autoroot/rfs/usr/ports/distfiles
 autoroot/rfs/server/ezjail
 "
+		# Disable some datasets
 		echo "$DISABLEDATASETS" | while read dataset; do
 			# Skip blank lines and comments
 			case "$dataset" in "#"*|"") continue; esac
 			/sbin/zfs umount "$dataset"
 			/sbin/zfs set canmount=off "$dataset"
 		done
-
 		echo -n "Creating ${POOL} partitions:"
 		echo "$ZFSBOOT_DATASETS" | while read dataset options; do
 			# Skip blank lines and comments
@@ -375,38 +314,34 @@ autoroot/rfs/server/ezjail
 				oldoptions="$options"
 				f_replaceall "$options" "  " " " options
 			done
-			# Replace both commas and spaces with ` -o '
+			# Replace both commas and spaces with ' -o '
 			f_replaceall "$options" "[ ,]" " -o " options
 			# Create the dataset with desired options
 			MNTPT=
-			if ! /sbin/zfs create ${options:+-o $options} ${MNTPT} "${POOL}${dataset}" > /dev/null 2> /dev/null; then
-				echo " error"
-				exit 1
+			if ! /sbin/zfs create ${options:+-o $options} ${MNTPT} "${POOL}${dataset}" > /dev/null 2> /dev/null ; then
+				echo " error" ; exit 1
 			fi
 			echo -n " ${dataset}"
 		done
 		echo " ... done"
 	fi
-	/sbin/zfs list -r ${POOL}
+	/sbin/zfs list -r "${POOL}"
 fi
-
 	if [ "${GELI}" = "1" ]; then
-		/usr/sbin/sysrc -f ${MNT}/bootdir/boot/loader.conf geom_eli_load="YES"
+		/usr/sbin/sysrc -f "${MNT}${BOOTDIR}/boot/loader.conf" geom_eli_load="YES"
 		umask 077
-		/usr/bin/install -d -m 700	${MNT}/var/backups > /dev/null 2> /dev/null
-		/bin/cp -Rpv /var/backups/*.eli ${MNT}/var/backups/
+		/usr/bin/install -d -m 700			"${MNT}/var/backups"
+		/bin/cp -Rpv /var/backups/*.eli "${MNT}/var/backups/"
 		umask $RESTOREMASK
 	fi
-
 	if [ -n "${FSWAP}" ]; then
 		if [ "${GELI}" = "1" ]; then
 			#echo "/dev/mirror/swap.eli	none		swap	sw,aalgo=HMAC/SHA256	0	0" >> ${MNT}/etc/fstab
-			echo "/dev/mirror/swap.eli	none		swap	sw						0	0" >> ${MNT}/etc/fstab
+			echo "/dev/mirror/swap.eli	none	swap	sw	0	0" >> "${MNT}/etc/fstab"
 		else
-			echo "/dev/mirror/swap		none		swap	sw						0	0" >> ${MNT}/etc/fstab
+			echo "/dev/mirror/swap			none	swap	sw	0	0" >> "${MNT}/etc/fstab"
 		fi
 	fi
-
 if [ "${NOINSTALL}" = "1" ]; then
 	if [ -n "${FSWAP}" ]; then
 		/bin/cat <<EOF
@@ -428,11 +363,10 @@ EOF
 		echo "	/sbin/zpool attach ${POOL} existing_device.eli ${a}"
 	done
 fi
-
 /bin/cat <<EOF
 YOU MAY WANT TO COPY KEYS TO BOOTPKG:
-	bp mount && cp -an /bootdir/boot/keys/`hostname -s`*${POOL}*  /bootdir/boot/keys/bootpkg/
-	cat /tmp/loader.keys >> /bootdir/boot/keys/bootpkg/loader.keys
+	bp mount && cp -an ${BOOTDIR}/boot/keys/`hostname -s`*${POOL}*  ${BOOTDIR}/boot/keys/bootpkg/
+	cat /tmp/loader.keys >> ${BOOTDIR}/boot/keys/bootpkg/loader.keys
 !!!!!!!!!!
 ! IF YOU USE BOOTPKG, copy /server/root/bootpkg.gz to a safe place
 !!!!!!!!!!

@@ -47,7 +47,7 @@ case `/usr/bin/uname -s` in
                     -e 's/[^ ]* scan:/\
 .                      &/'
          done
-			
+
 #			egrep '(pool\:|state\:|scan\:|errors\:)' | \
     ;;
 esac

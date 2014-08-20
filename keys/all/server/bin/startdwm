@@ -19,13 +19,11 @@
 #  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #
 
-if test "x$*" != "x"
-then
+if [ "x$*" != "x" ]; then
   OPTS=""
   for OPT in $*
   do
-    if test "x$OPT" == "x--help"
-    then
+    if [ "x$OPT" == "x--help" ]; then
       # print help and exit
       echo "Usage:"
       echo "  startdwm [OPTIONS...]"
@@ -37,8 +35,7 @@ then
       echo
 
       exit 0
-    elif test "x$OPT" == "x--with-ck-launch"
-    then
+    elif [ "x$OPT" == "x--with-ck-launch" ]; then
       # try to launch xfce4-session with ck-launch-session in xinitrc
       DWM_SESSION_WITH_CK="1"
       export DWM_SESSION_WITH_CK
@@ -48,8 +45,7 @@ then
     fi
   done
 
-  if test "x${OPTS#*--}" = "x${OPTS}"
-  then
+  if [ "x${OPTS#*--}" = "x${OPTS}" ]; then
     CLIENTRC=${OPTS}
   else
     SERVERRC=${OPTS#*-- }
@@ -57,16 +53,14 @@ then
   fi
 fi
 
-if test "x$XDG_CONFIG_HOME" = "x"
-then
+if [ "x$XDG_CONFIG_HOME" = "x" ]; then
   BASEDIR="$HOME/.config/dwm/"
 else
   BASEDIR="$XDG_CONFIG_HOME/dwm"
 fi
 
-if test "x$XDG_DATA_DIRS" = "x"
-then
-  if test "x/usr/local/share" = "x/usr/local/share" -o "x/usr/local/share" = "x/usr/share"; then
+if [ "x$XDG_DATA_DIRS" = "x" ]; then
+  if [ "x/usr/local/share" = "x/usr/local/share" -o "x/usr/local/share" = "x/usr/share" ]; then
     XDG_DATA_DIRS="/usr/local/share:/usr/share"
   else
     XDG_DATA_DIRS="/usr/local/share:/usr/local/share:/usr/share"
@@ -76,9 +70,8 @@ else
 fi
 export XDG_DATA_DIRS
 
-if test "x$XDG_CONFIG_DIRS" = "x"
-then
-  if test "x/usr/local/etc" = "x/etc"; then
+if [ "x$XDG_CONFIG_DIRS" = "x" ]; then
+  if [ "x/usr/local/etc" = "x/etc" ]; then
     XDG_CONFIG_DIRS="/etc/xdg"
   else
     XDG_CONFIG_DIRS="/etc/xdg:/usr/local/etc/xdg"
@@ -88,8 +81,7 @@ else
 fi
 export XDG_CONFIG_DIRS
 
-if test "x$DISPLAY" = "x"
-then
+if [ "x$DISPLAY" = "x" ]; then
   echo "$0: Starting X server"
   prog=xinit
 else
@@ -103,8 +95,7 @@ elif [ -f /etc/X11/xinit/xserverrc ]; then
   SERVERRC="/etc/X11/xinit/xserverrc $SERVERRC"
 fi
 
-if test ! "x$SERVERRC" = "x"
-then
+if [ ! "x$SERVERRC" = "x" ]; then
   SERVERRC="-- $SERVERRC"
 fi
 

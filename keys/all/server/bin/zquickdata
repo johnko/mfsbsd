@@ -5,6 +5,10 @@ usage() {
 	echo "Usage: $0 -d geom_provider [-d geom_provider ...]"
 }
 
+DETECTEDDRIVES=""
+ISMIRROR=""
+DRIVECOUNT=0
+
 while getopts d:h o; do
 	case "$o" in
 		d) DEVS="$DEVS ${OPTARG##/dev/}" ;;
@@ -12,43 +16,40 @@ while getopts d:h o; do
 	esac
 done
 
-DETECTEDDRIVES=""
-ISMIRROR=""
-DRIVECOUNT=0
-
 doInstall() {
+
 	DRIVELIST="`/sbin/sysctl -n kern.disks`"
+
 	TRIMDEVS="`echo $DEVS | /usr/bin/tr -d ' '`"
-	if [ -n "$TRIMDEVS" ]; then
-		DRIVELIST="$DEVS"
-	fi
+
+	test -n "$TRIMDEVS" && DRIVELIST="$DEVS"
+
 	for drive in ${DRIVELIST} ; do
+
 		if ! echo "${drive##*/}" | /usr/bin/egrep "cd[0-9]" > /dev/null 2> /dev/null ; then
+
 			echo -n "${drive##*/}... "
+
 			if /sbin/gpart show "${drive##*/}" >/dev/null 2>/dev/null ; then
+
 				DETECTEDDRIVES="${DETECTEDDRIVES}-d ${drive##*/} "
+
 				DRIVECOUNT=$(( DRIVECOUNT + 1 ))
+
 			fi
+
 		fi
+
 	done
-	if [ $DRIVECOUNT -gt 1 ]; then
-		ISMIRROR="-r mirror"
-	fi
+
+	test $DRIVECOUNT -gt 1 && ISMIRROR="-r mirror"
 
 	cat <<EOF
 Trying:
     /server/bin/zfsdatapartition ${DETECTEDDRIVES} ${ISMIRROR} -E -n -c
 EOF
-	/server/bin/zfsdatapartition ${DETECTEDDRIVES} ${ISMIRROR} -E -n -c || exit 1
+		/server/bin/zfsdatapartition ${DETECTEDDRIVES} ${ISMIRROR} -E -n -c || exit 1
 
 }
 
-#echo " @@ WARNING @@"
-#echo "This will wipe all drives. Are you sure? (y/n) "
-#read REPLY
-#echo
-#case "$REPLY" in
-#	"Y"|"y")
-		doInstall || exit 1
-#		;;
-#esac
+doInstall || exit 1

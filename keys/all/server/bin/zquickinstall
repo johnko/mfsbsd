@@ -13,6 +13,9 @@ usage() {
 uri="http://${server}:${port}"
 mfsbsdiso="${uri}/mfsbsd/mfsbsd.iso"
 MFSBSD=1; PASSMFSBSD="-M -c" ;
+DETECTEDDRIVES=""
+ISMIRROR=""
+DRIVECOUNT=0
 
 unset FORCE
 
@@ -28,81 +31,117 @@ while getopts d:u:t:T:iM o; do
 	esac
 done
 
-DETECTEDDRIVES=""
-ISMIRROR=""
-DRIVECOUNT=0
-
 doInstall() {
-	DRIVELIST="`/sbin/sysctl -n kern.disks`"
-	TRIMDEVS="`echo $DEVS | /usr/bin/tr -d ' '`"
-	if [ -n "$TRIMDEVS" ]; then
-		DRIVELIST="$DEVS"
-	fi
-	for drive in ${DRIVELIST} ; do
-		if ! echo "${drive##*/}" | /usr/bin/egrep "cd[0-9]" > /dev/null 2> /dev/null ; then
-			echo -n "${drive##*/}... "
-			if /sbin/gpart show "${drive##*/}" >/dev/null 2>/dev/null ; then
-				echo "Drives not empty, use destroygeom"
-				exit 1
-			else
-				DETECTEDDRIVES="${DETECTEDDRIVES}-d ${drive##*/} "
-				DRIVECOUNT=$(( DRIVECOUNT + 1 ))
-			fi
-		fi
-	done
-	if [ $DRIVECOUNT -gt 1 ]; then
-		ISMIRROR="-r mirror"
-	fi
 
-	[ "$FORCE" = "1" ] && /server/bin/destroygeom ${DETECTEDDRIVES}
+	DRIVELIST="`/sbin/sysctl -n kern.disks`"
+
+	TRIMDEVS="`echo $DEVS | /usr/bin/tr -d ' '`"
+
+	test -n "$TRIMDEVS" && DRIVELIST="$DEVS"
+
+	for drive in ${DRIVELIST} ; do
+
+		if ! echo "${drive##*/}" | /usr/bin/egrep "cd[0-9]" > /dev/null 2> /dev/null ; then
+
+			echo -n "${drive##*/}... "
+
+			if /sbin/gpart show "${drive##*/}" >/dev/null 2>/dev/null ; then
+				echo "Drives not empty, use destroygeom" ; exit 1
+			fi
+
+			DETECTEDDRIVES="${DETECTEDDRIVES}-d ${drive##*/} "
+
+			DRIVECOUNT=$(( DRIVECOUNT + 1 ))
+
+		fi
+
+	done
+
+	test $DRIVECOUNT -gt 1 && ISMIRROR="-r mirror"
+
+	test "$FORCE" = "1" && /server/bin/destroygeom ${DETECTEDDRIVES}
 
 	if echo | /usr/bin/nc -w 3 -v ${server} ${port} ; then
+
 		#/usr/bin/fetch "${mfsbsdiso}"
+		echo
+
 	fi
 
 	if [ -f mfsbsd.iso ]; then
+
 		/server/bin/mount_iso mfsbsd.iso /media \
-			&& cd /media \
-			&& /server/bin/bs v \
-			&& /bin/rm -r ~/.gnupg/
+		&& cd /media \
+		&& /server/bin/bs v \
+		&& /bin/rm -r ~/.gnupg/
+
 	else
+
 		echo "Can't fetch ${mfsbsdiso}"
-		/sbin/mount_cd9660 -o ro /dev/cd0 /media || \
-			/sbin/mount -o ro /dev/da0a /media
-		if [ -e "/media/NOX-${RELEASE}-${ARCH}.tar" ]; then
-			ARCHIVE="/media/NOX-${RELEASE}-${ARCH}.tar"
-		fi
+
+		/sbin/mount_cd9660 -o ro /dev/cd0 /media \
+		|| /sbin/mount -o ro /dev/da0a /media
+
+		test -e "/media/NOX-${RELEASE}-${ARCH}.tar" \
+		&& ARCHIVE="/media/NOX-${RELEASE}-${ARCH}.tar"
+
 	fi
 
 	if [ -z "$URL" ]; then
+
 		if [ -d /media/${RELEASE}-${ARCH}/ ]; then
+
 			disturl="-u /media/${RELEASE}-${ARCH}"
+
 		else
+
 			disturl="-u ${uri}/${RELEASE}-${ARCH}"
+
 		fi
+
 	fi
 
 	if [ "$MFSBSD" = "1" ]; then
+
 		if [ -z "$ARCHIVE" ]; then
+
 			disturl="-T http://${server}:${port}/mfsbsd/${RELEASE}-${ARCH}/NOX-${RELEASE}-${ARCH}.tar"
+
 		else
+
 			if [ -z "$FETCH" ]; then
+
 				disturl="-t ${ARCHIVE}"
+
 				if [ ! -e "$ARCHIVE" ]; then
-					echo "Missing file: ${ARCHIVE}"
-					exit 1
+					echo "Missing file: ${ARCHIVE}" ; exit 1
 				fi
+
 			else
+
 				disturl="-T ${FETCH}"
+
 			fi
+
 		fi
+
 	fi
 
 	cat <<EOF
 Trying:
-    /server/bin/zfsinstall ${DETECTEDDRIVES} ${ISMIRROR} ${disturl} ${PASSMFSBSD} -p autoroot -s 10G -z 30G -b 1G -E -n
+	/server/bin/zfsinstall ${DETECTEDDRIVES} ${ISMIRROR} ${disturl} ${PASSMFSBSD} -p autoroot -s 10G -z 30G -b 1G -E -n
 EOF
 	/server/bin/zfsinstall ${DETECTEDDRIVES} ${ISMIRROR} ${disturl} ${PASSMFSBSD} -p autoroot -s 10G -z 30G -b 1G -E -n || exit 1
+
+	if /bin/ls -1 /media/*.csv > /dev/null 2> /dev/null ; then
+
+		for i in $( /bin/ls -1 /media/*.csv ); do
+
+			/bin/cp -av "${i}" /mnt/bootdir/ || exit 1
+
+		done
+
+	fi
 
 	cat <<EOF
 To change root passwd, do:
@@ -115,12 +154,4 @@ EOF
 
 }
 
-#echo " @@ WARNING @@"
-#echo "This will wipe all drives. Are you sure? (y/n) "
-#read REPLY
-#echo
-#case "$REPLY" in
-#	"Y"|"y")
-		doInstall || exit 1
-#		;;
-#esac
+doInstall || exit 1
