@@ -30,12 +30,14 @@ jautopkg_start()
 	if /usr/bin/fetch -o /dev/null -T 10 "${REPOURL}/digests.txz" ; then
 		TRIMLIST="`echo $autopkg | /usr/bin/tr -d ' '`"
 		if [ -n "${TRIMLIST}" ]; then
+			echo -n "Installing packages remotely... "
 			if /sbin/ifconfig | /usr/bin/grep status | /usr/bin/grep -v "no carrier" \
 			| /usr/bin/grep . > /dev/null 2> /dev/null ; then
 				for i in ${autopkg} ; do
-					/usr/local/sbin/pkg-static install -y $i || echo "ERROR: pkg install $i"
+					/usr/local/sbin/pkg-static install -y $i > /dev/null 2> /dev/null || echo "ERROR: pkg install $i"
 				done
 			fi
+			echo " done"
 			if ! /usr/local/sbin/pkg-static info | /usr/bin/grep 'rsync' > /dev/null 2> /dev/null; then
 				local trylocal="YES"
 			fi
@@ -50,7 +52,7 @@ jautopkg_start()
 				LOOP=0;
 				echo -n '.'
 				for i in /packages/*.t?z ; do
-					/usr/local/sbin/pkg-static add $i 2> /dev/null | /usr/bin/grep 'already installed' > /dev/null 2> /dev/null || LOOP=1
+					/usr/local/sbin/pkg-static add $i > /dev/null 2> /dev/null | /usr/bin/grep 'already installed' > /dev/null 2> /dev/null || LOOP=1
 				done
 			done
 			echo " done"
