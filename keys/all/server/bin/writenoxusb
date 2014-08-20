@@ -2,23 +2,36 @@
 # Copyright (c) 2014 John Ko
 
 if [ "x" = "x$1" ]; then
-	echo "Usage: $0 [usb_drive]"
-	echo "Example:"
-	echo "$0 /dev/da0"
+
+	/bin/cat <<EOF
+Usage: $0 usb_drive
+Example:
+	$0 /dev/da0
+EOF
+
 	exit 1
+
 else
+
 	seek="/usr/jails/mfsbsd*/root/mfsbsd/NOX*img"
-	#seek="/usr/jails/freebsd*/server/www/mfsbsd/*RELEASE*/NOX*img"
-	if ! /bin/ls -1 ${seek} | /usr/bin/grep img > /dev/null 2> /dev/null ; then
-		echo "Can't find ${seek}"
-		exit 1
+
+	/bin/ls -1 ${seek} > /dev/null 2> /dev/null \
+	|| seek="/usr/jails/freebsd*/server/www/mfsbsd/*RELEASE*/NOX*img"
+
+	if ! /bin/ls -1 ${seek} > /dev/null 2> /dev/null ; then
+
+		echo "Can't find ${seek}" ; exit 1
+
 	else
+
 		imgfile=$( /bin/ls -1 ${seek} | /usr/bin/grep img )
-		if [ ! -e "$1" ]; then
-			echo "Can't find $1"
-			exit 1
-		else
-			/bin/dd bs=1m if=${imgfile} of=$1 || exit 1
+
+		if [ ! -e "$1" ]; then echo "Can't find $1" ; exit 1
+
+		else /bin/dd bs=1m if=${imgfile} of=$1 || exit 1
+
 		fi
+
 	fi
+
 fi
