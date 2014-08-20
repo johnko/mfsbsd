@@ -16,7 +16,7 @@ usage() {
 while getopts d:h o; do
 	case "$o" in
 		d) DEVS="$DEVS ${OPTARG##/dev/}" ;;
-		[?]) usage; exit 1;;
+		[?]) usage; exit 1 ;;
 	esac
 done
 
@@ -25,9 +25,8 @@ DETECTEDDRIVES=""
 doDelete() {
 	DRIVELIST="`/sbin/sysctl -n kern.disks`"
 	TRIMDEVS="`echo $DEVS | /usr/bin/tr -d ' '`"
-	if [ -n "$TRIMDEVS" ]; then
-		DRIVELIST="$DEVS"
-	fi
+	test -n "$TRIMDEVS" \
+	&& DRIVELIST="$DEVS"
 	for drive in ${DRIVELIST} ; do
 		if ! echo "${drive##*/}" | /usr/bin/egrep "cd[0-9]" > /dev/null 2> /dev/null ; then
 			if /sbin/gpart show "${drive##*/}" >/dev/null 2>/dev/null ; then
@@ -38,18 +37,10 @@ doDelete() {
 
 	cat <<EOF
 Trying:
-    /server/bin/destroygeom ${DETECTEDDRIVES}
+	/server/bin/destroygeom ${DETECTEDDRIVES}
 EOF
 	/server/bin/destroygeom ${DETECTEDDRIVES}
 
 }
 
-#echo " @@ WARNING @@"
-#echo "This will wipe all drives. Are you sure? (y/n) "
-#read REPLY
-#echo
-#case "$REPLY" in
-#	"Y"|"y")
-		doDelete
-#		;;
-#esac
+doDelete

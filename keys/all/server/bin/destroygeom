@@ -37,21 +37,19 @@ while getopts d:p:h o; do
 	case "$o" in
 		d) DEVS="$DEVS ${OPTARG##/dev/}" ;;
 		p) POOLS="$POOLS ${OPTARG}" ;;
-		h) help; exit 1;;
-		[?]) usage; exit 1;;
+		h) help; exit 1 ;;
+		[?]) usage; exit 1 ;;
 	esac
 done
 
 if [ -z "$DEVS" ]; then
-	usage
-	exit 1
+	usage ; exit 1
 fi
 
 
 for DEV in ${DEVS}; do
 	if ! [ -c "/dev/${DEV}" ]; then
-		echo "error: /dev/${DEV} is not a block device"
-		exit 1
+		echo "error: /dev/${DEV} is not a block device" ; exit 1
 	fi
 done
 
@@ -63,8 +61,7 @@ for POOL in ${POOLS}; do
 
 	echo -n "Destroying ZFS pool ${POOL} ..."
 	if ! /sbin/zpool destroy -f ${POOL} > /dev/null 2> /dev/null; then
-		echo " error"
-		exit 1
+		echo " error" ; exit 1
 	fi
 	echo " done"
 done
@@ -78,14 +75,12 @@ for DEV in ${DEVS}; do
 		for PART in ${PARTS}; do
 			echo -n "    Deleting partition ${PART} ..."
 			if ! /sbin/gpart delete -i${PART} ${GEOM} > /dev/null 2> /dev/null; then
-				echo " error"
-				exit 1
+				echo " error" ; exit 1
 			fi
 			echo " done"
 		done
 		if ! /sbin/gpart destroy ${GEOM} > /dev/null 2> /dev/null; then
-			echo "error: could not destroy geom ${GEOM}"
-			exit 1
+			echo "error: could not destroy geom ${GEOM}" ; exit 1
 		fi
 	done
 done

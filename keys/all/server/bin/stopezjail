@@ -1,20 +1,48 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
+# Install ezjail if ezjail-admin doesn't exist and we have network
 if [ ! -e /usr/local/bin/ezjail-admin ]; then
-	/usr/local/sbin/pkg-static install -y ezjail
+	/sbin/ifconfig | /usr/bin/grep status | /usr/bin/grep -v "no carrier" \
+	| /usr/bin/grep . > /dev/null 2> /dev/null \
+	&& /usr/local/sbin/pkg-static install -y ezjail
 fi
 
-/usr/bin/sed -i '' 's#etc/fstab\.#usr/local/etc/ezjail/fstab.#' /usr/local/bin/ezjail-admin
-/usr/bin/sed -i '' 's#ls -A | xargs#ls -A | egrep -v "(fstab\.|ezjail\.conf|\.sig$)" | xargs#' /usr/local/bin/ezjail-admin
-/usr/bin/sed -i '' 's#ls | xargs rcorder#ls | egrep -v "(fstab\.|ezjail\.conf|\.sig$)" | xargs#' /usr/local/etc/rc.d/ezjail
-if ! /usr/bin/grep '^ezjail_jailzfs="data/ezjail"' /usr/local/etc/ezjail.conf > /dev/null 2> /dev/null; then
-	/bin/cat >/usr/local/etc/ezjail.conf <<EOF
+# Exit if ezjail still doesn't exist
+if [ ! -e /usr/local/bin/ezjail-admin ]; then
+	echo "Error: ezjail-admin not found"; exit 1
+fi
+
+# If ezjail-admin exists, modify it to look for fstab in /usr/local/etc/ezjail
+test -e /usr/local/bin/ezjail-admin \
+&& /usr/bin/sed -i '' \
+'s#etc/fstab\.#usr/local/etc/ezjail/fstab.#' \
+/usr/local/bin/ezjail-admin
+
+# If ezjail-admin exists, modify it to ignore fstab, ezjail.conf, and sig as jails
+test -e /usr/local/bin/ezjail-admin \
+&& /usr/bin/sed -i '' \
+'s#ls -A | xargs#ls -A | egrep -v "(fstab\.|ezjail\.conf|\.sig$)" | xargs#' \
+/usr/local/bin/ezjail-admin
+
+# If rc.d/ezjail exists, modify it to ignore fstab, ezjail.conf, and sig as jails
+test -e /usr/local/etc/rc.d/ezjail \
+&& /usr/bin/sed -i '' \
+'s#ls | xargs rcorder#ls | egrep -v "(fstab\.|ezjail\.conf|\.sig$)" | xargs#' \
+/usr/local/etc/rc.d/ezjail
+
+# If ezjail.conf is not configured, do so now
+/usr/bin/grep \
+'^ezjail_jailzfs="data/ezjail"' \
+/usr/local/etc/ezjail.conf \
+> /dev/null 2> /dev/null \
+|| /bin/cat >/usr/local/etc/ezjail.conf <<EOF
 ezjail_use_zfs="YES"
 ezjail_use_zfs_for_jails="YES"
 ezjail_jailzfs="data/ezjail"
 EOF
-fi
 
-/usr/local/etc/rc.d/ezjail onestop
+# If rc.d/ezjail exists, onestop it
+test -x /usr/local/etc/rc.d/ezjail && /usr/local/etc/rc.d/ezjail onestop
+
 /bin/pkill ucarp
