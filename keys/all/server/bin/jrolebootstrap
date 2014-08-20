@@ -34,7 +34,7 @@ fi
 # ---------------------------------------------------------
 
 # firewall redirection and NAT
-jrolenat () {
+jrolenat (){
 
 	[ $# -lt 3 ] && echo "Usage: `basename $0` role jailname 'nic|ip'" && exit 1
 
@@ -452,7 +452,7 @@ EOF
 # ---------------------------------------------------------
 
 # Creat role, but don't start
-jrolecreate () {
+jrolecreate (){
 
 	[ $# -lt 3 ] && echo "Usage: `basename $0` role jailname 'nic|ip'" && exit 1
 	
@@ -679,7 +679,7 @@ jrolesetupflavours () {
 # ---------------------------------------------------------
 
 # Setup service
-jrolesetupservice () {
+jrolesetupservice (){
 
 	[ $# -lt 2 ] && echo "Usage: `basename $0` service mount" && exit 1
 
@@ -806,7 +806,7 @@ jrolesetupservice () {
 # ---------------------------------------------------------
 
 # Create jail if not exist
-jrolejailcreate () {
+jrolejailcreate (){
 
 	[ $# -lt 3 ] && echo "Usage: `basename $0` role jailname 'nic|ip'" && exit 1
 	
@@ -1064,7 +1064,7 @@ jrolesetuprc () {
 # ---------------------------------------------------------
 
 # nat AND create
-jrolenatcreate () {
+jrolenatcreate (){
 
 	testforx /usr/local/bin/ezjail-admin
 
@@ -1085,7 +1085,7 @@ jrolenatcreate () {
 # ---------------------------------------------------------
 
 # nat AND start
-jrolenatstart () {
+jrolenatstart (){
 
 	[ $# -lt 3 ] && echo "Usage: `basename $0` role jailname 'nic|ip'" && exit 1
 
@@ -1098,7 +1098,7 @@ jrolenatstart () {
 # ---------------------------------------------------------
 
 # Calls jrolecreate, and then jrolebgstart
-jrolestart () {
+jrolestart (){
 
 	[ $# -lt 3 ] && echo "Usage: `basename $0` role jailname 'nic|ip'" && exit 1
 
@@ -1378,7 +1378,7 @@ jrolemfsbsdjails () {
 # ---------------------------------------------------------
 
 # Destroy flavour
-jroledestroyflavour () {
+jroledestroyflavour (){
 
 	[ $# -lt 1 ] && echo "Usage: `basename $0` role" && exit 1
 
@@ -1393,7 +1393,7 @@ jroledestroyflavour () {
 # ---------------------------------------------------------
 
 # Destroy jail
-jroledestroyjail () {
+jroledestroyjail (){
 
 	[ $# -lt 1 ] && echo "Usage: `basename $0` jailname" && exit 1
 
