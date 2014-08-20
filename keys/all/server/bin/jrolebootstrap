@@ -531,7 +531,7 @@ EOF
 # ---------------------------------------------------------
 
 # Setup the jail flavours
-jrolesetupflavours () {
+jrolesetupflavours (){
 
 	[ $# -lt 1 ] && echo "Usage: `basename $0` role" && exit 1
 
