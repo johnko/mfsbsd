@@ -1918,11 +1918,11 @@ getremotehost (){
 
 	if echo "${1}" | /usr/bin/grep ':' > /dev/null 2> /dev/null ; then
 
-		return $( echo "${1}" | /usr/bin/cut -d: -f1 )
+		echo $( echo "${1}" | /usr/bin/cut -d: -f1 )
 
 	else
 
-		return "${2}"
+		echo "${1}"
 
 	fi
 	
@@ -1936,11 +1936,11 @@ getremoteport (){
 
 	if echo "${1}" | /usr/bin/grep ':' > /dev/null 2> /dev/null ; then
 
-		return $( echo "${1}" | /usr/bin/cut -d: -f2 )
+		echo $( echo "${1}" | /usr/bin/cut -d: -f2 )
 
 	else
 
-		return 22
+		echo 22
 
 	fi
 	
