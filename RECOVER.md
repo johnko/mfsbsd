@@ -38,7 +38,27 @@ ifconfig -l | sed -E -e 's/lo[0-9]+//g' -e 's/bridge[0-9]+//g' -e 's/enc[0-9]+//
 
 ## Instructions
 
-### 1) Plug in new host server. Turn on new host server and access the `BIOS Setup`:
+### 1) Edit the CSV network map:
+
+Plug in the USB to a working computer and edit the `[company].csv` file with a plain text editor.
+
+1. Append the new host server(s) MAC/Hardware address, hostname, IP address.
+2. You need to modify / verify:
+
+Line | Description
+-----|------------
+dhcp-boot,tag:!gpxe,lpxelinux.0,192.168.0.200                    | PXE boot service IP
+dhcp-failover,primary,192.168.0.121                              | Primary DHCP service IP
+dhcp-failover,secondary,192.168.0.141                            | Secondary DHCP service IP
+dhcp-option,option:dns-server,192.168.0.200,208.67.222.222       | DNS IP
+dhcp-option,option:router,192.168.0.1                            | Router internal IP
+dhcp-option,option:domain-name,contoso.local                     | Local domain name
+dhcp-range,192.168.0.10,192.168.0.19                             | First DHCP range for DHCP service
+dhcp-range,192.168.0.20,192.168.0.29                             | Additional DHCP range for DHCP service
+dhcp-subnet,192.168.0.0,255.255.255.0                            | Network and subnet
+dhcp-host,00:00:00:00:12:34,alfa,192.168.0.120,localchain,static | Host server with static IP
+
+### 2) Plug in new host server. Turn on new host server and access the `BIOS Setup`:
 
 > To access the BIOS setup:
 > Brand   | Possible Keys
@@ -54,7 +74,7 @@ Setup BIOS boot order to:
 2. `USB / Removable Drive`
 3. `CD / Optical Drive`
 
-### 2) Insert CD or USB media containing `NOX recovery image` into host server.
+### 3) Insert CD or USB media containing `NOX` recovery image into host server.
 
 Reboot with `Ctrl + Alt + Del` and access the `Boot Selection Menu`:
 
@@ -68,7 +88,7 @@ Reboot with `Ctrl + Alt + Del` and access the `Boot Selection Menu`:
 
 Make sure to boot new host server from the media: you should be able to select the `USB / Removable Drive` or `CD / Optical Drive` from the BIOS `Boot Selection Menu`.
 
-### 3) If the boot is successful, you will see a FreeBSD `login:` prompt, type:
+### 4) If the boot is successful, you will see a FreeBSD `login:` prompt, type:
 
 ```
 root
@@ -80,33 +100,12 @@ Then at the `Password:` prompt, type:
 [password]
 ```
 
-### 4) Configure network interface on new host server manually with a command like:
+### 5) Configure network interface on new host server manually with a command like:
 
 ```
 ifconfig [network_if] inet [ip_address]/32
 ```
 
-### 5) Edit network map:
-
-```
-edit /server/csv/dhcpd/[company].csv
-```
-
-1. Append the new host server(s) MAC/Hardware address, hostname, IP address.
-2. You need to modify / verify:
-
-Line                                                             | Description
------------------------------------------------------------------|------------
-dhcp-boot,tag:!gpxe,lpxelinux.0,192.168.0.200                    | PXE boot service IP
-dhcp-failover,primary,192.168.0.121                              | Primary DHCP service IP
-dhcp-failover,secondary,192.168.0.141                            | Secondary DHCP service IP
-dhcp-option,option:dns-server,192.168.0.200,208.67.222.222       | DNS IP
-dhcp-option,option:router,192.168.0.1                            | Router internal IP
-dhcp-option,option:domain-name,contoso.local                     | Local domain name
-dhcp-range,192.168.0.10,192.168.0.19                             | First DHCP range for DHCP service
-dhcp-range,192.168.0.20,192.168.0.29                             | Additional DHCP range for DHCP service
-dhcp-subnet,192.168.0.0,255.255.255.0                            | Network and subnet
-dhcp-host,00:00:00:00:12:34,alfa,192.168.0.120,localchain,static | Host server with static IP
 
 ### 6) **Warning:** If the HDD have data, you may need to erase them:
 
@@ -118,7 +117,7 @@ In the following example, we are wiping the partition table of `/dev/ada0` and `
 destroygeom -d ada0 -d ada1
 ```
 
-### 7) Install the `NOX recovery image`:
+### 7) Install the `NOX` recovery image:
 
 This script will automatically detect available disks and create a ZFS mirror, if applicable:
 
@@ -158,29 +157,25 @@ startsvnbuilder
 
 **This step is optional, and requires a fast Internet connection!*
 
+If you choose to do this, you can skip step 12.
+
 ```
 startmfsbsdbuilder ports
 ```
 
-### 12) Build a new `NOX recovery image` (takes a few minutes):
+### 12) Build a new `NOX` recovery image (takes a few minutes):
 
 ```
 startmfsbsdbuilder
 ```
 
-> Optionally, you can perform step 11 and 12 at the same time but `buildports` requires a fast Internet connection and would take a few hours:
->
-> ```
-> chmod a+x /server/bin/buildports ; startmfsbsdbuilder
-> ```
-
-### 13) New USB, CD, and tar `NOX recovery images` can be listed at:
+### 13) New USB, CD, and tar `NOX` recovery images can be listed at:
 
 ```
 ls -lh /usr/jails/mfsbsd*/root/mfsbsd/NOX*
 ```
 
-Plug in a new USB, and the new `NOX recovery image` can be written to the USB drive with a command like:
+Plug in a new USB, and the new `NOX` recovery image can be written to the USB drive with a command like:
 
 ```
 writenoxusb /dev/da0
