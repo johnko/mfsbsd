@@ -30,9 +30,12 @@ jautopkg_start()
 	if /usr/bin/fetch -o /dev/null -T 10 "${REPOURL}/digests.txz" ; then
 		TRIMLIST="`echo $autopkg | /usr/bin/tr -d ' '`"
 		if [ -n "${TRIMLIST}" ]; then
-			for i in ${autopkg} ; do
-				/usr/local/sbin/pkg-static install -y $i || echo "ERROR: pkg install $i"
-			done
+			if /sbin/ifconfig | /usr/bin/grep status | /usr/bin/grep -v "no carrier" \
+			| /usr/bin/grep . > /dev/null 2> /dev/null ; then
+				for i in ${autopkg} ; do
+					/usr/local/sbin/pkg-static install -y $i || echo "ERROR: pkg install $i"
+				done
+			fi
 			if ! /usr/local/sbin/pkg info | /usr/bin/grep 'rsync' > /dev/null 2> /dev/null; then
 				local trylocal="YES"
 			fi
