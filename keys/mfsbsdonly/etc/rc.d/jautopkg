@@ -36,7 +36,7 @@ jautopkg_start()
 					/usr/local/sbin/pkg-static install -y $i || echo "ERROR: pkg install $i"
 				done
 			fi
-			if ! /usr/local/sbin/pkg info | /usr/bin/grep 'rsync' > /dev/null 2> /dev/null; then
+			if ! /usr/local/sbin/pkg-static info | /usr/bin/grep 'rsync' > /dev/null 2> /dev/null; then
 				local trylocal="YES"
 			fi
 		fi
