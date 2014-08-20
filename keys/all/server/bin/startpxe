@@ -49,12 +49,12 @@ if [ ! -f "/usr/local/share/syslinux/bios/memdisk/memdisk" ]; then
 fi
 
 
-find /usr/local/share/syslinux/bios -type f -name '*.c32' -exec cp -av {} /server/tftp/ \;
-find /usr/local/share/syslinux/bios -type f -name '*.0'   -exec cp -av {} /server/tftp/ \;
-find /usr/local/share/syslinux/bios -type f -name 'memdisk' -exec cp -av {} /server/tftp/ \;
-find /usr/local/share/syslinux/bios/mtools -type f -name '*.c32' -exec cp -av {} /server/tftp/ \;
-find /usr/local/share/syslinux/bios/mtools -type f -name '*.0'   -exec cp -av {} /server/tftp/ \;
-find /usr/local/share/syslinux/bios/mtools -type f -name 'memdisk'   -exec cp -av {} /server/tftp/ \;
+find /usr/local/share/syslinux/bios -type f -name '*.c32' -exec cp -a {} /server/tftp/ \;
+find /usr/local/share/syslinux/bios -type f -name '*.0'   -exec cp -a {} /server/tftp/ \;
+find /usr/local/share/syslinux/bios -type f -name 'memdisk' -exec cp -a {} /server/tftp/ \;
+find /usr/local/share/syslinux/bios/mtools -type f -name '*.c32' -exec cp -a {} /server/tftp/ \;
+find /usr/local/share/syslinux/bios/mtools -type f -name '*.0'   -exec cp -a {} /server/tftp/ \;
+find /usr/local/share/syslinux/bios/mtools -type f -name 'memdisk'   -exec cp -a {} /server/tftp/ \;
 
 find /server/tftp -type d -exec /usr/sbin/chown    nobody {} \;
 find /server/tftp -type f -exec /usr/sbin/chown    nobody {} \;
