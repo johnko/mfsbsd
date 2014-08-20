@@ -97,12 +97,22 @@ jrolebgstart () {
 	&& /bin/mv "/usr/jails/${2}/etc/pkg/FreeBSD.conf" \
 	"/usr/jails/${2}/etc/pkg.FreeBSD.conf.bkp"
 
+	echo -n "Installing pkg into jail..."
+
 	test -e "/usr/jails/${2}/usr/local/sbin/pkg" \
 	|| /usr/local/bin/ezjail-admin console \
-	-e "/usr/local/sbin/pkg-static install -y pkg" "${2}"
+	-e "/usr/local/sbin/pkg-static install -y pkg" "${2}" \
+	> /dev/null 2> /dev/null
+
+	echo " done"
+
+	echo -n "Installing LittleChef client... "
 
 	/usr/local/bin/ezjail-admin console \
-	-e "/server/bin/startlittlechefclient" "${2}"
+	-e "/server/bin/startlittlechefclient" "${2}" \
+	> /dev/null 2> /dev/null
+
+	echo " done"
 
 ############################################
 	if [ "$1" = "dhcpd" ]; then
