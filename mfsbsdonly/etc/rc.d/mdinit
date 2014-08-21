@@ -2,7 +2,7 @@
 # $Id$
 
 # PROVIDE: mdinit
-# BEFORE: FILESYSTEMS
+# BEFORE: zfs FILESYSTEMS
 # REQUIRE: mountcritlocal
 # KEYWORD: FreeBSD
 
