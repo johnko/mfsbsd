@@ -13,11 +13,17 @@ LOCALIP="10.123.234"
 TMPFILE=$( /usr/bin/mktemp -t jrole )
 NIC=$( /usr/bin/netstat -nr | /usr/bin/egrep "default" | /usr/bin/awk '{ print $NF }' |\
 	/usr/bin/head -1 )
+if [ "x" = "x$NIC" ]; then
+	echo "Can't determine default route network interface." ; exit 1
+fi
 PUBLICIP=$( /sbin/ifconfig "${NIC}" | /usr/bin/egrep "inet" |\
 	/usr/bin/egrep -v 'netmask 0xffffffff' |\
 	/usr/bin/sed -e 's/broadcast.*//g' -e 's/netmask.*//g' |\
 	/usr/bin/egrep -o "([0-9]{1,3}\.){3}[0-9]{1,3}" | /usr/bin/tr '\n' '~' |\
 	/usr/bin/sed -e "s/~/$DELIM/g" -e 's/, *$//g' )
+if [ "x" = "x$PUBLICIP" ]; then
+	echo "Can't determine IP address." ; exit 1
+fi
 IP=$( echo "${PUBLICIP}" | /usr/bin/cut -d. -f1-3 )
 IPCOUNT=$( echo "${PUBLICIP}" | /usr/bin/cut -d. -f4 )
 LOCALIPCOUNT=$( /usr/local/bin/ezjail-admin list |\
