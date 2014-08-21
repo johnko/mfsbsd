@@ -202,6 +202,8 @@ if [ "$UPGRADE" != "1" ]; then
 	#/server/bin/r -aq /server ${MNT}/
 	/usr/bin/tar cf - /server | /usr/bin/tar xf - -C "${MNT}/"
 
+
+	/usr/bin/install -d -m 755	"${MNT}/usr/local/etc/pkg/repos"
 	if [ -d /usr/local/etc/pkg ]; then
 		/usr/bin/tar cf - /usr/local/etc/pkg | /usr/bin/tar xf - -C "${MNT}/usr/local/etc/"
 	fi
