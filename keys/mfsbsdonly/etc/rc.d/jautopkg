@@ -42,6 +42,8 @@ jautopkg_start()
 				local trylocal="YES"
 			fi
 		fi
+	else
+		local trylocal="YES"
 	fi
 	if [ "x$trylocal" = "xYES" ]; then
 		PACKAGES=`/bin/ls -1 /packages/*.t?z 2>/dev/null`
@@ -52,7 +54,7 @@ jautopkg_start()
 				LOOP=0;
 				echo -n '.'
 				for i in /packages/*.t?z ; do
-					/usr/local/sbin/pkg-static add $i > /dev/null 2> /dev/null | /usr/bin/grep 'already installed' > /dev/null 2> /dev/null || LOOP=1
+					/usr/local/sbin/pkg-static add $i 2>&1 | /usr/bin/grep 'already installed' > /dev/null 2> /dev/null || LOOP=1
 				done
 			done
 			echo " done"
