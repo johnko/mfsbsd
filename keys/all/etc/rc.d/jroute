@@ -4,7 +4,7 @@
 # MFSBSD CUSTOM
 
 # PROVIDE: jroute
-# REQUIRE: jrcalmost
+# REQUIRE: mountcritlocal disks jautomount mdinit netif jrcalmost
 # BEFORE: jautopkg jezjail
 
 . /etc/rc.subr
@@ -23,15 +23,14 @@ omitcomments()
 
 jroute_start()
 {
-
-
 	if [ -e /server/csv/ucarp ]; then
 		local server=$( /bin/cat /server/csv/ucarp | /usr/bin/tr -d '\n' )
-		/sbin/route del 10.7.7.0/24
-		/sbin/route add 10.7.7.0/24 ${server}
+		if /sbin/ifconfig | /usr/bin/grep status | /usr/bin/grep -v "no carrier" \
+		| /usr/bin/grep . > /dev/null 2> /dev/null ; then
+			/sbin/route del 10.7.7.0/24
+			/sbin/route add 10.7.7.0/24 ${server}
+		fi
 	fi
-
-
 }
 
 load_rc_config $name

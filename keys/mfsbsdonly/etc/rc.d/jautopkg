@@ -3,7 +3,7 @@
 # $Id$
 
 # PROVIDE: jautopkg
-# REQUIRE: mountcritlocal disks jautomount mdinit tmp var jroute
+# REQUIRE: mountcritlocal disks jautomount mdinit netif tmp var jroute
 # BEFORE: jezjail
 # KEYWORD: FreeBSD
 
