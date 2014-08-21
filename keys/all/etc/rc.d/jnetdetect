@@ -1,0 +1,29 @@
+#!/bin/sh
+# Copyright (c) 2014 John Ko
+# $Id$
+
+# PROVIDE: jnetdetect
+# REQUIRE: mountcritlocal disks mdinit netif
+# BEFORE: ntpdate
+# KEYWORD: FreeBSD
+
+. /etc/rc.subr
+
+name="jnetdetect"
+start_cmd="jnetdetect_start"
+stop_cmd=":"
+
+jnetdetect_start()
+{
+	if /sbin/ifconfig | /usr/bin/grep status | /usr/bin/grep -v "no carrier" \
+	| /usr/bin/grep . > /dev/null 2> /dev/null ; then
+		/usr/sbin/sysrc ntpdate_enable="YES"
+		/usr/sbin/sysrc jping_enable="YES"
+	else
+		/usr/sbin/sysrc ntpdate_enable="NO"
+		/usr/sbin/sysrc jping_enable="NO"
+	fi
+}
+
+load_rc_config $name
+run_rc_command "$1"

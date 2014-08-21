@@ -259,7 +259,7 @@ for DEV in ${DEVS}; do
 		umask $RESTOREMASK
 	fi
 done
-oldautomount=$( sysrc -n -f "${BOOTDIR}/boot/loader.conf" automount )
+oldautomount=$( /usr/sbin/sysrc -n -f "${BOOTDIR}/boot/loader.conf" automount )
 /usr/sbin/sysrc -f "${BOOTDIR}/boot/loader.conf" automount="${oldautomount} data"
 POOLPARTS="${PARTS}"
 if [ "${GELI}" = "1" ]; then

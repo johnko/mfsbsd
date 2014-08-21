@@ -37,8 +37,8 @@ EOF
 /sbin/ifconfig wlan0 ssid ${SSID}
 /sbin/ifconfig wlan0 up
 
-sysrc -f /etc/rc.conf wpa_supplicant_program="/usr/sbin/wpa_supplicant"
-sysrc -f /etc/rc.conf wpa_supplicant_conf_file="/etc/wpa_supplicant.conf"
+/usr/sbin/sysrc -f /etc/rc.conf wpa_supplicant_program="/usr/sbin/wpa_supplicant"
+/usr/sbin/sysrc -f /etc/rc.conf wpa_supplicant_conf_file="/etc/wpa_supplicant.conf"
 /etc/rc.d/wpa_supplicant start wlan0
 
 sleep 5
