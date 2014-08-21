@@ -1,7 +1,7 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
-PACKAGES="xf86-video-vesa xf86-video-fbdev xf86-input-mouse xf86-input-keyboard \
+XPACKAGES="xf86-video-vesa xf86-video-fbdev xf86-input-mouse xf86-input-keyboard \
 xineramaproto xinit xrdb xauth \
 slim xfce xfce4-battery-plugin xfce4-bsdcpufreq-plugin xfce4-clipman-plugin \
 xfce4-cpugraph-plugin xfce4-datetime-plugin xfce4-dict-plugin xfce4-diskperf-plugin \
@@ -14,9 +14,11 @@ xfce4-timer-plugin xfce4-volumed xfce4-weather-plugin xfce4-wm-themes xfce4-wmdo
 if [ ! -e /usr/local/bin/Xorg ]; then
 	if /sbin/ifconfig | /usr/bin/grep status | /usr/bin/grep -v "no carrier" \
 	| /usr/bin/grep . > /dev/null 2> /dev/null ; then
-		for i in ${PACKAGES} ; do
-			/usr/local/sbin/pkg-static install -y ${i}
+		echo -n "Installing X packages..."
+		for i in ${XPACKAGES} ; do
+			/usr/local/sbin/pkg-static install -y ${i} > /dev/null 2> /dev/null
 		done
+		echo " done"
 	fi
 fi
 
@@ -25,26 +27,32 @@ if [ ! -e /usr/local/bin/Xorg ]; then
 	echo "Error: Xorg not found"; exit 1
 fi
 
-SERVICES="dbus hald slim"
+SERVICES="dbus slim"
 
 for i in ${SERVICES} ; do
 	/usr/sbin/sysrc -f /etc/rc.conf ${i}_enable=YES
 done
 
 if [ ! -e /etc/X11/xorg.conf ]; then
+	echo -n "Making /etc/X11/xorg.conf..."
 	/usr/local/bin/Xorg -configure
 	/bin/mv ~/xorg.conf.new /etc/X11/xorg.conf
+	echo " done"
 fi
 
 if [ -e /etc/X11/xorg.conf ]; then
+	echo -n "Configure X AutoAddDevices..."
 	if ! /usr/bin/egrep 'Option.*AutoAddDevices.*Off' /etc/X11/xorg.conf > /dev/null 2> /dev/null ; then
 		echo 'Option "AutoAddDevices" "Off"' | /server/bin/insertafterfirst /etc/X11/xorg.conf ServerLayout
 	fi
+	echo " done"
 fi
 
 if [ -e ~/.xinitrc ]; then
+	echo -n "Enabling ~/.xinitrc..."
 	/bin/chmod +x ~/.xinitrc
 	/bin/chmod +x -h ~/.xinitrc
+	echo " done"
 fi
 
 for i in ${SERVICES} ; do

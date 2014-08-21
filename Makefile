@@ -681,7 +681,7 @@ delfbsddist:
 		${RM} ${WRKDIR}/.fbsddist_done ; \
 	fi
 
-encimage: includetar install prune config genkeys customfiles boot compress-usr encmfsroot delfbsddist encsign ${IMAGE}
+encimage: includetar pkgdisk install prune config genkeys customfiles boot compress-usr encmfsroot delfbsddist encsign ${IMAGE}
 gpgimage: install prune config genkeys customfiles boot gpgusr gpgmfsroot fbsddist gpgsign ${IMAGE}
 image: install prune config genkeys customfiles boot compress-usr mfsroot fbsddist ${IMAGE}
 ${IMAGE}:
@@ -738,6 +738,12 @@ clean-roothack:
 clean: clean-roothack
 	@if [ -d ${WRKDIR} ]; then ${CHFLAGS} -R noschg ${WRKDIR}; fi
 	@cd ${WRKDIR} && ${RM} -rf mfs mnt disk dist trees .*_done
+
+pkgdisk: ${WRKDIR}/disk/pkgdisk
+${WRKDIR}/disk/pkgdisk:
+	@echo -n "Including pkgdisk into disk..."
+	@${CP} -rf pkgdisk ${WRKDIR}/disk
+	@echo " done"
 
 includetar: enctar ${WRKDIR}/disk/${TARFILE}
 ${WRKDIR}/disk/${TARFILE}:

@@ -200,7 +200,8 @@ jailbuildmfsbsd (){
 		/usr/bin/touch "${mfsbsdroot}/root/.hushlogin"
 
 		# allow unlink
-		/usr/bin/find "${mfsbsdroot}/root/mfsbsd" \
+		test -d ${mfsbsdroot}/root/mfsbsd \
+		&& /usr/bin/find "${mfsbsdroot}/root/mfsbsd" \
 		-type l -exec /bin/chflags -h nosunlink {} \;
 
 		echo -n "Copying mfsbsd src..."
@@ -221,8 +222,9 @@ jailbuildmfsbsd (){
 
 		/bin/mkdir -p "${mfsbsdroot}/root/mfsbsd/packages/noauto"
 		/bin/mkdir -p "${mfsbsdroot}/root/mfsbsd/pkginstall"
+		/bin/mkdir -p "${mfsbsdroot}/root/mfsbsd/pkgdisk"
 
-		echo -n "Fetching packages in mfsbsd jail..."
+		echo -n "Fetching packages into mfsbsd..."
 
 		/usr/local/bin/ezjail-admin console \
 		-e '/usr/local/sbin/pkg-static clean -y -a -q' "${mfsbsdjail}" \
@@ -258,7 +260,7 @@ jailbuildmfsbsd (){
 		-e '/usr/local/sbin/pkg-static clean -y -a' "${mfsbsdjail}" \
 		> /dev/null 2> /dev/null
 
-		for i in dnsmasq syslinux nginx isc-dhcp43-server ; do
+		for i in dnsmasq syslinux nginx isc-dhcp43-server rubygem-chef ; do
 
 			/usr/local/bin/ezjail-admin console \
 			-e "/usr/local/sbin/pkg-static fetch -y -d ${i}" "${mfsbsdjail}" \
@@ -276,6 +278,34 @@ jailbuildmfsbsd (){
 			&& /bin/rm "${mfsbsdroot}/root/mfsbsd/packages/noauto/${i##*/}"
 
 		done
+
+		/usr/local/bin/ezjail-admin console \
+		-e '/usr/local/sbin/pkg-static clean -y -a' "${mfsbsdjail}" \
+		> /dev/null 2> /dev/null
+
+		/usr/local/bin/ezjail-admin console \
+		-e '/usr/local/sbin/pkg-static fetch -y -d pkg' "${mfsbsdjail}" \
+		> /dev/null 2> /dev/null
+
+XPACKAGES="xf86-video-vesa xf86-video-fbdev xf86-input-mouse xf86-input-keyboard \
+xineramaproto xinit xrdb xauth \
+slim xfce xfce4-battery-plugin xfce4-bsdcpufreq-plugin xfce4-clipman-plugin \
+xfce4-cpugraph-plugin xfce4-datetime-plugin xfce4-dict-plugin xfce4-diskperf-plugin \
+xfce4-fsguard-plugin xfce4-genmon-plugin xfce4-minicmd-plugin xfce4-mount-plugin \
+xfce4-netload-plugin xfce4-notification-daemon xfce4-print xfce4-quicklauncher-plugin \
+xfce4-screenshooter-plugin xfce4-systemload-plugin xfce4-taskmanager xfce4-terminal \
+xfce4-timer-plugin xfce4-volumed xfce4-weather-plugin xfce4-wm-themes xfce4-wmdock-plugin"
+
+		for i in midori xf86-video-intel ${XPACKAGES} ; do
+
+			/usr/local/bin/ezjail-admin console \
+			-e "/usr/local/sbin/pkg-static fetch -y -d ${i}" "${mfsbsdjail}" \
+			> /dev/null 2> /dev/null
+
+		done
+
+		/usr/bin/find "${mfsbsdroot}/var/cache/pkg" -type f -name '*txz' \
+		-exec  /bin/cp -a {} "${mfsbsdroot}/root/mfsbsd/pkgdisk/" \;
 
 		/usr/local/bin/ezjail-admin console \
 		-e '/usr/local/sbin/pkg-static clean -y -a' "${mfsbsdjail}" \
@@ -1624,9 +1654,8 @@ jrolelinkmedia () {
 
 	fi
 
-	# Restore pkgng too
-	local releasedir=$( /usr/bin/find "/packages" -name 'rsync*txz' \
-	| /usr/bin/head -1 )
+	# Restore pkgdisk too
+	local releasedir="/var/backups/pkgdisk"
 
 	local distdir=$( /usr/bin/find /usr/jails/pkgng*/server/www -name "pkgng" \
 	| /usr/bin/head -1 )
@@ -1635,14 +1664,27 @@ jrolelinkmedia () {
 
 		mkdir -p "${distdir}/All"
 
-		echo "/server/bin/r -tcW --delete --exclude noauto  ${releasedir%/*}/   ${distdir}/All/"
-					/server/bin/r -tcW --delete --exclude noauto "${releasedir%/*}/" "${distdir}/All/" \
+		echo "/server/bin/r -tcW  ${releasedir}/   ${distdir}/All/"
+					/server/bin/r -tcW "${releasedir}/" "${distdir}/All/" \
+					|| exit 1
+
+	fi
+
+	# Restore /packages too
+	local releasedir="/packages"
+
+	if [ "x" != "x${releasedir}" -a "x" != "x${distdir}" ]; then
+
+		mkdir -p "${distdir}/All"
+
+		echo "/server/bin/r -tcW --exclude noauto  ${releasedir}/   ${distdir}/All/"
+					/server/bin/r -tcW --exclude noauto "${releasedir}/" "${distdir}/All/" \
 					|| exit 1
 
 		if [ -e "${releasedir%/*}/noauto" ]; then
 
-			echo "/server/bin/r -tcW  ${releasedir%/*}/noauto/   ${distdir}/All/"
-						/server/bin/r -tcW "${releasedir%/*}/noauto/" "${distdir}/All/" \
+			echo "/server/bin/r -tcW  ${releasedir}/noauto/   ${distdir}/All/"
+						/server/bin/r -tcW "${releasedir}/noauto/" "${distdir}/All/" \
 						|| exit 1
 
 		fi

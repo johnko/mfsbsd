@@ -133,6 +133,8 @@ Trying:
 EOF
 	/server/bin/zfsinstall ${DETECTEDDRIVES} ${ISMIRROR} ${disturl} ${PASSMFSBSD} -p autoroot -s 10G -z 30G -b 1G -E -n || exit 1
 
+	test -d /media/pkgdisk && /bin/cp -ar /media/pkgdisk /var/backups
+
 	if /bin/ls -1 /media/*.csv > /dev/null 2> /dev/null ; then
 
 		for i in $( /bin/ls -1 /media/*.csv ); do
