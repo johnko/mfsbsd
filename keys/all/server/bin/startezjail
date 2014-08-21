@@ -1,18 +1,6 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
-# Install ezjail if ezjail-admin doesn't exist and we have network
-if [ ! -e /usr/local/bin/ezjail-admin ]; then
-	/sbin/ifconfig | /usr/bin/grep status | /usr/bin/grep -v "no carrier" \
-	| /usr/bin/grep . > /dev/null 2> /dev/null \
-	&& /usr/local/sbin/pkg-static install -y ezjail
-fi
-
-# Exit if ezjail still doesn't exist
-if [ ! -e /usr/local/bin/ezjail-admin ]; then
-	echo "Error: ezjail-admin not found"; exit 1
-fi
-
 # Test for net-ipreal as we use it below
 if [ ! -x /server/bin/net-ipreal ] ; then
 	echo "Error: /server/bin/net-ipreal not found"; exit 1
@@ -36,6 +24,22 @@ done
 # If rc.d/sshd exists, onereload it
 test -x /etc/rc.d/sshd \
 && /etc/rc.d/sshd onereload 2> /dev/null
+
+
+
+
+
+# Install ezjail if ezjail-admin doesn't exist and we have network
+if [ ! -e /usr/local/bin/ezjail-admin ]; then
+	/sbin/ifconfig | /usr/bin/grep status | /usr/bin/grep -v "no carrier" \
+	| /usr/bin/grep . > /dev/null 2> /dev/null \
+	&& /usr/local/sbin/pkg-static install -y ezjail
+fi
+
+# Exit if ezjail still doesn't exist
+if [ ! -e /usr/local/bin/ezjail-admin ]; then
+	echo "Error: ezjail-admin not found"; exit 1
+fi
 
 # If ezjail-admin exists, modify it to look for fstab in /usr/local/etc/ezjail
 test -e /usr/local/bin/ezjail-admin \
