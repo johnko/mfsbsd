@@ -19,6 +19,30 @@ if [ ! -e /usr/local/bin/Xorg ]; then
 			/usr/local/sbin/pkg-static install -y ${i} > /dev/null 2> /dev/null
 		done
 		echo " done"
+	else
+		if [ -e /dev/da0a ]; then
+			test -d /media || /bin/mkdir /media
+			echo -n "Mounting USB..."
+			/sbin/mount -o ro /dev/da0a /media
+			echo " done"
+		fi
+		echo -n "Adding X packages from /media/pkgdisk..."
+		LOOP=1
+		while [ $LOOP -eq 1 ]; do
+			LOOP=0;
+			echo -n '.'
+			for i in ${XPACKAGES} ; do
+				for k in /media/pkgdisk/${i}* ; do
+					/usr/local/sbin/pkg-static add $k 2>&1 | /usr/bin/grep 'already installed' > /dev/null 2> /dev/null || LOOP=1
+				done
+			done
+		done
+		echo " done"
+		if [ -e /dev/da0a ]; then
+			echo -n "Unmounting USB..."
+			/sbin/umount /dev/da0a
+			echo " done"
+		fi
 	fi
 fi
 
