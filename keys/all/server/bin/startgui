@@ -74,8 +74,8 @@ fi
 
 if [ -e ~/.xinitrc ]; then
 	echo -n "Enabling ~/.xinitrc..."
-	/bin/chmod +x ~/.xinitrc
-	/bin/chmod +x -h ~/.xinitrc
+	/bin/chmod    +x ~/.xinitrc
+	/bin/chmod -h +x ~/.xinitrc
 	echo " done"
 fi
 
