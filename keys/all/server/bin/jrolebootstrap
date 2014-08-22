@@ -1314,8 +1314,20 @@ jrolepxejails () {
 	jrolegenericjails "pxe"						"lanctl.local" "${LOCALNIC}|${LOCALIP}.2" "$1"
 	jrolegenericjails "pkgng"					"lanctl.local" "${LOCALNIC}|${LOCALIP}.3" "$1"
 	jrolegenericjails "freebsd-dist"	"lanctl.local" "${LOCALNIC}|${LOCALIP}.4" "$1"
-	jrolegenericjails "log"						"lanctl.local" "${LOCALNIC}|${LOCALIP}.5" "$1"
-	jrolegenericjails "ldap"					"lanctl.local" "${LOCALNIC}|${LOCALIP}.6" "$1"
+}
+
+# ---------------------------------------------------------
+
+# Create log jails
+jrolelogjails () {
+	jrolegenericjails "log" "lanctl.local" "${LOCALNIC}|${LOCALIP}.5" "$1"
+}
+
+# ---------------------------------------------------------
+
+# Create ldap jails
+jroleldapjails () {
+	jrolegenericjails "ldap" "lanctl.local" "${LOCALNIC}|${LOCALIP}.6" "$1"
 }
 
 # ---------------------------------------------------------
