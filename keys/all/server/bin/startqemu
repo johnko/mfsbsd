@@ -1,4 +1,6 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
-/usr/local/sbin/pkg-static install -y qemu-devel
+if [ ! -x /usr/local/bin/qemu-system-x86_64 ]; then
+	/usr/local/sbin/pkg-static install -y qemu-devel > /dev/null 2> /dev/null
+fi
