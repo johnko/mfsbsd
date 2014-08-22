@@ -17,9 +17,9 @@ jrecover_start()
 	recoverdisk=`/bin/kenv -q recoverdisk`
 	recoverphase=`/bin/kenv -q recoverphase`
 	if [ "xinstall" = "x${recoverphase}" ]; then
-		/server/bin/mfsbsd-install
+		test -x /server/bin/mfsbsd-install && /server/bin/mfsbsd-install
 	elif [ "xdata" = "x${recoverphase}" -a "x" != "x${recoverdisk}" ]; then
-		/server/bin/zquickdata ${recoverdisk}
+		test -x /server/bin/zquickdata && /server/bin/zquickdata ${recoverdisk}
 		if [ -e /bootdir/boot/loader.conf ]; then
 			/usr/sbin/sysrc -f /bootdir/boot/loader.conf recoverphase=""
 			/sbin/reboot

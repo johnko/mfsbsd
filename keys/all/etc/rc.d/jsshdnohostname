@@ -4,8 +4,8 @@
 # MFSBSD CUSTOM
 
 # PROVIDE: jsshdnohostname
-# REQUIRE: FILESYSTEMS
-# BEFORE:  sshd
+# REQUIRE: FILESYSTEMS mdinit
+# BEFORE:  sshd jautomount
 
 . /etc/rc.subr
 
@@ -13,23 +13,14 @@ name="jsshdnohostname"
 start_cmd="jsshdnohostname_start"
 stop_cmd=":"
 
-
-
 jsshdnohostname_start()
 {
-
-
-
-outfile=/etc/pam.d/sshd
-if ! /usr/bin/egrep -i "auth.*required.*pam_unix.so.*authtok_prompt" ${outfile} >/dev/null 2>&1 ; then
-	/usr/bin/sed 's#auth.*required.*pam_unix.so.*#auth required pam_unix.so no_warn try_first_pass authtok_prompt="Password:"#' ${outfile} > /etc/pam.d/sshd.tmp
-	/bin/mv /etc/pam.d/sshd.tmp ${outfile}
-fi
-
-
-
+	outfile=/etc/pam.d/sshd
+	if ! /usr/bin/egrep -i "auth.*required.*pam_unix.so.*authtok_prompt" ${outfile} >/dev/null 2>&1 ; then
+		/usr/bin/sed 's#auth.*required.*pam_unix.so.*#auth required pam_unix.so no_warn try_first_pass authtok_prompt="Password:"#' ${outfile} > /etc/pam.d/sshd.tmp
+		/bin/mv /etc/pam.d/sshd.tmp ${outfile}
+	fi
 }
 
 load_rc_config $name
 run_rc_command "$1"
-

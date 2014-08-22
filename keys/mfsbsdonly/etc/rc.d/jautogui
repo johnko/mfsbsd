@@ -17,7 +17,7 @@ jautogui_start()
 	autogui=`/bin/kenv -q autogui`
 	case ${autogui} in
 		[yY][eE][sS])
-			/server/bin/startgui
+			test -x /server/bin/startgui && /server/bin/startgui
 			;;
 	esac
 }

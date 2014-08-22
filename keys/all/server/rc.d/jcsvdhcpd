@@ -13,14 +13,10 @@ name="jcsvdhcpd"
 start_cmd="jcsvdhcpd_start"
 stop_cmd=":"
 
-
-
 omitcomments()
 {
 	/usr/bin/egrep -v '^\s*#'
 }
-
-
 
 dhcpoption()
 {
@@ -56,12 +52,8 @@ dhcpoption()
 	fi
 }
 
-
-
 jcsvdhcpd_start()
 {
-
-
 
 	unset finalfile
 	unset skip
@@ -215,8 +207,6 @@ EOF
 dhcp-option=vendor:MSFT,2,1i
 EOF
 	fi
-
-
 
 }
 

@@ -12,14 +12,10 @@ name="jcsvpxelinuxcfg"
 start_cmd="jcsvpxelinuxcfg_start"
 stop_cmd=":"
 
-
-
 omitcomments()
 {
 	/usr/bin/egrep -v '^ *#'
 }
-
-
 
 dhcpoption()
 {
@@ -31,12 +27,8 @@ dhcpoption()
 	fi
 }
 
-
-
 jcsvpxelinuxcfg_start()
 {
-
-
 
 	pxecfgdir=/server/tftp/pxelinux.cfg
 	/usr/bin/install -d -m 700	${pxecfgdir}
@@ -60,8 +52,6 @@ jcsvpxelinuxcfg_start()
 			done
 		fi
 	done
-
-
 
 }
 

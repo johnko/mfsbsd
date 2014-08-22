@@ -4,7 +4,7 @@
 # MFSBSD CUSTOM
 
 # PROVIDE: jcsvinterfaces
-# REQUIRE: FILESYSTEMS
+# REQUIRE: FILESYSTEMS mdinit
 # BEFORE:  jinterfaces hostname
 
 . /etc/rc.subr
@@ -13,14 +13,10 @@ name="jcsvinterfaces"
 start_cmd="jcsvinterfaces_start"
 stop_cmd=":"
 
-
-
 omitcomments()
 {
 	/usr/bin/egrep -v '^ *#'
 }
-
-
 
 dhcpoption()
 {
@@ -42,12 +38,8 @@ dhcpoption()
 	fi
 }
 
-
-
 jcsvinterfaces_start()
 {
-
-
 
 	outfile=/etc/rc.conf.d/jinterfaces
 	/usr/bin/install -d -m 700	${outfile%/*}
@@ -124,7 +116,6 @@ jcsvinterfaces_start()
 	else
 		/usr/sbin/sysrc -f /etc/rc.conf.d/network cloned_interfaces="lo1 tap0 bridge0"
 	fi
-
 
 }
 

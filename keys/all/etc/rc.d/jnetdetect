@@ -17,11 +17,20 @@ jnetdetect_start()
 {
 	if /sbin/ifconfig | /usr/bin/grep status | /usr/bin/grep -v "no carrier" \
 	| /usr/bin/grep . > /dev/null 2> /dev/null ; then
-		/usr/sbin/sysrc ntpdate_enable="YES"
-		/usr/sbin/sysrc jping_enable="YES"
-	else
-		/usr/sbin/sysrc ntpdate_enable="NO"
-		/usr/sbin/sysrc jping_enable="NO"
+		echo - "Setting date via ntpdate..."
+		HOSTS=$( /usr/sbin/sysrc -n -f /etc/rc.conf.local ntpdate_hosts )
+		if [ "x" != "x$HOSTS" ]; then
+			for i in $HOSTS ; do
+				/usr/sbin/ntpdate ${i}
+			done
+		fi
+		echo " done"
+		#ping_target=$( /sbin/route -n get 0.0.0.0 | /usr/bin/sed -n 's/.*ateway. \([0-9]\)/\1/p' )
+		if [ "x" != "x$ping_target" ]; then
+			echo - "Pinging default route ever 2s..."
+				/sbin/ping -i2 -m1 -qr ${ping_target} &
+			echo " done"
+		fi
 	fi
 }
 

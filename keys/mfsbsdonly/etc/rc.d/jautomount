@@ -3,7 +3,7 @@
 # $Id$
 
 # PROVIDE: jautomount
-# REQUIRE: mountcritlocal disks
+# REQUIRE: mountcritlocal disks mdinit
 # KEYWORD: FreeBSD
 
 . /etc/rc.subr
@@ -61,6 +61,7 @@ jautomount_start()
 	if [ ! -e /etc/ssh/ssh_host_ecdsa_key ]; then
 		/usr/bin/ssh-keygen -q  -N '' -t ecdsa -b 521 -f /etc/ssh/ssh_host_ecdsa_key
 	fi
+	/usr/sbin/sysrc -f /etc/rc.conf sshd_enable="YES"
 	/etc/rc.d/sshd onestop || echo "."
 	/etc/rc.d/sshd onestart || echo "."
 }

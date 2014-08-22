@@ -17,7 +17,7 @@ jautowifi_start()
 {
 	autowifi=`/bin/kenv -q autowifi`
 	if [ "x" != "x${autowifi}" ]; then
-		/server/bin/startwifi ${autowifi}
+		test -x /server/bin/startwifi && /server/bin/startwifi ${autowifi}
 	fi
 }
 
