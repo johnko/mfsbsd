@@ -2,7 +2,7 @@
 # Copyright (c) 2014 John Ko
 
 
-PKGLIST="indexinfo pkg rsync screen cmdwatch openssl bash-static git subversion curl wget gnupg ezjail ucarp dialog4ports poudriere iftop openntpd"
+PKGLIST="indexinfo pkg rsync screen cmdwatch openssl bash git subversion curl wget gnupg ezjail ucarp dialog4ports poudriere iftop openntpd"
 # gnutls w3m rtorrent cdrtools
 
 

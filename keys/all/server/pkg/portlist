@@ -126,7 +126,7 @@ security/pinentry-curses
 security/py-fail2ban
 security/stunnel
 security/sudo
-shells/bash-static
+shells/bash
 shells/lshell
 sysutils/busybox
 sysutils/cdrtools

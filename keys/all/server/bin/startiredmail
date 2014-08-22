@@ -7,7 +7,7 @@ MYHOST="mx"
 /usr/sbin/sysrc -f /etc/rc.conf hostname="${MYHOST}.${MYDOMAIN}"
 
 if [ ! -e "/usr/local/bin/bash" ]; then
-	/usr/local/sbin/pkg-static install -y bash-static
+	/usr/local/sbin/pkg-static install -y bash
 fi
 
 if [ -d /server/iredmail ]; then
