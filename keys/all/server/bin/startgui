@@ -31,10 +31,8 @@ if [ ! -e /usr/local/bin/Xorg ]; then
 		while [ $LOOP -eq 1 ]; do
 			LOOP=0;
 			echo -n '.'
-			for i in ${XPACKAGES} ; do
-				for k in /media/pkgdisk/${i}* ; do
-					/usr/local/sbin/pkg-static add $k 2>&1 | /usr/bin/grep 'already installed' > /dev/null 2> /dev/null || LOOP=1
-				done
+			for i in /media/pkgdisk/*.t?z ; do
+				/usr/local/sbin/pkg-static add $i 2>&1 | /usr/bin/grep 'already installed' > /dev/null 2> /dev/null || LOOP=1
 			done
 		done
 		echo " done"
