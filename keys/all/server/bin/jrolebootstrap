@@ -1314,32 +1314,32 @@ jrolepxejails () {
 	jrolegenericjails "pxe"						"lanctl.local" "${LOCALNIC}|${LOCALIP}.2" "$1"
 	jrolegenericjails "pkgng"					"lanctl.local" "${LOCALNIC}|${LOCALIP}.3" "$1"
 	jrolegenericjails "freebsd-dist"	"lanctl.local" "${LOCALNIC}|${LOCALIP}.4" "$1"
-	jrolegenericjails "log"						"lanctl.local" "${LOCALNIC}|${PRODIP}.5" "$1"
-	jrolegenericjails "ldap"					"lanctl.local" "${LOCALNIC}|${PRODIP}.6" "$1"
+	jrolegenericjails "log"						"lanctl.local" "${LOCALNIC}|${LOCALIP}.5" "$1"
+	jrolegenericjails "ldap"					"lanctl.local" "${LOCALNIC}|${LOCALIP}.6" "$1"
 }
 
 # ---------------------------------------------------------
 
 # Create git jail
 jrolegitjails () {
-	jrolegenericjails "git" "data.local" "${LOCALNIC}|${PRODIP}.7" "$1"
+	jrolegenericjails "git" "data.local" "${LOCALNIC}|${LOCALIP}.7" "$1"
 }
 
 # ---------------------------------------------------------
 
 # Create mysql jail
 jrolemysqljails () {
-	jrolegenericjails "mysql" "data.local" "${LOCALNIC}|${PRODIP}.8" "$1"
+	jrolegenericjails "mysql" "data.local" "${LOCALNIC}|${LOCALIP}.8" "$1"
 }
 
 # ---------------------------------------------------------
 
 # Create postfix jail
 jrolemailjails () {
-	jrolegenericjails "postfix" "mail.local" "${LOCALNIC}|${PRODIP}.9" "$1"
+	jrolegenericjails "postfix" "mail.local" "${LOCALNIC}|${LOCALIP}.9" "$1"
   jrolemysqljails
-	jrolegenericjails "dbmail" "mail.local" "${LOCALNIC}|${PRODIP}.10" "$1"
-	jrolegenericjails "horde" "ui.local" "${LOCALNIC}|${PRODIP}.11" "$1"
+	jrolegenericjails "dbmail" "mail.local" "${LOCALNIC}|${LOCALIP}.10" "$1"
+	jrolegenericjails "horde" "ui.local" "${LOCALNIC}|${LOCALIP}.11" "$1"
 }
 
 # ---------------------------------------------------------
@@ -1347,14 +1347,14 @@ jrolemailjails () {
 # Create odoo jail
 jroleodoojails () {
   jrolemysqljails
-	jrolegenericjails "odoo" "ui.local" "${LOCALNIC}|${PRODIP}.12" "$1"
+	jrolegenericjails "odoo" "ui.local" "${LOCALNIC}|${LOCALIP}.12" "$1"
 }
 
 # ---------------------------------------------------------
 
 # Create ssl jail
 jrolessljails () {
-	jrolegenericjails "ssl" "ssl.local" "${LOCALNIC}|${PRODIP}.13" "$1"
+	jrolegenericjails "ssl" "ssl.local" "${LOCALNIC}|${LOCALIP}.13" "$1"
 }
 
 # ---------------------------------------------------------
