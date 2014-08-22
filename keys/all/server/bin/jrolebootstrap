@@ -1400,11 +1400,10 @@ jrolegenericjails () {
 	case "$4" in
 		clean|remove|delete|destroy|reinstall)
 			jroledestroyboth "$1" "${1}.${2}" ;;
-		nostart) local nostart=1 ;;
 	esac
 
 	case "$4" in
-		clean|remove|delete|destroy) exit ;;
+		clean|remove|delete|destroy) return ;;
 	esac
 
 	jrolesetupbasejail
@@ -1412,7 +1411,7 @@ jrolegenericjails () {
 	jrolenatcreate "$1" "${1}.${2}" "${3}"
 
 	case "$4" in
-		nostart) exit ;;
+		nostart) return 0 ;;
 	esac
 
 	jrolebgstart "$1" "${1}.${2}"
