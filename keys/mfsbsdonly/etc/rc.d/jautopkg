@@ -26,14 +26,14 @@ jautopkg_start()
 		/sbin/mount -t tmpfs tmpfs /var/db/pkg
 	fi
 	if [ -x /usr/local/sbin/pkg-static ]; then
-		autopkg=`/bin/kenv -q autopkg`
-		REPOURL=$( /usr/bin/grep URL: /usr/local/etc/pkg/repos/myrepo.conf | /usr/bin/egrep -v '^\s*#' | /usr/bin/awk '{print $NF}' | /usr/bin/head -1 )
-		if /usr/bin/fetch -o /dev/null -T 10 "${REPOURL}/digests.txz" ; then
-			TRIMLIST="`echo $autopkg | /usr/bin/tr -d ' '`"
-			if [ -n "${TRIMLIST}" ]; then
-				echo -n "Installing packages remotely... "
-				if /sbin/ifconfig | /usr/bin/grep status | /usr/bin/grep -v "no carrier" \
-				| /usr/bin/grep . > /dev/null 2> /dev/null ; then
+		if /sbin/ifconfig | /usr/bin/grep status | /usr/bin/grep -v "no carrier" \
+		| /usr/bin/grep . > /dev/null 2> /dev/null ; then
+			autopkg=`/bin/kenv -q autopkg`
+			REPOURL=$( /usr/bin/grep URL: /usr/local/etc/pkg/repos/myrepo.conf | /usr/bin/egrep -v '^\s*#' | /usr/bin/awk '{print $NF}' | /usr/bin/head -1 )
+			if /usr/bin/fetch -o /dev/null -T 3 "${REPOURL}/digests.txz" ; then
+				TRIMLIST="`echo $autopkg | /usr/bin/tr -d ' '`"
+				if [ -n "${TRIMLIST}" ]; then
+					echo -n "Installing packages remotely... "
 					for i in ${autopkg} ; do
 						/usr/local/sbin/pkg-static install -y $i > /dev/null 2> /dev/null || echo "ERROR: pkg install $i"
 					done
