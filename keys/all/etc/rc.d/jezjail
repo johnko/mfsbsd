@@ -16,7 +16,7 @@ stop_cmd=":"
 jezjail_start()
 {
 
-	if [ ! -e /server/bin/jroledhcpdjails ]; then
+	if [ ! -e /server/bin/jrolejails ]; then
 		/server/bin/jrolebootstrap
 	fi
 	test -x /server/bin/startezjail && /server/bin/startezjail

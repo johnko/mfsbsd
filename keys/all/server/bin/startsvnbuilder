@@ -7,4 +7,4 @@ if /sbin/zfs list data/distro/releng10 > /dev/null 2> /dev/null ; then
 	fi
 fi
 
-/server/bin/freebsd-src svn ${update} && /server/bin/jrolebuilderjails
+/server/bin/freebsd-src svn ${update} && /server/bin/jrolejails release

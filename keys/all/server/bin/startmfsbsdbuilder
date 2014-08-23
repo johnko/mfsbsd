@@ -9,7 +9,7 @@ fi
 
 mfsbsdjail=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep mfsbsd | /usr/bin/awk '{print $4}' )
 if [ "x" = "x${mfsbsdjail}" ] ; then
-	/server/bin/jrolemfsbsdjails
+	/server/bin/jrolejails mfsbsd
 else
 	/server/bin/jrolebgstart mfsbsd ${mfsbsdjail}
 fi
