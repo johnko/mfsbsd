@@ -7,9 +7,10 @@ else
 	/bin/chmod a-x /server/bin/buildports
 fi
 
+# Cleanup old mfsbsd
 mfsbsdjail=$( /usr/local/bin/ezjail-admin list | /usr/bin/grep mfsbsd | /usr/bin/awk '{print $4}' )
-if [ "x" = "x${mfsbsdjail}" ] ; then
-	/server/bin/jrolejails mfsbsd
-else
-	/server/bin/jrolebgstart mfsbsd ${mfsbsdjail}
+if [ "x" != "x${mfsbsdjail}" ] ; then
+	/server/bin/jroledestroyboth mfsbsd ${mfsbsdjail}
 fi
+
+/server/bin/jrolejails mfsbsd

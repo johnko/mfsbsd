@@ -558,6 +558,18 @@ export jail_${safejailname}_fdescfs_enable="NO"
 EOF
 
 ############################################
+	elif [ "$1" = "pgsql" ]; then
+
+		/usr/bin/egrep "jrolecreate" "/usr/local/etc/ezjail/$safejailname" \
+		> /dev/null 2> /dev/null \
+		|| /bin/cat >> "/usr/local/etc/ezjail/$safejailname" <<EOF
+# Added by jrolecreate
+export jail_${safejailname}_fdescfs_enable="NO"
+export jail_${safejailname}_parameters="allow.sysvipc"
+# End of addition
+EOF
+
+############################################
 	elif [ "$1" = "release" ]; then
 
 		/usr/bin/egrep "jrolecreate" "/usr/local/etc/ezjail/$safejailname" \
@@ -586,6 +598,14 @@ EOF
 	else
 
 		echo "Not implemented: jrolecreate $1"
+
+		/usr/bin/egrep "jrolecreate" "/usr/local/etc/ezjail/$safejailname" \
+		> /dev/null 2> /dev/null \
+		|| /bin/cat >> "/usr/local/etc/ezjail/$safejailname" <<EOF
+# Added by jrolecreate
+export jail_${safejailname}_fdescfs_enable="NO"
+# End of addition
+EOF
 
 	fi
 
@@ -1289,10 +1309,15 @@ jrolesenddata () {
 jrolealljails () {
 	jrolejails dhcpd "$1"
 	jrolejails pxe "$1"
+	jrolejails consul "$1"
 	jrolejails log "$1"
 	jrolejails ldap "$1"
 	jrolejails git "$1"
 	jrolejails mysql "$1"
+	jrolejails pgsql "$1"
+	jrolejails riak "$1"
+	jrolejails couchdb "$1"
+	jrolejails cassandra "$1"
 	jrolejails mail "$1"
 	jrolejails odoo "$1"
 	jrolejails ssl "$1"
@@ -1312,31 +1337,31 @@ jrolejails () {
 		jrolejailsgeneric "$1"						"lanctl.local"	"${LOCALNIC}|${LOCALIP}.2"		"$2"
 		jrolejailsgeneric "pkgng"					"lanctl.local"	"${LOCALNIC}|${LOCALIP}.3"		"$2"
 		jrolejailsgeneric "freebsd-dist"	"lanctl.local"	"${LOCALNIC}|${LOCALIP}.4"		"$2"
-	elif [ "log" = "$1" ]; then
+	elif [ "consul" = "$1" ]; then
 		jrolejailsgeneric "$1"						"lanctl.local"	"${LOCALNIC}|${LOCALIP}.5"		"$2"
-	elif [ "ldap" = "$1" ]; then
+	elif [ "log" = "$1" ]; then
 		jrolejailsgeneric "$1"						"lanctl.local"	"${LOCALNIC}|${LOCALIP}.6"		"$2"
+	elif [ "ldap" = "$1" ]; then
+		jrolejailsgeneric "$1"						"lanctl.local"	"${LOCALNIC}|${LOCALIP}.7"		"$2"
 	elif [ "git" = "$1" ]; then
-		jrolejailsgeneric "$1"						"data.local"		"${LOCALNIC}|${LOCALIP}.7"		"$2"
-	elif [ "mysql" = "$1" ]; then
 		jrolejailsgeneric "$1"						"data.local"		"${LOCALNIC}|${LOCALIP}.8"		"$2"
-	elif [ "pgsql" = "$1" ]; then
+	elif [ "mysql" = "$1" ]; then
 		jrolejailsgeneric "$1"						"data.local"		"${LOCALNIC}|${LOCALIP}.9"		"$2"
-	elif [ "riak" = "$1" ]; then
+	elif [ "pgsql" = "$1" ]; then
 		jrolejailsgeneric "$1"						"data.local"		"${LOCALNIC}|${LOCALIP}.10"		"$2"
-	elif [ "couchdb" = "$1" ]; then
+	elif [ "riak" = "$1" ]; then
 		jrolejailsgeneric "$1"						"data.local"		"${LOCALNIC}|${LOCALIP}.11"		"$2"
-	elif [ "cassandra" = "$1" ]; then
+	elif [ "couchdb" = "$1" ]; then
 		jrolejailsgeneric "$1"						"data.local"		"${LOCALNIC}|${LOCALIP}.12"		"$2"
+	elif [ "cassandra" = "$1" ]; then
+		jrolejailsgeneric "$1"						"data.local"		"${LOCALNIC}|${LOCALIP}.13"		"$2"
 	elif [ "mail" = "$1" ]; then
-		jrolejailsgeneric "postfix"				"mail.local"		"${LOCALNIC}|${LOCALIP}.13"		"$2"
+		jrolejailsgeneric "postfix"				"mail.local"		"${LOCALNIC}|${LOCALIP}.14"		"$2"
 		jrolejails mysql
-		jrolejailsgeneric "dbmail"				"mail.local"		"${LOCALNIC}|${LOCALIP}.14"		"$2"
-		jrolejailsgeneric "horde"					"app.local"			"${LOCALNIC}|${LOCALIP}.15"		"$2"
+		jrolejailsgeneric "dbmail"				"mail.local"		"${LOCALNIC}|${LOCALIP}.15"		"$2"
+		jrolejailsgeneric "horde"					"app.local"			"${LOCALNIC}|${LOCALIP}.16"		"$2"
 	elif [ "odoo" = "$1" ]; then
 		jrolejails mysql
-		jrolejailsgeneric "$1"						"app.local"			"${LOCALNIC}|${LOCALIP}.16"		"$2"
-	elif [ "nodejs" = "$1" ]; then
 		jrolejailsgeneric "$1"						"app.local"			"${LOCALNIC}|${LOCALIP}.17"		"$2"
 	elif [ "ssl" = "$1" ]; then
 		jrolejailsgeneric "$1"						"secure.local"	"${LOCALNIC}|${LOCALIP}.18"		"$2"
