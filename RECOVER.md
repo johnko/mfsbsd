@@ -38,9 +38,57 @@ ifconfig -l | sed -E -e 's/lo[0-9]+//g' -e 's/bridge[0-9]+//g' -e 's/enc[0-9]+//
 
 ## Instructions
 
-### 1) Edit the CSV network map:
+### 1) Plug in new host server. Turn on new host server and access the `BIOS Setup`:
 
-Plug in the USB to a working computer and edit the `[company].csv` file with a plain text editor.
+> To access the BIOS setup:
+> Brand   | Possible Keys
+> --------|--------------
+> Acer    | `F2, F10`
+> Dell    | `F2`
+> HP      | `F10`
+> Phoenix | `DEL`
+
+Setup BIOS boot order to:
+
+1. `Hard Drive`
+2. `USB / Removable Drive`
+3. `CD / Optical Drive`
+
+### 2) Insert CD or USB media containing `NOX` recovery image into host server.
+
+Reboot with `Ctrl + Alt + Del` and access the `Boot Selection Menu`:
+
+> To access the Boot Selection Menu:
+> Brand   | Possible Keys
+> --------|--------------
+> Acer    | `F2`
+> Dell    | `F12`
+> HP      | `ESC`
+> Phoenix | `F12`
+
+Make sure to boot new host server from the media: you should be able to select the `USB / Removable Drive` or `CD / Optical Drive` from the BIOS `Boot Selection Menu`.
+
+### 3) If the boot is successful, you will see a FreeBSD `login:` prompt, type:
+
+```
+root
+```
+
+Then at the `Password:` prompt, type:
+
+```
+[password]
+```
+
+### 4) Configure network interface on new host server manually with a command like:
+
+```
+ifconfig [network_if] inet [ip_address]/32
+```
+
+### 5) Edit the CSV network map:
+
+Plug in the USB to a working computer and edit the `/server/csv/dhcpd/[company].csv` file with a plain text editor.
 
 1. Append the new host server(s) MAC/Hardware address, hostname, IP address.
 2. You need to modify / verify:
@@ -57,55 +105,6 @@ dhcp-range,192.168.0.10,192.168.0.19                             | First DHCP ra
 dhcp-range,192.168.0.20,192.168.0.29                             | Additional DHCP range for DHCP service
 dhcp-subnet,192.168.0.0,255.255.255.0                            | Network and subnet
 dhcp-host,00:00:00:00:12:34,alfa,192.168.0.120,localchain,static | Host server with static IP
-
-### 2) Plug in new host server. Turn on new host server and access the `BIOS Setup`:
-
-> To access the BIOS setup:
-> Brand   | Possible Keys
-> --------|--------------
-> Acer    | `F2, F10`
-> Dell    | `F2`
-> HP      | `F10`
-> Phoenix | `DEL`
-
-Setup BIOS boot order to:
-
-1. `Hard Drive`
-2. `USB / Removable Drive`
-3. `CD / Optical Drive`
-
-### 3) Insert CD or USB media containing `NOX` recovery image into host server.
-
-Reboot with `Ctrl + Alt + Del` and access the `Boot Selection Menu`:
-
-> To access the Boot Selection Menu:
-> Brand   | Possible Keys
-> --------|--------------
-> Acer    | `F2`
-> Dell    | `F12`
-> HP      | `ESC`
-> Phoenix | `F12`
-
-Make sure to boot new host server from the media: you should be able to select the `USB / Removable Drive` or `CD / Optical Drive` from the BIOS `Boot Selection Menu`.
-
-### 4) If the boot is successful, you will see a FreeBSD `login:` prompt, type:
-
-```
-root
-```
-
-Then at the `Password:` prompt, type:
-
-```
-[password]
-```
-
-### 5) Configure network interface on new host server manually with a command like:
-
-```
-ifconfig [network_if] inet [ip_address]/32
-```
-
 
 ### 6) **Warning:** If the HDD have data, you may need to erase them:
 

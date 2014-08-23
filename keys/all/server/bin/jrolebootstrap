@@ -1306,36 +1306,47 @@ jrolejails () {
 	if [ "dhcpd" = "$1" ]; then
 		IPCOUNT=$(( IPCOUNT + 1 ))						# Global vars for ipcount
 		DHCP="${IP}.${IPCOUNT}"	# Global vars for duration of script run for setting firewall
-		jrolejailsgeneric "dhcpd"					"lanctl.local"	"${NIC}|${IP}.${IPCOUNT}"			"$2"
-		jrolejails pxe "$1"
+		jrolejailsgeneric "$1"						"lanctl.local"	"${NIC}|${IP}.${IPCOUNT}"			"$2"
+		jrolejails pxe "$2"
 	elif [ "pxe" = "$1" ]; then
-		jrolejailsgeneric "pxe"						"lanctl.local"	"${LOCALNIC}|${LOCALIP}.2"		"$2"
+		jrolejailsgeneric "$1"						"lanctl.local"	"${LOCALNIC}|${LOCALIP}.2"		"$2"
 		jrolejailsgeneric "pkgng"					"lanctl.local"	"${LOCALNIC}|${LOCALIP}.3"		"$2"
 		jrolejailsgeneric "freebsd-dist"	"lanctl.local"	"${LOCALNIC}|${LOCALIP}.4"		"$2"
 	elif [ "log" = "$1" ]; then
-		jrolejailsgeneric "log"						"lanctl.local"	"${LOCALNIC}|${LOCALIP}.5"		"$2"
+		jrolejailsgeneric "$1"						"lanctl.local"	"${LOCALNIC}|${LOCALIP}.5"		"$2"
 	elif [ "ldap" = "$1" ]; then
-		jrolejailsgeneric "ldap"					"lanctl.local"	"${LOCALNIC}|${LOCALIP}.6"		"$2"
+		jrolejailsgeneric "$1"						"lanctl.local"	"${LOCALNIC}|${LOCALIP}.6"		"$2"
 	elif [ "git" = "$1" ]; then
-		jrolejailsgeneric "git"						"data.local"		"${LOCALNIC}|${LOCALIP}.7"		"$2"
+		jrolejailsgeneric "$1"						"data.local"		"${LOCALNIC}|${LOCALIP}.7"		"$2"
 	elif [ "mysql" = "$1" ]; then
-		jrolejailsgeneric "mysql"					"data.local"		"${LOCALNIC}|${LOCALIP}.8"		"$2"
+		jrolejailsgeneric "$1"						"data.local"		"${LOCALNIC}|${LOCALIP}.8"		"$2"
+	elif [ "pgsql" = "$1" ]; then
+		jrolejailsgeneric "$1"						"data.local"		"${LOCALNIC}|${LOCALIP}.9"		"$2"
+	elif [ "riak" = "$1" ]; then
+		jrolejailsgeneric "$1"						"data.local"		"${LOCALNIC}|${LOCALIP}.10"		"$2"
+	elif [ "couchdb" = "$1" ]; then
+		jrolejailsgeneric "$1"						"data.local"		"${LOCALNIC}|${LOCALIP}.11"		"$2"
+	elif [ "cassandra" = "$1" ]; then
+		jrolejailsgeneric "$1"						"data.local"		"${LOCALNIC}|${LOCALIP}.12"		"$2"
 	elif [ "mail" = "$1" ]; then
-		jrolejailsgeneric "postfix"				"mail.local"		"${LOCALNIC}|${LOCALIP}.9"		"$2"
+		jrolejailsgeneric "postfix"				"mail.local"		"${LOCALNIC}|${LOCALIP}.13"		"$2"
 		jrolejails mysql
-		jrolejailsgeneric "dbmail"				"mail.local"		"${LOCALNIC}|${LOCALIP}.10"		"$2"
-		jrolejailsgeneric "horde"					"ui.local"			"${LOCALNIC}|${LOCALIP}.11"		"$2"
+		jrolejailsgeneric "dbmail"				"mail.local"		"${LOCALNIC}|${LOCALIP}.14"		"$2"
+		jrolejailsgeneric "horde"					"app.local"			"${LOCALNIC}|${LOCALIP}.15"		"$2"
 	elif [ "odoo" = "$1" ]; then
 		jrolejails mysql
-		jrolejailsgeneric "odoo"					"ui.local"			"${LOCALNIC}|${LOCALIP}.12"		"$2"
+		jrolejailsgeneric "$1"						"app.local"			"${LOCALNIC}|${LOCALIP}.16"		"$2"
+	elif [ "nodejs" = "$1" ]; then
+		jrolejailsgeneric "$1"						"app.local"			"${LOCALNIC}|${LOCALIP}.17"		"$2"
 	elif [ "ssl" = "$1" ]; then
-		jrolejailsgeneric "ssl"						"ssl.local"			"${LOCALNIC}|${LOCALIP}.13"		"$2"
+		jrolejailsgeneric "$1"						"secure.local"	"${LOCALNIC}|${LOCALIP}.18"		"$2"
+
 	elif [ "littlechef" = "$1" ]; then
-		jrolejailsgeneric "littlechef"		"lanctl.local"	"${LOCALNIC}|${LOCALIP}.250"	"$2"
+		jrolejailsgeneric "$1"						"lanctl.local"	"${LOCALNIC}|${LOCALIP}.250"	"$2"
 	elif [ "release" = "$1" ]; then
-		jrolejailsgeneric "release"				"builder.local"	"${LOCALNIC}|${LOCALIP}.251"	"$2"
+		jrolejailsgeneric "$1"						"builder.local"	"${LOCALNIC}|${LOCALIP}.251"	"$2"
 	elif [ "mfsbsd" = "$1" ]; then
-		jrolejailsgeneric "mfsbsd"				"builder.local"	"${LOCALNIC}|${LOCALIP}.252"	"$2"
+		jrolejailsgeneric "$1"						"builder.local"	"${LOCALNIC}|${LOCALIP}.252"	"$2"
 	fi
 }
 
