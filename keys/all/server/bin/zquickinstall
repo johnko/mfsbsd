@@ -12,10 +12,12 @@ usage() {
 : ${ARCH:="amd64"}
 uri="http://${server}:${port}"
 mfsbsdiso="${uri}/mfsbsd/mfsbsd.iso"
-MFSBSD=1; PASSMFSBSD="-M -c" ;
 DETECTEDDRIVES=""
 ISMIRROR=""
 DRIVECOUNT=0
+# Default to MFSBSD
+MFSBSD=1
+PASSMFSBSD="-M -c"
 
 unset FORCE
 
@@ -24,10 +26,10 @@ while getopts d:u:t:T:iM o; do
 		d) DEVS="$DEVS ${OPTARG##/dev/}" ;;
 		u) URL="${OPTARG}" ;;
 		t) ARCHIVE="${OPTARG}" ;;
-		T) FETCH="${OPTARG}"; ARCHIVE="$FETCH" ;;
-		M) MFSBSD=1; PASSMFSBSD="-M -c" ;;
-		i) MFSBSD=''; PASSMFSBSD='' ;;
-		[?]) usage; exit 1;;
+		T) FETCH="${OPTARG}" ; ARCHIVE="$FETCH" ;;
+		M) MFSBSD=1 ; PASSMFSBSD="-M -c" ;;
+		i) MFSBSD='' ; PASSMFSBSD='' ;;
+		[?]) usage ; exit 1 ;;
 	esac
 done
 
@@ -61,12 +63,11 @@ doInstall() {
 
 	test "$FORCE" = "1" && /server/bin/destroygeom ${DETECTEDDRIVES}
 
-	if echo | /usr/bin/nc -w 3 -v ${server} ${port} ; then
-
+# Test port with nc
+#	if echo | /usr/bin/nc -w 3 -v ${server} ${port} ; then
 		#/usr/bin/fetch "${mfsbsdiso}"
-		echo
-
-	fi
+#		echo
+#	fi
 
 	if [ -f mfsbsd.iso ]; then
 
@@ -133,16 +134,12 @@ Trying:
 EOF
 	/server/bin/zfsinstall ${DETECTEDDRIVES} ${ISMIRROR} ${disturl} ${PASSMFSBSD} -p autoroot -s 10G -z 30G -b 1G -E -n || exit 1
 
-	test -d /media/pkgdisk && /bin/cp -ar /media/pkgdisk /mnt/var/backups
+	test -d /media/pkgdisk && /bin/cp -a /media/pkgdisk /mnt/var/backups
 
-	if /bin/ls -1 /media/*.csv > /dev/null 2> /dev/null ; then
-
+	if 						/bin/ls -1 /media/*.csv > /dev/null 2> /dev/null ; then
 		for i in $( /bin/ls -1 /media/*.csv ); do
-
 			/bin/cp -av "${i}" /mnt/bootdir/ || exit 1
-
 		done
-
 	fi
 
 	cat <<EOF

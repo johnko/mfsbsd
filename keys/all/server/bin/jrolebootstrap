@@ -1470,7 +1470,7 @@ jrolerecover () {
 
 	testforx /usr/local/bin/ezjail-admin
 
-	if /bin/ls -1 /bootdir/*.csv > /dev/null 2> /dev/null ; then
+	if 						/bin/ls -1 /bootdir/*.csv > /dev/null 2> /dev/null ; then
 		for i in $( /bin/ls -1 /bootdir/*.csv ); do
 			/bin/cp -av "${i}" /server/csv/dhcpd/ || exit 1
 		done
