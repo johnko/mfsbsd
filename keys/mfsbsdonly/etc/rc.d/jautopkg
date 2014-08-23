@@ -37,8 +37,8 @@ jautopkg_start()
 					for i in ${autopkg} ; do
 						/usr/local/sbin/pkg-static install -y $i > /dev/null 2> /dev/null || echo "ERROR: pkg install $i"
 					done
+					echo " done"
 				fi
-				echo " done"
 				if ! /usr/local/sbin/pkg-static info | /usr/bin/grep 'rsync' > /dev/null 2> /dev/null; then
 					local trylocal="YES"
 				fi
