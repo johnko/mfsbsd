@@ -15,28 +15,30 @@ test "$MFSBSD" != "1" \
 
 
 
-/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" accf_data_load="YES"
-/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" accf_http_load="YES"
-/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" autoboot_delay="1"
-/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" debug.acpi.disabled="timer"
-/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" hw.bge.allow_asf="0"
-/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" hw.usb.no_shutdown_wait="1"
-/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" if_lagg_load="YES"
-/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" kern.geom.label.disk_ident.enable="0"
-/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" loader_logo="none"
-/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" nvidia_load="YES"
-/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" snd_uaudio_load="YES"
-#/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" zpool_cache_load="YES"
-#/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" zpool_cache_type="/boot/zfs/zpool.cache"
-#/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" zpool_cache_name="/boot/zfs/zpool.cache"
+if [ "$MFSBSD" != "1" ]; then
+	/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" accf_data_load="YES"
+	/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" accf_http_load="YES"
+	/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" autoboot_delay="1"
+	/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" "debug.acpi.disabled=timer"
+	/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" "hw.bge.allow_asf=0"
+	/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" "hw.usb.no_shutdown_wait=1"
+	/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" if_lagg_load="YES"
+	/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" "kern.geom.label.disk_ident.enable=0"
+	/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" loader_logo="none"
+	/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" nvidia_load="YES"
+	/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" snd_uaudio_load="YES"
+	#/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" zpool_cache_load="YES"
+	#/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" zpool_cache_type="/boot/zfs/zpool.cache"
+	#/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" zpool_cache_name="/boot/zfs/zpool.cache"
+	#### One of the below prevents tftp on lagg,ucarp
+	#	/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" cc_htcp_load="YES"
+	#	/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" net.inet.tcp.hostcache.cachelimit="0"
+	#### End of problems
+fi
 /usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf.local" autopkg="${PKGLIST}"
-/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf.local" kern.maxfiles="65000"
-/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf.local" kern.maxswzone="512M"
-/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf.local" vfs.zfs.arc_max="256000000"
-#### One of the below prevents tftp on lagg,ucarp
-#	/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" cc_htcp_load="YES"
-#	/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" net.inet.tcp.hostcache.cachelimit="0"
-#### End of problems
+/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf.local" "kern.maxfiles=65000"
+/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf.local" "kern.maxswzone=512M"
+/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf.local" "vfs.zfs.arc_max=256000000"
 
 
 
