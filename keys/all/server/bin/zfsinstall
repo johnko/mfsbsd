@@ -739,7 +739,7 @@ if [ -z "${NOINSTALL}" ]; then
 	echo " done"
 	# Adjust configuration files
 	echo -n "Writing /boot/loader.conf..."
-	/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" automount="autoroot"
+	/usr/sbin/sysrc -f "${MNT}/boot/loader.conf.local" automount="autoroot"
 	/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" aesni_load="YES"
 	/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" ahci_load="YES"
 	/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" geom_label_load="YES"
@@ -756,26 +756,26 @@ if [ -z "${NOINSTALL}" ]; then
 	fi
 	if [ "${USEBOOT}" = "1" ]; then
 		if [ "${MBR}" != "1" ]; then
-			/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" vfs.root.mountfrom="zfs:autoboot/bootdir"
+			/usr/sbin/sysrc -f "${MNT}/boot/loader.conf.local" vfs.root.mountfrom="zfs:autoboot/bootdir"
 		else
-			/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" vfs.root.mountfrom="ufs:mirror/bootdir"
+			/usr/sbin/sysrc -f "${MNT}/boot/loader.conf.local" vfs.root.mountfrom="ufs:mirror/bootdir"
 		fi
 	fi
 	if [ "${GELI}" = "1" ]; then
 		umask 077
 		/usr/bin/install -d -m 700	"${MNT}/boot/keys" > /dev/null 2> /dev/null
 		if [ -d /boot/keys/bootpkg ]; then
-			/bin/cat /tmp/loader.keys >> /boot/keys/bootpkg/loader.conf
+			/bin/cat /tmp/loader.keys >> /boot/keys/bootpkg/loader.conf.local
 		else
 			for k in ${KEYFILES}; do
 				/bin/cp -pv "${k}" "${MNT}/boot/keys/"
 			done
-			/bin/cat /tmp/loader.keys >> "${MNT}/boot/loader.conf"
+			/bin/cat /tmp/loader.keys >> "${MNT}/boot/loader.conf.local"
 		fi
 		umask $RESTOREMASK
 	fi
 	if [ "$MFSBSD" != "1" ]; then
-		/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" vfs.root.mountfrom="zfs:${POOL}/${RFS}"
+		/usr/sbin/sysrc -f "${MNT}/boot/loader.conf.local" vfs.root.mountfrom="zfs:${POOL}/${RFS}"
 	fi
 	echo " done"
 	if [ "$MFSBSD" != "1" ]; then

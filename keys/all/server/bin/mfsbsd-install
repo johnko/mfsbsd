@@ -47,9 +47,9 @@ doInstall() {
 
 	/server/bin/zquickinstall ${DETECTEDDRIVES} || exit 1
 
-	/usr/sbin/sysrc -f /mnt/bootdir/boot/loader.conf recoverdisk="${DETECTEDDRIVES}"
+	/usr/sbin/sysrc -f /mnt/bootdir/boot/loader.conf.local recoverdisk="${DETECTEDDRIVES}"
 
-	/usr/sbin/sysrc -f /mnt/bootdir/boot/loader.conf recoverphase="data"
+	/usr/sbin/sysrc -f /mnt/bootdir/boot/loader.conf.local recoverphase="data"
 
 	/sbin/reboot
 

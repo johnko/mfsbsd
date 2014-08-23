@@ -20,8 +20,8 @@ jrecover_start()
 		test -x /server/bin/mfsbsd-install && /server/bin/mfsbsd-install
 	elif [ "xdata" = "x${recoverphase}" -a "x" != "x${recoverdisk}" ]; then
 		test -x /server/bin/zquickdata && /server/bin/zquickdata ${recoverdisk}
-		if [ -e /bootdir/boot/loader.conf ]; then
-			/usr/sbin/sysrc -f /bootdir/boot/loader.conf recoverphase=""
+		if [ -e /bootdir/boot/loader.conf.local ]; then
+			/usr/sbin/sysrc -f /bootdir/boot/loader.conf.local recoverphase=""
 			/sbin/reboot
 		fi
 	fi

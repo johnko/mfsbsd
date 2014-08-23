@@ -259,8 +259,11 @@ for DEV in ${DEVS}; do
 		umask $RESTOREMASK
 	fi
 done
-oldautomount=$( /usr/sbin/sysrc -n -f "${BOOTDIR}/boot/loader.conf" automount )
-/usr/sbin/sysrc -f "${BOOTDIR}/boot/loader.conf" automount="${oldautomount} data"
+if [ "$MFSBSD" != "1" ]; then
+	/bin/cat /tmp/loader.keys >> "${BOOTDIR}/boot/loader.conf.local"
+fi
+oldautomount=$( /usr/sbin/sysrc -n -f "${BOOTDIR}/boot/loader.conf.local" automount )
+/usr/sbin/sysrc -f "${BOOTDIR}/boot/loader.conf.local" automount="${oldautomount} data"
 POOLPARTS="${PARTS}"
 if [ "${GELI}" = "1" ]; then
 	POOLPARTS="${EPARTS}"

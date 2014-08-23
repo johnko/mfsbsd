@@ -112,8 +112,6 @@ fi
 
 echo " done"
 
-/bin/mv "${MNT}/boot/loader.conf" "${MNT}/boot/loader.conf.bkp"
-
 echo -n "Extracting FreeBSD distribution ..."
 
 for file in ${EXTRACT_FILES}; do
@@ -137,22 +135,6 @@ done
 echo " done"
 
 # Adjust configuration files
-
-echo -n "Writing /boot/loader.conf..."
-/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" aesni_load="YES"
-/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" ahci_load="YES"
-/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" geom_label_load="YES"
-/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" geom_mirror_load="YES"
-/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" kern.cam.boot_delay="10000"
-/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" nullfs_load="YES"
-/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" zfs_load="YES"
-/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" geom_eli_load="YES"
-/usr/sbin/sysrc -f "${MNT}/boot/loader.conf" vfs.root.mountfrom="zfs:autoboot/bootdir"
-/usr/bin/grep "^geli_label_" "${MNT}/boot/loader.conf.bkp" >> "${MNT}/boot/loader.conf"
-/usr/bin/grep "^automount" "${MNT}/boot/loader.conf.bkp" >> "${MNT}/boot/loader.conf"
-/usr/bin/grep "^autowifi" "${MNT}/boot/loader.conf.bkp" >> "${MNT}/boot/loader.conf"
-/usr/bin/grep "^autogui" "${MNT}/boot/loader.conf.bkp" >> "${MNT}/boot/loader.conf"
-echo " done"
 
 /bin/cat <<EOF
 
