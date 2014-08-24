@@ -29,11 +29,11 @@ EOF
 		# IF NOT JAILED
 		if /sbin/sysctl security.jail.jailed | /usr/bin/grep 0 >/dev/null 2>&1 ; then
 			# based on rcorder /etc/rc.d/*
-			test -e /etc/rc.d/jcsvinterfaces && /etc/rc.d/jcsvinterfaces onestart
-			test -e /etc/rc.d/jinterfaces && /etc/rc.d/jinterfaces onestart
+			test -x /etc/rc.d/jcsvinterfaces && /etc/rc.d/jcsvinterfaces onestart
+			test -x /etc/rc.d/jinterfaces && /etc/rc.d/jinterfaces onestart
 			/etc/rc.d/netoptions onerestart
 			/etc/rc.d/netif onerestart
-			test -e /etc/rc.d/jpfconf && /etc/rc.d/jpfconf onestart
+			test -x /etc/rc.d/jpfconf && /etc/rc.d/jpfconf onestart
 			/etc/rc.d/pfsync onerestart
 			/etc/rc.d/pflog onereload
 			/etc/rc.d/pf onereload
@@ -47,7 +47,9 @@ EOF
 			if [ "x" = "x${realip}" ]; then
 				/sbin/dhclient ${interface}
 			fi
-			/usr/bin/grep nameserver /etc/resolv.conf || /etc/rc.d/jinterfaces onestart
+			if [ -x /etc/rc.d/jinterfaces ]; then
+				/usr/bin/grep nameserver /etc/resolv.conf || /etc/rc.d/jinterfaces onestart
+			fi
 			if /sbin/ifconfig -l | /usr/bin/grep lagg0 >/dev/null 2>&1 ; then
 				/server/bin/pf-rule | /usr/bin/grep lagg0 || ( /etc/rc.d/pflog onereload; /etc/rc.d/pf onereload )
 			fi
@@ -55,7 +57,7 @@ EOF
 				if ! /usr/bin/egrep "ListenAddress $ip" /etc/ssh/sshd_config >/dev/null 2>&1 ; then
 					/bin/chflags noschg /etc/ssh/sshd_config
 					/bin/cat >>/etc/ssh/sshd_config <<EOF
-##### Added by jrolesetuphost
+##### Added by cron-csv-detect-diff
 ListenAddress $ip
 ##### End of addition
 EOF
@@ -65,12 +67,12 @@ EOF
 			done
 		fi
 		/usr/bin/grep nameserver /etc/resolv.conf || echo "nameserver 8.8.8.8" >> /etc/resolv.conf
-		test -e /etc/rc.d/jcsvpxelinuxcfg && /etc/rc.d/jcsvpxelinuxcfg onestart
-		test -e /etc/rc.d/jcsvdhcpd && /etc/rc.d/jcsvdhcpd onestart
-		if [ -e /usr/local/etc/rc.d/dnsmasq ]; then
+		test -x /etc/rc.d/jcsvpxelinuxcfg && /etc/rc.d/jcsvpxelinuxcfg onestart
+		test -x /etc/rc.d/jcsvdhcpd && /etc/rc.d/jcsvdhcpd onestart
+		if [ -x /usr/local/etc/rc.d/dnsmasq ]; then
 			/usr/local/etc/rc.d/dnsmasq onereload || /usr/local/etc/rc.d/dnsmasq onestart
 		fi
-		if [ -e /usr/local/etc/rc.d/isc-dhcpd ]; then
+		if [ -x /usr/local/etc/rc.d/isc-dhcpd ]; then
 			/usr/local/etc/rc.d/isc-dhcpd onestart || /usr/local/etc/rc.d/isc-dhcpd onerestart
 		fi
 	fi
@@ -84,13 +86,12 @@ if /sbin/sysctl security.jail.jailed | /usr/bin/grep 0 >/dev/null 2>&1 ; then
 		echo "####################"
 		if ! /usr/bin/find /var/db -type f -maxdepth 1 | /usr/bin/grep dhclient.leases >/dev/null 2>&1 ; then
 			/sbin/dhclient ${interface}
-		else
-			# using next-server is limited, so we detect dhcp-server-identifier for failover scenario
-			server=$( /usr/bin/egrep "dhcp-server-identifier" `ls -1tr /var/db/dhclient.leases.* 2>/dev/null` | /usr/bin/awk '{ print $NF }' | /usr/bin/tail -1 | /usr/bin/tr -d ';' )
-			if [ "x" != "x${server}" ]; then
-				echo ${server} > /server/csv/ucarp
-			fi
+		fi
+		# using next-server is limited, so we detect dhcp-server-identifier for failover scenario
+		server=$( /usr/bin/egrep "dhcp-server-identifier" `ls -1tr /var/db/dhclient.leases.* 2>/dev/null` | /usr/bin/awk '{ print $NF }' | /usr/bin/tail -1 | /usr/bin/tr -d ';' )
+		if [ "x" != "x${server}" ]; then
+			echo ${server} > /server/csv/ucarp
 		fi
 	fi
-	/etc/rc.d/jroute onestart
+	test -x /etc/rc.d/jroute && /etc/rc.d/jroute onestart
 fi
