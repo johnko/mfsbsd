@@ -812,57 +812,58 @@ EOF
 		/usr/sbin/sysrc -f "${MNT}/etc/rc.conf" zfs_enable="YES"
 		echo " done"
 	fi
-	echo -n "Copying /boot/zfs/zpool.cache ..."
-	if [ "$USEBOOT" = "1" ]; then
-		if [ "$MBR" = "1" ]; then
-			if ! /sbin/umount "${MNT}/boot" > /dev/null 2> /dev/null ; then
-				echo " error unmounting /boot" ; exit 1
-			fi
-			if ! /sbin/umount "${MNT}/bootdir" > /dev/null 2> /dev/null ; then
-				echo " error unmounting /bootdir" ; exit 1
-			fi
-		fi
-	fi
-	if [ "$USEBOOT" = "1" -a "$MBR" != "1" ]; then
-	  if ! /sbin/zpool export autoboot > /dev/null 2> /dev/null ; then
-		echo " error exporting autoboot" ; exit 1
-	  fi
-	fi
-	if ! /sbin/zpool export "$POOL" > /dev/null 2> /dev/null ; then
-		echo " error exporting pool" ; exit 1
-	fi
-	if ! /sbin/zpool import $ALTROOT "$POOL" > /dev/null 2> /dev/null ; then
-		echo " error importing pool" ; exit 1
-	fi
-	if [ "$USEBOOT" = "1" -a "$MBR" != "1" ]; then
-	  # import after import main pool
-	  if ! /sbin/zpool import $BALTROOT autoboot > /dev/null 2> /dev/null ; then
-			echo " error importing autoboot" ; exit 1
-	  fi
-	fi
-	if [ "$USEBOOT" = "1" ]; then
-		if [ "$MBR" = "1" ]; then
-			if ! /sbin/mount /dev/mirror/bootdir "${MNT}/bootdir" > /dev/null 2> /dev/null ; then
-				echo " error remounting /bootdir" ; exit 1
-			fi
-			if ! /sbin/mount -t nullfs "${MNT}/bootdir/boot" "${MNT}/boot" > /dev/null 2> /dev/null ; then
-				echo " error remounting /boot" ; exit 1
+	if [ "$MFSBSD" != "1" ]; then
+		echo -n "Copying /boot/zfs/zpool.cache ..."
+		if [ "$USEBOOT" = "1" ]; then
+			if [ "$MBR" = "1" ]; then
+				if ! /sbin/umount "${MNT}/boot" > /dev/null 2> /dev/null ; then
+					echo " error unmounting /boot" ; exit 1
+				fi
+				if ! /sbin/umount "${MNT}/bootdir" > /dev/null 2> /dev/null ; then
+					echo " error unmounting /bootdir" ; exit 1
+				fi
 			fi
 		fi
-	fi
-	if ! /bin/cp /boot/zfs/zpool.cache "${MNT}/boot/zfs/" > /dev/null 2> /dev/null ; then
-		echo " error copying zpool.cache" ; exit 1
-	fi
-	echo " done"
-	if [ "$USEBOOT" = "1" -a "$MBR" != "1" ]; then
-		echo -n "Linking /bootdir ..."
-		/bin/cp -a "${MNT}/boot" "${MNT}/bootdir/" || exit 1
-		/bin/rm -r "${MNT}/boot" || exit 1
-		/bin/ln -shf bootdir/boot	"${MNT}/boot" || exit 1
-		/bin/chflags -h sunlink		"${MNT}/boot" || exit 1
+		if [ "$USEBOOT" = "1" -a "$MBR" != "1" ]; then
+			if ! /sbin/zpool export autoboot > /dev/null 2> /dev/null ; then
+			echo " error exporting autoboot" ; exit 1
+			fi
+		fi
+		if ! /sbin/zpool export "$POOL" > /dev/null 2> /dev/null ; then
+			echo " error exporting pool" ; exit 1
+		fi
+		if ! /sbin/zpool import $ALTROOT "$POOL" > /dev/null 2> /dev/null ; then
+			echo " error importing pool" ; exit 1
+		fi
+		if [ "$USEBOOT" = "1" -a "$MBR" != "1" ]; then
+			# import after import main pool
+			if ! /sbin/zpool import $BALTROOT autoboot > /dev/null 2> /dev/null ; then
+				echo " error importing autoboot" ; exit 1
+			fi
+		fi
+		if [ "$USEBOOT" = "1" ]; then
+			if [ "$MBR" = "1" ]; then
+				if ! /sbin/mount /dev/mirror/bootdir "${MNT}/bootdir" > /dev/null 2> /dev/null ; then
+					echo " error remounting /bootdir" ; exit 1
+				fi
+				if ! /sbin/mount -t nullfs "${MNT}/bootdir/boot" "${MNT}/boot" > /dev/null 2> /dev/null ; then
+					echo " error remounting /boot" ; exit 1
+				fi
+			fi
+		fi
+		if ! /bin/cp /boot/zfs/zpool.cache "${MNT}/boot/zfs/" > /dev/null 2> /dev/null ; then
+			echo " error copying zpool.cache" ; exit 1
+		fi
 		echo " done"
-	fi
-	/bin/cat <<EOF
+		if [ "$USEBOOT" = "1" -a "$MBR" != "1" ]; then
+			echo -n "Linking /bootdir ..."
+			/bin/cp -a "${MNT}/boot" "${MNT}/bootdir/" || exit 1
+			/bin/rm -r "${MNT}/boot" || exit 1
+			/bin/ln -shf bootdir/boot	"${MNT}/boot" || exit 1
+			/bin/chflags -h sunlink		"${MNT}/boot" || exit 1
+			echo " done"
+		fi
+		/bin/cat <<EOF
 Installation complete.
 The system will boot from ZFS with clean install on next reboot
 You may make adjustments to the installed system using chroot:
@@ -871,6 +872,7 @@ Some adjustments may require a mounted devfs:
 	mount -t devfs devfs ${MNT}/dev
 WARNING - Don't export ZFS pool "$POOL"!
 EOF
+	fi
 	if [ "$GELI" = "1" ]; then
 		/bin/cat <<EOF
 !!!!!!!!!!
