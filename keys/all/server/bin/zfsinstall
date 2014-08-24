@@ -855,15 +855,16 @@ EOF
 			echo " error copying zpool.cache" ; exit 1
 		fi
 		echo " done"
-		if [ "$USEBOOT" = "1" -a "$MBR" != "1" ]; then
-			echo -n "Linking /bootdir ..."
-			/bin/cp -a "${MNT}/boot" "${MNT}/bootdir/" || exit 1
-			/bin/rm -r "${MNT}/boot" || exit 1
-			/bin/ln -shf bootdir/boot	"${MNT}/boot" || exit 1
-			/bin/chflags -h sunlink		"${MNT}/boot" || exit 1
-			echo " done"
-		fi
-		/bin/cat <<EOF
+	fi
+	if [ "$USEBOOT" = "1" -a "$MBR" != "1" ]; then
+		echo -n "Linking /bootdir ..."
+		/bin/cp -a "${MNT}/boot" "${MNT}/bootdir/" || exit 1
+		/bin/rm -r "${MNT}/boot" || exit 1
+		/bin/ln -shf bootdir/boot	"${MNT}/boot" || exit 1
+		/bin/chflags -h sunlink		"${MNT}/boot" || exit 1
+		echo " done"
+	fi
+	/bin/cat <<EOF
 Installation complete.
 The system will boot from ZFS with clean install on next reboot
 You may make adjustments to the installed system using chroot:
@@ -872,7 +873,6 @@ Some adjustments may require a mounted devfs:
 	mount -t devfs devfs ${MNT}/dev
 WARNING - Don't export ZFS pool "$POOL"!
 EOF
-	fi
 	if [ "$GELI" = "1" ]; then
 		/bin/cat <<EOF
 !!!!!!!!!!
