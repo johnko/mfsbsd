@@ -1036,7 +1036,7 @@ jrolesetupbasejail () {
 		# If no iso
 		else
 			# Test 10.7.7.4
-			if /usr/bin/fetch -T 10 -o /dev/null "http://${PRODIP}.4/freebsd-dist/10.0-RELEASE/base.txz" ; then
+			if /usr/bin/fetch -T 3 -o /dev/null "http://${PRODIP}.4/freebsd-dist/${RELEASE}-${ARCH}/base.txz" ; then
 				# no -s for source since we have a svn in data/distro/releng10
 				# Install basejail from 10.7.7.4
 				/usr/local/bin/ezjail-admin install \
