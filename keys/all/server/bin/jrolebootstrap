@@ -102,22 +102,29 @@ jrolebgstart () {
 	&& /bin/mv "/usr/jails/${2}/etc/pkg/FreeBSD.conf" \
 	"/usr/jails/${2}/etc/pkg.FreeBSD.conf.bkp"
 
-	echo -n "Installing pkg into jail..."
+	test -e "/usr/jails/${2}/usr/local/etc/pkg/repos/myrepo.conf" \
+	&& REPOURL=$( /usr/bin/grep URL: "/usr/jails/${2}/usr/local/etc/pkg/repos/myrepo.conf" \
+	| /usr/bin/egrep -v '^\s*#' | /usr/bin/awk '{print $NF}' | /usr/bin/head -1 )
+	if /usr/bin/fetch -o /dev/null -T 3 "${REPOURL}/digests.txz" ; then
 
-	test -e "/usr/jails/${2}/usr/local/sbin/pkg" \
-	|| /usr/local/bin/ezjail-admin console \
-	-e "/usr/local/sbin/pkg-static install -y pkg" "$2" \
-	> /dev/null 2> /dev/null
+		echo -n "Installing pkg into jail..."
 
-	echo " done"
+		test -e "/usr/jails/${2}/usr/local/sbin/pkg" \
+		|| /usr/local/bin/ezjail-admin console \
+		-e "/usr/local/sbin/pkg-static install -y pkg" "$2" \
+		> /dev/null 2> /dev/null
 
-	echo -n "Installing LittleChef client... "
+		echo " done"
 
-	/usr/local/bin/ezjail-admin console \
-	-e "/server/bin/startlittlechefclient" "$2" \
-	> /dev/null 2> /dev/null
+		echo -n "Installing LittleChef client... "
 
-	echo " done"
+		/usr/local/bin/ezjail-admin console \
+		-e "/server/bin/startlittlechefclient" "$2" \
+		> /dev/null 2> /dev/null
+
+		echo " done"
+
+	fi
 
 ############################################
 	if [ "$1" = "dhcpd" ]; then
@@ -1477,25 +1484,32 @@ jrolerecover () {
 
 	local pkgfile=$( /usr/local/bin/ezjail-admin console \
 	-e 'find /server/www/pkgng' "$pkgjailname" | /usr/bin/grep "openssl-.*txz" )
-
 	/usr/local/bin/ezjail-admin console -e "pkg-static add $pkgfile" "$pkgjailname"
+
 	local pkgfile=$( /usr/local/bin/ezjail-admin console \
 	-e 'find /server/www/pkgng' "$pkgjailname" | /usr/bin/grep "pcre-.*txz" )
-
 	/usr/local/bin/ezjail-admin console -e "pkg-static add $pkgfile" "$pkgjailname"
+
 	local pkgfile=$( /usr/local/bin/ezjail-admin console \
 	-e 'find /server/www/pkgng' "$pkgjailname" | /usr/bin/grep "nginx-.*txz" )
-
 	/usr/local/bin/ezjail-admin console -e "pkg-static add $pkgfile" "$pkgjailname"
+
 	local pkgfile=$( /usr/local/bin/ezjail-admin console \
 	-e 'find /server/www/pkgng' "$pkgjailname" | /usr/bin/grep "pkg-.*txz" )
-
 	/usr/local/bin/ezjail-admin console -e "pkg-static add $pkgfile" "$pkgjailname"
 
 	jrolebgstart "pkgng" "$pkgjailname"
 
+	# Change IP for pkgng
+	jroleproductionip $( /usr/local/bin/ezjail-admin list | /usr/bin/grep "pkgng" \
+	| /usr/bin/awk '{print $4}' )
+
 	# Start freebsd-dist jail
 	jrolebgstart "freebsd-dist" $( /usr/local/bin/ezjail-admin list \
+	| /usr/bin/grep "freebsd-dist" | /usr/bin/awk '{print $4}' )
+
+	# Change IP for freebsd-dist
+	jroleproductionip $( /usr/local/bin/ezjail-admin list \
 	| /usr/bin/grep "freebsd-dist" | /usr/bin/awk '{print $4}' )
 
 	# Start pxe jail
@@ -1557,10 +1571,6 @@ jrolelinkmedia () {
 		# Set permissions so nginx can serve
 		nginxrootpermissions "$distdir"
 
-		# Change IP for freebsd-dist
-		jroleproductionip $( /usr/local/bin/ezjail-admin list \
-		| /usr/bin/grep "freebsd-dist" | /usr/bin/awk '{print $4}' )
-
 	fi
 
 	# Restore NOX*.tar too
@@ -1604,7 +1614,7 @@ jrolelinkmedia () {
 					/server/bin/r -tcW --exclude noauto "${releasedir}/" "${distdir}/All/" \
 					|| exit 1
 
-		if [ -e "${releasedir%/*}/noauto" ]; then
+		if [ -e "${releasedir}/noauto" ]; then
 			echo "/server/bin/r -tcW  ${releasedir}/noauto/   ${distdir}/All/"
 						/server/bin/r -tcW "${releasedir}/noauto/" "${distdir}/All/" \
 						|| exit 1
@@ -1619,10 +1629,6 @@ jrolelinkmedia () {
 
 		# Set permissions so nginx can serve
 		nginxrootpermissions "$distdir"
-
-		# Change IP for pkgng
-		jroleproductionip $( /usr/local/bin/ezjail-admin list | /usr/bin/grep "pkgng" \
-		| /usr/bin/awk '{print $4}' )
 
 	fi
 
