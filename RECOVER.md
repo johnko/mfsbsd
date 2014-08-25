@@ -22,31 +22,33 @@ Variable         | Example           | Description
 -----------------|-------------------|------------
 [password]       |                   | Default is empty / blank.
 [company]        | contoso           | Needed in step 5 and 13. Company short name.
-[router_ip]      | 192.168.0.1       | Needed in step 4. The router's IP address.
+[router_ip]      | 192.168.0.1       | Needed in step 4. The router's IP address. If the router is running DHCP, can be found by running `net-router`.
 [ip_address]     | 192.168.0.120     | Needed in step 4. An address currently unassigned (it will become the host IP). Please ensure the next IP is also unassigned.
 [ip_address + 1] | 192.168.0.121     | It will become the DHCP service IP address if you enable `dhcpd` in step 9.
-[network_if]     | re0               | Needed in step 4. The primary network interface. It can be found by running:
+[network_if]     | re0               | Needed in step 4. The primary network interface. If network cables are plugged in, can be found by running:
 
 ```
 net-nic
 ```
 
-or possibly even:
+or list all the active possibilities:
 
 ```
-ifconfig -l
+net-nicsactive
 ```
 
 But ignoring any interfaces that look like:
 
 - bridge[0-9]
 - enc[0-9]
+- gif[0-9]
 - ipfw[0-9]
 - lo[0-9]
 - pflog[0-9]
 - plip[0-9]
 - tap[0-9]
 - tun[0-9]
+
 
 ## Instructions
 
@@ -126,7 +128,11 @@ host google.ca
 
 > The MAC / Hardware / Ethernet address needed below can be found with
 > ```
-> ifconfig [network_if] | grep ether
+> net-nicmac
+> ```
+> or
+> ```
+> net-nicmacactive
 > ```
 
 Edit the `/server/csv/dhcpd/[company].csv` file with a plain text editor.

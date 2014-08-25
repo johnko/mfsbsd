@@ -1,0 +1,50 @@
+#!/bin/sh
+# Copyright (c) 2014 John Ko
+
+DELIM=':'
+while getopts F:luLU o; do
+	case "$o" in
+		F) DELIM="${OPTARG}" ;;
+		l) LCASE=1 ;;
+		u) UCASE=1 ;;
+		L) LCASE=1 ;;
+		U) UCASE=1 ;;
+	esac
+done
+shift $((OPTIND-1))
+NIC=$*
+
+DOLCASE=/bin/cat
+DOUCASE=/bin/cat
+if [ "$LCASE" = "1" ]; then
+	DOLCASE="/usr/bin/tr '[A-Z]' '[a-z]'"
+fi
+if [ "$UCASE" = "1" ]; then
+	DOLCASE="/usr/bin/tr '[a-z]' '[A-Z]'"
+fi
+
+if [ "x" = "x$NIC" ]; then
+	NIC=$( /sbin/ifconfig -l )
+fi
+
+for i in $NIC ; do
+
+	status=$( /sbin/ifconfig $i | /usr/bin/grep "status" \
+	| /usr/bin/grep "active" )
+
+	if [ "x" != "x$status" ]; then
+
+		line=$( /sbin/ifconfig $i \
+		| /usr/bin/egrep -o "([0-9a-f]{2}:){5}[0-9a-f]{2}" \
+		| /usr/bin/grep -v "00:00:00:00:00:00" \
+		| /usr/bin/tr ':' '~' \
+		| /usr/bin/sed -e "s/~/$DELIM/g" \
+		| ${DOLCASE} | ${DOUCASE} \
+		| /usr/bin/sort -u )
+
+		if [ "x" != "x$line" ]; then
+			echo "$i $line"
+		fi
+	fi
+
+done | /usr/bin/column -t

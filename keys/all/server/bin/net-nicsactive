@@ -1,0 +1,25 @@
+#!/bin/sh
+# Copyright (c) 2014 John Ko
+
+DELIM=':'
+while getopts F:luLU o; do
+	case "$o" in
+		F) DELIM="${OPTARG}" ;;
+	esac
+done
+shift $((OPTIND-1))
+
+NIC=$( /sbin/ifconfig -l )
+
+for i in $NIC ; do
+
+	status=$( /sbin/ifconfig $i | /usr/bin/grep "status" \
+	| /usr/bin/grep "active" )
+
+	if [ "x" != "x$status" ]; then
+		echo -n "$i "
+	fi
+
+done
+
+echo
