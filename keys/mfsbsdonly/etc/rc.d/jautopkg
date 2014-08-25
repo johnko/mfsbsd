@@ -29,7 +29,9 @@ jautopkg_start()
 		if /sbin/ifconfig | /usr/bin/grep status | /usr/bin/grep -v "no carrier" \
 		| /usr/bin/grep . > /dev/null 2> /dev/null ; then
 			autopkg=`/bin/kenv -q autopkg`
-			REPOURL=$( /usr/bin/grep URL: /usr/local/etc/pkg/repos/myrepo.conf | /usr/bin/egrep -v '^\s*#' | /usr/bin/awk '{print $NF}' | /usr/bin/head -1 )
+			test -e /usr/local/etc/pkg/repos/myrepo.conf \
+			&& REPOURL=$( /usr/bin/grep URL: /usr/local/etc/pkg/repos/myrepo.conf \
+			| /usr/bin/egrep -v '^\s*#' | /usr/bin/awk '{print $NF}' | /usr/bin/head -1 )
 			if /usr/bin/fetch -o /dev/null -T 3 "${REPOURL}/digests.txz" ; then
 				TRIMLIST="`echo $autopkg | /usr/bin/tr -d ' '`"
 				if [ -n "${TRIMLIST}" ]; then
