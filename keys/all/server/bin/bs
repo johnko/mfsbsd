@@ -12,6 +12,7 @@ _OLDUMASK=`umask`
 MKDIR=/bin/mkdir
 CAT=/bin/cat
 TOUCH=/usr/bin/touch
+FIND=/usr/bin/find
 GREP=/usr/bin/egrep
 GPG=/usr/local/bin/gpg
 RM=/bin/rm
@@ -72,7 +73,7 @@ _gpg_sign()
   || _gpg_create
 
   echo -n "Signing everything in current directory ..."
-  find . -type f -exec gpgsign "{}" \;
+  $FIND . -type f -exec /server/bin/gpgsign "{}" \;
   echo " done"
 
 }
@@ -148,8 +149,10 @@ _gpg_verify () {
   || _gpg_import import builder-pubkey.asc
 
   echo -n "Verifying everything in current directory ..."
-
-  find . -type f -iregex '.*[^s][^i][^g]$' -exec gpgverify "{}" \; && echo " done"
+  for i in $( $FIND . -type f | $GREP -v '\.sig$' ) ; do
+  	/server/bin/gpgverify "$i"
+  done
+  echo " done"
 
 }
 
