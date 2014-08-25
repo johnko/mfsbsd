@@ -4,20 +4,28 @@
 
 These instructions will assist in setting up a FreeBSD host server with jails running:
 
-- DHCP service (will take the next sequential IP address relative to the host server)
+- DHCP service
 - PXE boot service
 - pkgng repository http service
 - FreeBSD distribution http service
 
+## Requirements
+
+- New host server(s) with 64-bit CPU that have AES-NI capability
+  - Recommended: 2 host servers for DHCP failover
+- Lots of RAM (6+ GB)
+- 2 hard disk drives [HDD] (500+ GB)
+
 ## Definitions
 
-Variable         | Example       | Description
------------------|---------------|------------
-[company]        | contoso       | Needed in step 5 and 13. Company short name.
-[password]       |
-[ip_address]     | 192.168.0.120 | Needed in step 4. An address currently unassigned (it will become the host IP). Please ensure the next IP is also unassigned
-[ip_address + 1] | 192.168.0.121 | It will become the DHCPD IP if you enable `dhcpd` in step 9.
-[network_if]     | re0           | Needed in step 4. The primary network interface. It can be found by running:
+Variable         | Example           | Description
+-----------------|-------------------|------------
+[password]       |                   | Default is empty / blank.
+[company]        | contoso           | Needed in step 5 and 13. Company short name.
+[router_ip]      | 192.168.0.1       | Needed in step 4. The router's IP address.
+[ip_address]     | 192.168.0.120     | Needed in step 4. An address currently unassigned (it will become the host IP). Please ensure the next IP is also unassigned.
+[ip_address + 1] | 192.168.0.121     | It will become the DHCP service IP address if you enable `dhcpd` in step 9.
+[network_if]     | re0               | Needed in step 4. The primary network interface. It can be found by running:
 
 ```
 net-nic
@@ -26,15 +34,19 @@ net-nic
 or possibly even:
 
 ```
-ifconfig -l | sed -E -e 's/lo[0-9]+//g' -e 's/bridge[0-9]+//g' -e 's/enc[0-9]+//g' -e 's/ipfw[0-9]+//g' -e 's/pflog[0-9]+//g' -e 's/plip[0-9]+//g' -e 's/tap[0-9]+//g' -e 's/tun[0-9]+//g'
+ifconfig -l
 ```
 
-## Requirements
+But ignoring any interfaces that look like:
 
-- New server(s) with 64-bit CPU
-- Lots of RAM
-- 2 or more hard disk drives (HDD) (sized 500 GB or more)
-- Recommended at least 2 servers for DHCP failover
+- bridge[0-9]
+- enc[0-9]
+- ipfw[0-9]
+- lo[0-9]
+- pflog[0-9]
+- plip[0-9]
+- tap[0-9]
+- tun[0-9]
 
 ## Instructions
 
@@ -52,9 +64,10 @@ Setup BIOS boot order to:
 
 1. `Hard Drive`
 2. `USB / Removable Drive`
-3. `CD / Optical Drive`
+3. `Network / PXE Boot`
 
-### 2) Insert CD or USB media containing `NOX` recovery image into host server.
+
+### 2) Insert CD or USB media containing `NOX` recovery image into new host server.
 
 Reboot with `Ctrl + Alt + Del` and access the `Boot Selection Menu`:
 
@@ -66,19 +79,23 @@ Reboot with `Ctrl + Alt + Del` and access the `Boot Selection Menu`:
 > HP      | `ESC`
 > Phoenix | `F12`
 
-Make sure to boot new host server from the media: you should be able to select the `USB / Removable Drive` or `CD / Optical Drive` from the BIOS `Boot Selection Menu`.
+Make sure to boot new host server from the media: you should be able to select the USB / Removable Drive, although it may also be listed under Hard Disk from the BIOS `Boot Selection Menu`.
 
-### 3) If the boot is successful, you will see a FreeBSD `login:` prompt, type:
+
+### 3) If the boot is successful:
+
+After about, 5 - 10 minutes you will see a FreeBSD `login:` prompt.
+
+> You may need to press the Enter/Return key a few times.
+
+Type the username:
 
 ```
 root
 ```
 
-Then at the `Password:` prompt, type:
+Then at the `Password:` prompt, enter the `[password]` listed above.
 
-```
-[password]
-```
 
 ### 4) Configure network interface on new host server manually with a command like:
 
@@ -86,31 +103,62 @@ Then at the `Password:` prompt, type:
 ifconfig [network_if] inet [ip_address]/32
 ```
 
+You will also need a default route:
+
+```
+route add default [router_ip]
+```
+
+And upstream DNS (for Google's DNS which is 8.8.8.8):
+
+```
+echo "nameserver 8.8.8.8" > /etc/resolv.conf
+```
+
+At this point, if you do the following and get a bunch of numbers, your network is working:
+
+```
+host google.ca
+```
+
+
 ### 5) Edit the CSV network map:
 
-Plug in the USB to a working computer and edit the `/server/csv/dhcpd/[company].csv` file with a plain text editor.
+> The MAC / Hardware / Ethernet address needed below can be found with
+> ```
+> ifconfig [network_if] | grep ether
+> ```
 
-1. Append the new host server(s) MAC/Hardware address, hostname, IP address.
+Edit the `/server/csv/dhcpd/[company].csv` file with a plain text editor.
+
+You may be able to edit via the command line with:
+
+```
+edit /server/csv/dhcpd/[company].csv
+```
+
+1. Append the new host server(s) MAC / Hardware / Ethernet address, hostname, IP address.
 2. You need to modify / verify:
 
 Line | Description
 -----|------------
-dhcp-boot,tag:!gpxe,lpxelinux.0,192.168.0.200                    | PXE boot service IP
+dhcp-boot,tag:!gpxe,lpxelinux.0,192.168.0.200                    | PXE boot service IP. This IP is used with `ucarp` failover.
 dhcp-failover,primary,192.168.0.121                              | Primary DHCP service IP
 dhcp-failover,secondary,192.168.0.141                            | Secondary DHCP service IP
-dhcp-option,option:dns-server,192.168.0.200,208.67.222.222       | DNS IP
+dhcp-option,option:dns-server,8.8.8.8,208.67.222.222             | DNS IP (Usually Windows AD server, Google and OpenDNS are listed as examples)
 dhcp-option,option:router,192.168.0.1                            | Router internal IP
 dhcp-option,option:domain-name,contoso.local                     | Local domain name
-dhcp-range,192.168.0.10,192.168.0.19                             | First DHCP range for DHCP service
-dhcp-range,192.168.0.20,192.168.0.29                             | Additional DHCP range for DHCP service
+dhcp-range,192.168.0.10,192.168.0.19                             | First DHCP range for DHCP service. Most known devices we set as DHCP reservations, so these are usually for guests.
+dhcp-range,192.168.0.20,192.168.0.29                             | Additional DHCP range for DHCP service. If all the devices are brand new, you may want to increase these and remove a lot of the `dhcp-host` lines.
 dhcp-subnet,192.168.0.0,255.255.255.0                            | Network and subnet
 dhcp-host,00:00:00:00:12:34,alfa,192.168.0.120,localchain,static | Host server with static IP
+
 
 ### 6) **Warning:** If the HDD have data, you may need to erase them:
 
 ***BE EXTRA CAREFUL AND MAKE SURE YOU DON'T NEED ANY DATA ON THESE DRIVES, THEN CONTINUE WITH:***
 
-In the following example, we are wiping the partition table of `/dev/ada0` and `/dev/ada1`
+In the following example, we are wiping the partition table of 2 HDDs, `/dev/ada0` and `/dev/ada1`
 
 ```
 destroygeom -d ada0 -d ada1
@@ -130,16 +178,16 @@ Login again as per step 3.
 
 ### 9) Create the network service jails:
 
-For all services listed in the Summary section (above):
-
-```
-jrolerecover dhcpd
-```
-
-or for all services *EXCEPT* dhcpd:
+If you are setting up a network with a router / RocketHub and you don't know how to turn the router's DHCP off:
 
 ```
 jrolerecover pxe
+```
+
+For full recovery with DHCP, and assuming you edited modified `dhcp-failover` from step 5:
+
+```
+jrolerecover dhcpd
 ```
 
 ### 10)* Compile a new FreeBSD patch or release (takes many hours):
@@ -159,13 +207,13 @@ startsvnbuilder
 If you choose to do this, you can skip step 12.
 
 ```
-startmfsbsdbuilder ports
+startmfsbsdbuilder ports newkey
 ```
 
 ### 12) Build a new `NOX` recovery image (takes a few minutes):
 
 ```
-startmfsbsdbuilder
+startmfsbsdbuilder newkey
 ```
 
 ### 13) New USB, CD, and tar `NOX` recovery images can be listed at:
@@ -178,4 +226,48 @@ Plug in a new USB, and the new `NOX` recovery image can be written to the USB dr
 
 ```
 writenoxusb /dev/da0
+```
+
+### 14) SECONDARY new host server can now be plugged in to the network.
+
+Repeat from step 1 to 9, with modification of step 2 to boot via Network / PXE Boot.
+
+When step 9 is complete on the SECONDARY new host, stop the jails:
+
+```
+stopezjail
+```
+
+
+### 15) On the PRIMARY new host server:
+
+If you did 10 or 11 the first time, migrate the data from the PRIMARY new host to the SECONDARY new host:
+
+```
+jrolesenddata poudriere [secondserver_ip]
+```
+
+```
+jrolesenddata pxe [secondserver_ip]
+```
+
+Then sync the jails over from the PRIMARY to SECONDARY new host:
+
+```
+jrolesendjail pxe.lanctl.local [secondserver_ip]
+```
+
+```
+jrolesendjail pkgng.lanctl.local [secondserver_ip]
+```
+
+```
+jrolesendjail freebsd-dist.lanctl.local [secondserver_ip]
+```
+
+
+### 16) SECONDARY new host server should be rebooted:
+
+```
+reboot
 ```
