@@ -111,7 +111,7 @@ jrolebgstart () {
 
 		test -e "/usr/jails/${2}/usr/local/sbin/pkg" \
 		|| /usr/local/bin/ezjail-admin console \
-		-e "/usr/local/sbin/pkg-static install -y pkg" "$2" \
+		-f -e "/usr/local/sbin/pkg-static install -y pkg" "$2" \
 		> /dev/null 2> /dev/null
 
 		echo " done"
@@ -119,7 +119,7 @@ jrolebgstart () {
 		echo -n "Installing LittleChef client... "
 
 		/usr/local/bin/ezjail-admin console \
-		-e "/server/bin/startlittlechefclient" "$2" \
+		-f -e "/server/bin/startlittlechefclient" "$2" \
 		> /dev/null 2> /dev/null
 
 		echo " done"
@@ -129,7 +129,7 @@ jrolebgstart () {
 ############################################
 	if [ "$1" = "dhcpd" ]; then
 
-		/usr/local/bin/ezjail-admin console -e /server/bin/startdhcpd "$2"
+		/usr/local/bin/ezjail-admin console -f -e /server/bin/startdhcpd "$2"
 
 ############################################
 	elif [ "$1" = "pxe" ]; then
@@ -141,7 +141,7 @@ jrolebgstart () {
 		fi
 
 		/usr/local/bin/ezjail-admin console \
-		-e "/server/bin/start$1 $server" "$2"
+		-f -e "/server/bin/start$1 $server" "$2"
 
 		jroleproductionip $( /usr/local/bin/ezjail-admin list \
 		| /usr/bin/grep "pxe" | /usr/bin/awk '{print $4}' )
@@ -149,12 +149,12 @@ jrolebgstart () {
 ############################################
 	elif [ "$1" = "pkgng" -o "$1" = "freebsd-dist" -o "$1" = "littlechef" ]; then
 
-		/usr/local/bin/ezjail-admin console -e "/server/bin/start$1" "$2"
+		/usr/local/bin/ezjail-admin console -f -e "/server/bin/start$1" "$2"
 
 ############################################
 	elif [ "$1" = "release" ]; then
 
-		/usr/local/bin/ezjail-admin console -e "/server/bin/start$1" "$2"
+		/usr/local/bin/ezjail-admin console -f -e "/server/bin/start$1" "$2"
 
 		jrolelinkrelease
 
@@ -230,15 +230,15 @@ jailbuildmfsbsd (){
 		echo -n "Fetching packages into mfsbsd..."
 
 		/usr/local/bin/ezjail-admin console \
-		-e '/usr/local/sbin/pkg-static clean -y -a -q' "$mfsbsdjail" \
+		-f -e '/usr/local/sbin/pkg-static clean -y -a -q' "$mfsbsdjail" \
 		> /dev/null 2> /dev/null
 
 		/usr/local/bin/ezjail-admin console \
-		-e '/usr/local/sbin/pkg-static update -q' "$mfsbsdjail" \
+		-f -e '/usr/local/sbin/pkg-static update -q' "$mfsbsdjail" \
 		> /dev/null 2> /dev/null
 
 		/usr/local/bin/ezjail-admin console \
-		-e '/usr/local/sbin/pkg-static upgrade -y -q' "$mfsbsdjail" \
+		-f -e '/usr/local/sbin/pkg-static upgrade -y -q' "$mfsbsdjail" \
 		> /dev/null 2> /dev/null
 
 		for i in $( /usr/local/sbin/pkg-static info | /usr/bin/awk '{print $1}' \
@@ -246,7 +246,7 @@ jailbuildmfsbsd (){
 		| /usr/bin/tr '\n' ' ' ) ; do
 
 			/usr/local/bin/ezjail-admin console \
-			-e "/usr/local/sbin/pkg-static fetch -y -d $i" "$mfsbsdjail" \
+			-f -e "/usr/local/sbin/pkg-static fetch -y -d $i" "$mfsbsdjail" \
 			> /dev/null 2> /dev/null
 
 #			/bin/cp -av \
@@ -260,13 +260,13 @@ jailbuildmfsbsd (){
 		-exec /bin/cp -a {} "${mfsbsdroot}/root/mfsbsd/packages/" \;
 
 		/usr/local/bin/ezjail-admin console \
-		-e '/usr/local/sbin/pkg-static clean -y -a' "$mfsbsdjail" \
+		-f -e '/usr/local/sbin/pkg-static clean -y -a' "$mfsbsdjail" \
 		> /dev/null 2> /dev/null
 
 		for i in dnsmasq syslinux nginx isc-dhcp43-server rubygem-chef ; do
 
 			/usr/local/bin/ezjail-admin console \
-			-e "/usr/local/sbin/pkg-static fetch -y -d $i" "$mfsbsdjail" \
+			-f -e "/usr/local/sbin/pkg-static fetch -y -d $i" "$mfsbsdjail" \
 			> /dev/null 2> /dev/null
 
 		done
@@ -283,11 +283,11 @@ jailbuildmfsbsd (){
 		done
 
 		/usr/local/bin/ezjail-admin console \
-		-e '/usr/local/sbin/pkg-static clean -y -a' "$mfsbsdjail" \
+		-f -e '/usr/local/sbin/pkg-static clean -y -a' "$mfsbsdjail" \
 		> /dev/null 2> /dev/null
 
 		/usr/local/bin/ezjail-admin console \
-		-e '/usr/local/sbin/pkg-static fetch -y -d pkg' "$mfsbsdjail" \
+		-f -e '/usr/local/sbin/pkg-static fetch -y -d pkg' "$mfsbsdjail" \
 		> /dev/null 2> /dev/null
 
 XPACKAGES="xf86-video-vesa xf86-video-fbdev xf86-input-mouse xf86-input-keyboard \
@@ -302,7 +302,7 @@ xfce4-timer-plugin xfce4-volumed xfce4-weather-plugin xfce4-wm-themes xfce4-wmdo
 		for i in midori xf86-video-intel $XPACKAGES ; do
 
 			/usr/local/bin/ezjail-admin console \
-			-e "/usr/local/sbin/pkg-static fetch -y -d $i" "$mfsbsdjail" \
+			-f -e "/usr/local/sbin/pkg-static fetch -y -d $i" "$mfsbsdjail" \
 			> /dev/null 2> /dev/null
 
 		done
@@ -311,11 +311,11 @@ xfce4-timer-plugin xfce4-volumed xfce4-weather-plugin xfce4-wm-themes xfce4-wmdo
 		-exec  /bin/cp -a {} "${mfsbsdroot}/root/mfsbsd/pkgdisk/" \;
 
 		/usr/local/bin/ezjail-admin console \
-		-e '/usr/local/sbin/pkg-static clean -y -a' "$mfsbsdjail" \
+		-f -e '/usr/local/sbin/pkg-static clean -y -a' "$mfsbsdjail" \
 		> /dev/null 2> /dev/null
 
 		/usr/local/bin/ezjail-admin console \
-		-e '/usr/local/sbin/pkg-static fetch -y -d pkg' "$mfsbsdjail" \
+		-f -e '/usr/local/sbin/pkg-static fetch -y -d pkg' "$mfsbsdjail" \
 		> /dev/null 2> /dev/null
 
 		/usr/bin/find "${mfsbsdroot}/var/cache/pkg" -type f -name '*txz' \
@@ -469,7 +469,7 @@ xfce4-timer-plugin xfce4-volumed xfce4-weather-plugin xfce4-wm-themes xfce4-wmdo
 		wlan_rssadapt wlan_tkip wlan_wep wlan_xauth wpifw x86bios xhci \
 		zfs zlib"
 
-		/usr/local/bin/ezjail-admin console "$mfsbsdjail" <<EOF
+		/usr/local/bin/ezjail-admin console -f "$mfsbsdjail" <<EOF
 cd ~/mfsbsd && chmod a+x tools/doFS.sh && chmod a+x build.sh \
 && ./build.sh nox all $CSV "$MFSMODULES"
 EOF
@@ -1481,22 +1481,22 @@ jrolerecover () {
 	# Bootstrap pkgng jail
 	local pkgjailname=$( /usr/local/bin/ezjail-admin list \
 	| /usr/bin/grep "pkgng" | /usr/bin/awk '{print $4}' )
+	
+	local pkgfile=$( /usr/local/bin/ezjail-admin console \
+	-f -e 'find /server/www/pkgng' "$pkgjailname" | /usr/bin/grep "openssl-.*txz" )
+	/usr/local/bin/ezjail-admin console -f -e "pkg-static add $pkgfile" "$pkgjailname"
 
 	local pkgfile=$( /usr/local/bin/ezjail-admin console \
-	-e 'find /server/www/pkgng' "$pkgjailname" | /usr/bin/grep "openssl-.*txz" )
-	/usr/local/bin/ezjail-admin console -e "pkg-static add $pkgfile" "$pkgjailname"
+	-f -e 'find /server/www/pkgng' "$pkgjailname" | /usr/bin/grep "pcre-.*txz" )
+	/usr/local/bin/ezjail-admin console -f -e "pkg-static add $pkgfile" "$pkgjailname"
 
 	local pkgfile=$( /usr/local/bin/ezjail-admin console \
-	-e 'find /server/www/pkgng' "$pkgjailname" | /usr/bin/grep "pcre-.*txz" )
-	/usr/local/bin/ezjail-admin console -e "pkg-static add $pkgfile" "$pkgjailname"
+	-f -e 'find /server/www/pkgng' "$pkgjailname" | /usr/bin/grep "nginx-.*txz" )
+	/usr/local/bin/ezjail-admin console -f -e "pkg-static add $pkgfile" "$pkgjailname"
 
 	local pkgfile=$( /usr/local/bin/ezjail-admin console \
-	-e 'find /server/www/pkgng' "$pkgjailname" | /usr/bin/grep "nginx-.*txz" )
-	/usr/local/bin/ezjail-admin console -e "pkg-static add $pkgfile" "$pkgjailname"
-
-	local pkgfile=$( /usr/local/bin/ezjail-admin console \
-	-e 'find /server/www/pkgng' "$pkgjailname" | /usr/bin/grep "pkg-.*txz" )
-	/usr/local/bin/ezjail-admin console -e "pkg-static add $pkgfile" "$pkgjailname"
+	-f -e 'find /server/www/pkgng' "$pkgjailname" | /usr/bin/grep "pkg-.*txz" )
+	/usr/local/bin/ezjail-admin console -f -e "pkg-static add $pkgfile" "$pkgjailname"
 
 	jrolebgstart "pkgng" "$pkgjailname"
 
