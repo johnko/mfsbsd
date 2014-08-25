@@ -1,8 +1,7 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
-/usr/bin/netstat -nr | \
-	/usr/bin/egrep default | \
-	/usr/bin/awk '{ print $2 }' | \
-	/usr/bin/sort -u
-
+/sbin/route show default \
+| /usr/bin/egrep "gateway:" \
+| /usr/bin/awk '{ print $NF }' \
+| /usr/bin/sort -u

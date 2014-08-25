@@ -1,8 +1,7 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
-/usr/bin/netstat -nr | \
-	/usr/bin/egrep default | \
-	/usr/bin/awk '{ print $NF }' | \
-	/usr/bin/head -1
-
+/sbin/route show default \
+| /usr/bin/egrep "interface:" 
+| /usr/bin/awk '{ print $NF }' \
+| /usr/bin/head -1

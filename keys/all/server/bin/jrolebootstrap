@@ -11,7 +11,7 @@ LOCALNIC="lo1"
 PRODIP="10.7.7"
 LOCALIP="10.123.234"
 TMPFILE=$( /usr/bin/mktemp -t jrole )
-NIC=$( /usr/bin/netstat -nr | /usr/bin/egrep "default" | /usr/bin/awk '{ print $NF }' |\
+NIC=$( /sbin/route show default | /usr/bin/egrep "interface:" | /usr/bin/awk '{ print $NF }' |\
 	/usr/bin/head -1 )
 if [ "x" = "x$NIC" ]; then
 	echo "Can't determine default route network interface." ; exit 1

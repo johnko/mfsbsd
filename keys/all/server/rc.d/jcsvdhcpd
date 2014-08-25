@@ -57,7 +57,7 @@ jcsvdhcpd_start()
 
 	unset finalfile
 	unset skip
-	jgw_target=${jgw_target:-`/usr/bin/netstat -nr | /usr/bin/grep default | /usr/bin/awk '{print $2}'`}
+	jgw_target=${jgw_target:-`/sbin/route show default | /usr/bin/egrep "gateway:" | /usr/bin/awk '{print $NF}'`}
 	for csv in /server/csv/dhcpd/* ; do
 		if [ -z "${skip}" ]; then
 			if [ -r ${csv} ]; then
