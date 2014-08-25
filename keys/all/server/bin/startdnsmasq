@@ -21,14 +21,17 @@ if [ -x "/etc/rc.d/syslogd" ]; then
 	/etc/rc.d/syslogd onerestart
 fi
 
-
-/server/bin/startconfig dnsmasq
+test -x /server/bin/startconfig && /server/bin/startconfig dnsmasq
 
 /usr/sbin/sysrc -f /etc/rc.conf dnsmasq_enable="YES"
 /usr/sbin/sysrc -f /etc/rc.conf dnsmasq_conf="/server/dnsmasq/dnsmasq.conf"
 
 if [ ! -f "/usr/local/etc/rc.d/dnsmasq" ]; then
 	/usr/local/sbin/pkg-static install -y dnsmasq
+fi
+
+if [ ! -f "/usr/local/etc/rc.d/dnsmasq" ]; then
+	echo "Error dnsmasq not installed." ; exit 1
 fi
 
 if [ -x "/usr/local/etc/rc.d/dnsmasq" ]; then
