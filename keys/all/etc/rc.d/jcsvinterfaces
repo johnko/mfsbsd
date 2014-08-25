@@ -35,6 +35,8 @@ dhcpoption()
 		omitcomments | /usr/bin/egrep dhcp-lagg | /usr/bin/awk -F, '$2{split($2,a,"|");for (i in a) {split(a[i],b,"=");printf b[1]" "}}'
 	elif [ "hostname" = "${search}" ]; then
 		omitcomments | /usr/bin/egrep 'dhcp-(host|lagg)' | /usr/bin/awk -F, '$3{print $3}'
+	elif [ "dhcp-boot" = "${search}" ]; then
+		omitcomments | /usr/bin/egrep ${search} | /usr/bin/awk -F, '$4{print $4}'
 	fi
 }
 
@@ -96,6 +98,15 @@ jcsvinterfaces_start()
 								echo "nameserver $n" >> /etc/resolv.conf
 						done
 						lagskip="${lagskip}|${ifmac}"
+					fi
+					if /bin/cat ${csv} | omitcomments | /usr/bin/egrep -i "dhcp-boot" >/dev/null 2>&1 ; then
+						line=$(	/usr/bin/egrep -i "dhcp-boot" ${csv} | dhcpoption dhcp-boot )
+						echo "$line" > /server/csv/ucarp
+					fi
+					filename="${csv##*/}"
+					idname="${filename%.*}"
+					if [ "x" != "x$idname" ]; then
+						echo "$idname" > /server/csv/id
 					fi
 				fi
 			done
