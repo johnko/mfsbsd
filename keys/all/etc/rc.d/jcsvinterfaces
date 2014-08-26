@@ -99,7 +99,7 @@ jcsvinterfaces_start()
 						done
 						lagskip="${lagskip}|${ifmac}"
 					fi
-					if /usr/bin/grep "$ifmac" "$csv" ; then
+					if /usr/bin/grep -i "$ifmac" "$csv" >/dev/null 2>&1 ; then
 						if [ ! -e /server/csv/ucarp ]; then
 							if /bin/cat $csv | omitcomments | /usr/bin/egrep -i "dhcp-boot" >/dev/null 2>&1 ; then
 								line=$(	/usr/bin/egrep -i "dhcp-boot" $csv | dhcpoption dhcp-boot )
