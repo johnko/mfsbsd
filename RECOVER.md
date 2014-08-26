@@ -101,13 +101,24 @@ Then at the `Password:` prompt, enter the `[password]` listed above.
 > At this point, you will have a prompt like:
 > ```
 > root  /root
-> # 
+> #
 > ```
 
 You may be able to start a GUI session with:
 
 ```
 startgui
+```
+
+or a variation of:
+
+```
+startgui nofbdev
+startgui nointel
+startgui novesa
+startgui nofbdev nointel
+startgui nofbdev novesa
+startgui nointel novesa
 ```
 
 

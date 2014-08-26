@@ -1,7 +1,8 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
-XPACKAGES="xf86-video-vesa xf86-video-fbdev xf86-input-mouse xf86-input-keyboard \
+XPACKAGES="xf86-video-fbdev xf86-video-intel xf86-video-vesa \
+xf86-input-mouse xf86-input-keyboard \
 xineramaproto xinit xrdb xauth \
 slim xfce xfce4-battery-plugin xfce4-bsdcpufreq-plugin xfce4-clipman-plugin \
 xfce4-cpugraph-plugin xfce4-datetime-plugin xfce4-dict-plugin xfce4-diskperf-plugin \
@@ -53,6 +54,14 @@ SERVICES="dbus"
 
 for i in ${SERVICES} ; do
 	/usr/sbin/sysrc -f /etc/rc.conf ${i}_enable=YES
+done
+
+for i in $* ; do
+	case "$i" in
+		nofbdev)	/usr/local/sbin/pkg-static remove -y xf86-video-fbdev ; /bin/rm /etc/X11/xorg.conf ;;
+		nointel)	/usr/local/sbin/pkg-static remove -y xf86-video-intel ; /bin/rm /etc/X11/xorg.conf ;;
+		novesa)		/usr/local/sbin/pkg-static remove -y xf86-video-vesa	; /bin/rm /etc/X11/xorg.conf ;;
+	esac
 done
 
 if [ ! -e /etc/X11/xorg.conf ]; then
