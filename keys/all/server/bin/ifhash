@@ -81,7 +81,7 @@ _get_mac()
 		echo "called _get_mac $1" >&2
 	_nic=`_check_nic "$1"`
 	if [ -n "$_nic" ]; then
-		/sbin/ifconfig "$_nic" | /usr/bin/egrep -o "([0-9a-f]{2}:){5}[0-9a-f]{2}"
+		/sbin/ifconfig "$_nic" | /usr/bin/egrep -io "([0-9a-f]{2}:){5}[0-9a-f]{2}"
 	fi
 }
 

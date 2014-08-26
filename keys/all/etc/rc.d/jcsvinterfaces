@@ -51,30 +51,30 @@ jcsvinterfaces_start()
 	lagskip="fa:ke:ma:c0:ma:tc"
 
 	for csv in /server/csv/dhcpd/* ; do
-		if [ -r ${csv} ]; then
+		if [ -r $csv ]; then
 			#echo -n "${csv##*/}... "
 			_dif=`/sbin/ifconfig -l | /usr/bin/sed -E -e 's/lo[0-9]+//g' -e 's/bridge[0-9]+//g' -e 's/enc[0-9]+//g' -e 's/ipfw[0-9]+//g' -e 's/pflog[0-9]+//g' -e 's/plip[0-9]+//g' -e 's/tap[0-9]+//g' -e 's/tun[0-9]+//g'`
 			for i in $_dif; do
-				if /sbin/ifconfig ${i} | /usr/bin/egrep -o "([0-9a-f]{2}:){5}[0-9a-f]{2}" >/dev/null 2>&1 ; then
-					ifmac=$( /sbin/ifconfig ${i} | /usr/bin/egrep -o "([0-9a-f]{2}:){5}[0-9a-f]{2}" | /usr/bin/tr '[A-Z]' '[a-z]' | /usr/bin/sort -u )
-					gw=$(  /bin/cat ${csv} | dhcpoption router )
-					dns=$( /bin/cat ${csv} | dhcpoption dns-server )
-					if /bin/cat ${csv} | omitcomments | /usr/bin/egrep -i "dhcp-(host|lagg).*${ifmac}" >/dev/null 2>&1 ; then
-						hn=$( /usr/bin/egrep -i "dhcp-(host|lagg).*${ifmac}" ${csv} | dhcpoption hostname )
+				if /sbin/ifconfig ${i} | /usr/bin/egrep -io "([0-9a-f]{2}:){5}[0-9a-f]{2}" >/dev/null 2>&1 ; then
+					ifmac=$( /sbin/ifconfig ${i} | /usr/bin/egrep -io "([0-9a-f]{2}:){5}[0-9a-f]{2}" | /usr/bin/tr '[A-Z]' '[a-z]' | /usr/bin/sort -u )
+					gw=$(  /bin/cat $csv | dhcpoption router )
+					dns=$( /bin/cat $csv | dhcpoption dns-server )
+					if /bin/cat $csv | omitcomments | /usr/bin/egrep -i "dhcp-(host|lagg).*${ifmac}" >/dev/null 2>&1 ; then
+						hn=$( /usr/bin/egrep -i "dhcp-(host|lagg).*${ifmac}" $csv | dhcpoption hostname )
 						/usr/sbin/sysrc -f /etc/rc.conf.d/hostname hostname="$hn"
 					fi
-					if /bin/cat ${csv} | omitcomments | /usr/bin/egrep -i "dhcp-host.*${ifmac}.*static" >/dev/null 2>&1 ; then
-						ip=$( /usr/bin/egrep -i "dhcp-host.*${ifmac}.*static" ${csv} | dhcpoption dhcp-host )
+					if /bin/cat $csv | omitcomments | /usr/bin/egrep -i "dhcp-host.*${ifmac}.*static" >/dev/null 2>&1 ; then
+						ip=$( /usr/bin/egrep -i "dhcp-host.*${ifmac}.*static" $csv | dhcpoption dhcp-host )
 						/usr/sbin/sysrc -f ${outfile} ifconfig_ext${count}_mac="${ifmac}"
 						/usr/sbin/sysrc -f ${outfile} ifconfig_ext${count}="inet ${ip}/24"
 						/usr/sbin/sysrc -f ${outfile} ifconfig_ext${count}_gw="${gw}"
 						/usr/sbin/sysrc -f ${outfile} ifconfig_ext${count}_dns="${dns}"
 						count=$(( count + 1 ))
-					elif /bin/cat ${csv} | omitcomments | /usr/bin/egrep -iv "(${lagskip})" | /usr/bin/egrep -i "dhcp-lagg.*${ifmac}.*static" >/dev/null 2>&1 ; then
+					elif /bin/cat $csv | omitcomments | /usr/bin/egrep -iv "(${lagskip})" | /usr/bin/egrep -i "dhcp-lagg.*${ifmac}.*static" >/dev/null 2>&1 ; then
 						lagcount=$(( lagcount + 1 ))
-						line=$( /usr/bin/egrep -i "dhcp-lagg.*${ifmac}.*static" ${csv} | dhcpoption dhcp-laggs )
+						line=$( /usr/bin/egrep -i "dhcp-lagg.*${ifmac}.*static" $csv | dhcpoption dhcp-laggs )
 						/usr/sbin/sysrc -f /etc/rc.conf.d/network ifconfig_lagg${lagcount}="${line}"
-						ints=$(	/usr/bin/egrep -i "dhcp-lagg.*${ifmac}.*static" ${csv} | dhcpoption dhcp-laggi )
+						ints=$(	/usr/bin/egrep -i "dhcp-lagg.*${ifmac}.*static" $csv | dhcpoption dhcp-laggi )
 						for lagif in $ints ; do
 							/usr/sbin/sysrc -f /etc/rc.conf.d/network ifconfig_${lagif}="up"
 						done
@@ -84,11 +84,11 @@ jcsvinterfaces_start()
 								echo "nameserver $n" >> /etc/resolv.conf
 						done
 						lagskip="${lagskip}|${ifmac}"
-					elif /bin/cat ${csv} | omitcomments | /usr/bin/egrep -iv "(${lagskip})" | /usr/bin/egrep -i "dhcp-lagg.*${ifmac}" >/dev/null 2>&1 ; then
+					elif /bin/cat $csv | omitcomments | /usr/bin/egrep -iv "(${lagskip})" | /usr/bin/egrep -i "dhcp-lagg.*${ifmac}" >/dev/null 2>&1 ; then
 						lagcount=$(( lagcount + 1 ))
-						line=$(	/usr/bin/egrep -i "dhcp-lagg.*${ifmac}" ${csv} | dhcpoption dhcp-laggd )
+						line=$(	/usr/bin/egrep -i "dhcp-lagg.*${ifmac}" $csv | dhcpoption dhcp-laggd )
 						/usr/sbin/sysrc -f /etc/rc.conf.d/network ifconfig_lagg${lagcount}="${line}"
-						ints=$(	/usr/bin/egrep -i "dhcp-lagg.*${ifmac}" ${csv} | dhcpoption dhcp-laggi )
+						ints=$(	/usr/bin/egrep -i "dhcp-lagg.*${ifmac}" $csv | dhcpoption dhcp-laggi )
 						for lagif in $ints ; do
 							/usr/sbin/sysrc -f /etc/rc.conf.d/network ifconfig_${lagif}="up"
 						done
@@ -99,14 +99,20 @@ jcsvinterfaces_start()
 						done
 						lagskip="${lagskip}|${ifmac}"
 					fi
-					if /bin/cat ${csv} | omitcomments | /usr/bin/egrep -i "dhcp-boot" >/dev/null 2>&1 ; then
-						line=$(	/usr/bin/egrep -i "dhcp-boot" ${csv} | dhcpoption dhcp-boot )
-						echo "$line" > /server/csv/ucarp
-					fi
-					filename="${csv##*/}"
-					idname="${filename%.*}"
-					if [ "x" != "x$idname" ]; then
-						echo "$idname" > /server/csv/id
+					if /usr/bin/grep "$ifmac" "$csv" ; then
+						if [ ! -e /server/csv/ucarp ]; then
+							if /bin/cat $csv | omitcomments | /usr/bin/egrep -i "dhcp-boot" >/dev/null 2>&1 ; then
+								line=$(	/usr/bin/egrep -i "dhcp-boot" $csv | dhcpoption dhcp-boot )
+								echo "$line" > /server/csv/ucarp
+							fi
+						fi
+						if [ ! -e /server/csv/id ]; then
+							filename="${csv##*/}"
+							idname="${filename%.*}"
+							if [ "x" != "x$idname" ]; then
+								echo "$idname" > /server/csv/id
+							fi
+						fi
 					fi
 				fi
 			done

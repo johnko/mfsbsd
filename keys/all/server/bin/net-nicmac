@@ -30,7 +30,7 @@ fi
 for i in $NIC ; do
 
 	line=$( /sbin/ifconfig $i \
-	| /usr/bin/egrep -o "([0-9a-f]{2}:){5}[0-9a-f]{2}" \
+	| /usr/bin/egrep -io "([0-9a-f]{2}:){5}[0-9a-f]{2}" \
 	| /usr/bin/grep -v "00:00:00:00:00:00" \
 	| /usr/bin/tr ':' '~' \
 	| /usr/bin/sed -e "s/~/$DELIM/g" \

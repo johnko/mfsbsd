@@ -18,8 +18,8 @@ jinterfaces_start()
 {
 	_dif=`/sbin/ifconfig -l | /usr/bin/sed -E -e 's/lo[0-9]+//g' -e 's/bridge[0-9]+//g' -e 's/enc[0-9]+//g' -e 's/ipfw[0-9]+//g' -e 's/pflog[0-9]+//g' -e 's/plip[0-9]+//g' -e 's/tap[0-9]+//g' -e 's/tun[0-9]+//g'`
 	for i in $_dif; do
-		/usr/bin/grep "^ifconfig_$i=" /etc/rc.conf.d/network >/dev/null 2>&1 || \
-			/usr/sbin/sysrc -f /etc/rc.conf.d/network ifconfig_$i="DHCP"
+		/usr/bin/grep "^ifconfig_$i=" /etc/rc.conf.d/network >/dev/null 2>&1 \
+		|| /usr/sbin/sysrc -f /etc/rc.conf.d/network ifconfig_$i="DHCP"
 		/usr/sbin/sysrc -f /etc/rc.conf.d/network ifconfig_bridge0="addm ${i} addm tap0 up"
 	done
 	if [ -z "${mac_interfaces}" ]; then
