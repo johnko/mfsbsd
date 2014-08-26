@@ -35,7 +35,7 @@ if [ ! -e ~/.ssh/id_rsa ]; then
 fi
 
 cat <<EOF
-Prepare node 10.123.234.35:
+To prepare node 10.123.234.250:
 # pkg install -y rubygem-chef
 # echo "littlechef:::::::/usr/home/littlechef:/bin/sh:" | /usr/sbin/adduser -w no -S -f -
 # passwd littlechef
@@ -51,6 +51,6 @@ You may want to:
 # git clone --recursive https://github.com/johnko-chef/cookbooks
 # rm -r roles
 # git clone https://github.com/johnko-chef/roles
-# echo '{"run_list":["role[base]"]}' > nodes/10.123.234.35.json
-# fix node:10.123.234.35
+# echo '{"run_list":["role[base]"]}' > nodes/10.123.234.250.json
+# fix node:10.123.234.250
 EOF
