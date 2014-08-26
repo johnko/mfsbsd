@@ -159,7 +159,7 @@ jrolebgstart () {
 
 		jrolelinkrelease
 
-		/usr/local/bin/ezjail-admin list | /usr/bin/grep "mfsbsd" || jrolejails mfsbsd
+		/usr/local/bin/ezjail-admin list | /usr/bin/grep "mfsbsd" || /server/bin/startmfsbsdbuilder ports newkey
 
 ############################################
 	elif [ "$1" = "mfsbsd" ]; then
