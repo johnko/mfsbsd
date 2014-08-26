@@ -5,11 +5,15 @@
 /server/bin/startpoudriere unattended
 if [ ! -e /poudriere/ports/default ]; then
 	/usr/local/bin/poudriere ports -c
+	/sbin/zfs snapshot -r data/poudriere/ports/default@keep
 else
 	echo
 	#/usr/local/bin/poudriere ports -u
 fi
-/usr/local/bin/git clone https://github.com/johnko/freebsd-ports-test.git /server/root/freebsd-ports-test
+
+if [ ! -e /server/root/freebsd-ports-test ]; then
+	/usr/local/bin/git clone https://github.com/johnko/freebsd-ports-test.git /server/root/freebsd-ports-test
+fi
 /server/bin/r -ba --exclude .git /server/root/freebsd-ports-test/ /poudriere/ports/default/
 # End of rubygem-chef build
 
