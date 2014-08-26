@@ -98,6 +98,18 @@ root
 
 Then at the `Password:` prompt, enter the `[password]` listed above.
 
+> At this point, you will have a prompt like:
+> ```
+> root  /root
+> # 
+> ```
+
+You may be able to start a GUI session with:
+
+```
+startgui
+```
+
 
 ### 4) Configure network interface on new host server manually with a command like:
 

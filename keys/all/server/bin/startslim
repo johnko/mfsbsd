@@ -49,7 +49,7 @@ if [ ! -e /usr/local/bin/Xorg ]; then
 	echo "Error: Xorg not found"; exit 1
 fi
 
-SERVICES="dbus"
+SERVICES="dbus slim"
 
 for i in ${SERVICES} ; do
 	/usr/sbin/sysrc -f /etc/rc.conf ${i}_enable=YES
@@ -80,5 +80,3 @@ fi
 for i in ${SERVICES} ; do
 	/usr/sbin/service ${i} restart
 done
-
-/bin/sh - ~/.xinitrc xfce
