@@ -1369,7 +1369,7 @@ jrolejails () {
 		jrolejailsgeneric "dbmail"				"mail.local"		"${LOCALNIC}|${LOCALIP}.15"		"$2"
 		jrolejailsgeneric "horde"					"app.local"			"${LOCALNIC}|${LOCALIP}.16"		"$2"
 	elif [ "odoo" = "$1" ]; then
-		jrolejails mysql
+		jrolejails pgsql
 		jrolejailsgeneric "$1"						"app.local"			"${LOCALNIC}|${LOCALIP}.17"		"$2"
 	elif [ "ssl" = "$1" ]; then
 		jrolejailsgeneric "$1"						"secure.local"	"${LOCALNIC}|${LOCALIP}.18"		"$2"
