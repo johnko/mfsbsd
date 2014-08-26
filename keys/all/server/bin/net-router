@@ -1,7 +1,9 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
-/sbin/route show default \
-| /usr/bin/egrep "gateway:" \
-| /usr/bin/awk '{ print $NF }' \
+# use netstat because in jail, route fails
+
+/usr/bin/netstat -nr \
+| /usr/bin/egrep default \
+| /usr/bin/awk '{ print $2 }' \
 | /usr/bin/sort -u
