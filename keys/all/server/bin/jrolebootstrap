@@ -28,8 +28,9 @@ IP=$( echo "$PUBLICIP" | /usr/bin/cut -d. -f1-3 )
 IPCOUNT=$( echo "$PUBLICIP" | /usr/bin/cut -d. -f4 )
 if [ -e /server/csv/id ]; then
 	CSV=$( /bin/cat /server/csv/id | /usr/bin/tr -d '\n' )
-else
-	CSV=''
+fi
+if [ "x" = "x$CSV" ]; then
+	echo "Can't determine CSV key." ; exit 1
 fi
 
 /usr/bin/touch /var/log/jrolebgstart.log
