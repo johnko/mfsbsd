@@ -241,9 +241,7 @@ jailbuildmfsbsd (){
 		-f -e '/usr/local/sbin/pkg-static upgrade -y -q' "$mfsbsdjail" \
 		> /dev/null 2> /dev/null
 
-		for i in $( /usr/local/sbin/pkg-static info | /usr/bin/awk '{print $1}' \
-		| /usr/bin/sed 's#-[[:digit:]]*\.*[[:digit:]]*\.*[[:digit:]]*\.*[[:digit:]]*\.*[[:digit:]]*\.*[[:digit:]]*_*[[:digit:]]*,*[[:digit:]]*$##' \
-		| /usr/bin/tr '\n' ' ' ) ; do
+		for i in $( /bin/kenv -q autopkg ) ; do
 
 			/usr/local/bin/ezjail-admin console \
 			-f -e "/usr/local/sbin/pkg-static fetch -y -d $i" "$mfsbsdjail" \
@@ -290,16 +288,18 @@ jailbuildmfsbsd (){
 		-f -e '/usr/local/sbin/pkg-static fetch -y -d pkg' "$mfsbsdjail" \
 		> /dev/null 2> /dev/null
 
-XPACKAGES="xf86-video-vesa xf86-video-fbdev xf86-input-mouse xf86-input-keyboard \
+XPACKAGES="xf86-video-fbdev xf86-video-intel xf86-video-vesa \
+xf86-input-mouse xf86-input-keyboard \
 xineramaproto xinit xrdb xauth \
 slim xfce xfce4-battery-plugin xfce4-bsdcpufreq-plugin xfce4-clipman-plugin \
 xfce4-cpugraph-plugin xfce4-datetime-plugin xfce4-dict-plugin xfce4-diskperf-plugin \
 xfce4-fsguard-plugin xfce4-genmon-plugin xfce4-minicmd-plugin xfce4-mount-plugin \
 xfce4-netload-plugin xfce4-notification-daemon xfce4-print xfce4-quicklauncher-plugin \
 xfce4-screenshooter-plugin xfce4-systemload-plugin xfce4-taskmanager xfce4-terminal \
-xfce4-timer-plugin xfce4-volumed xfce4-weather-plugin xfce4-wm-themes xfce4-wmdock-plugin"
+xfce4-timer-plugin xfce4-volumed xfce4-weather-plugin xfce4-wm-themes xfce4-wmdock-plugin \
+midori"
 
-		for i in midori xf86-video-intel $XPACKAGES ; do
+		for i in $XPACKAGES ; do
 
 			/usr/local/bin/ezjail-admin console \
 			-f -e "/usr/local/sbin/pkg-static fetch -y -d $i" "$mfsbsdjail" \

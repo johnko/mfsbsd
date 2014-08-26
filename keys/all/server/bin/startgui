@@ -9,7 +9,8 @@ xfce4-cpugraph-plugin xfce4-datetime-plugin xfce4-dict-plugin xfce4-diskperf-plu
 xfce4-fsguard-plugin xfce4-genmon-plugin xfce4-minicmd-plugin xfce4-mount-plugin \
 xfce4-netload-plugin xfce4-notification-daemon xfce4-print xfce4-quicklauncher-plugin \
 xfce4-screenshooter-plugin xfce4-systemload-plugin xfce4-taskmanager xfce4-terminal \
-xfce4-timer-plugin xfce4-volumed xfce4-weather-plugin xfce4-wm-themes xfce4-wmdock-plugin"
+xfce4-timer-plugin xfce4-volumed xfce4-weather-plugin xfce4-wm-themes xfce4-wmdock-plugin \
+midori"
 
 # Install ezjail if ezjail-admin doesn't exist and we have network
 if [ ! -e /usr/local/bin/Xorg ]; then
