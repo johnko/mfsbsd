@@ -17,11 +17,14 @@ databases/php55-mysql
 databases/php55-mysqli
 databases/phpmyadmin
 databases/phppgadmin
+databases/postgresql93-client
+databases/postgresql93-server
 databases/py-MySQLdb
 databases/py-psycopg2
 databases/riak
 databases/rrdtool
 databases/xtrabackup
+deskutils/py-vobject
 deskutils/xfce4-notification-daemon
 deskutils/xfce4-volumed
 devel/apr1
@@ -32,8 +35,19 @@ devel/libexecinfo
 devel/m4
 devel/php55-gettext
 devel/py-Jinja2
+devel/py-babel
+devel/py-dateutil
+devel/py-decorator
 devel/py-fabric
+devel/py-gdata
+devel/py-lxml
+devel/py-mock
+devel/py-parsing
 devel/py-pip
+devel/py-pytz
+devel/py-simplejson
+devel/py-unittest2
+devel/py-yaml
 devel/ruby-gems
 devel/subversion
 dns/dnsmasq
@@ -42,6 +56,7 @@ emulators/kqemu-kmod
 emulators/kqemu-kmod-devel
 emulators/qemu-devel
 emulators/virtualbox-ose
+finance/py-vatnumber
 ftp/curl
 ftp/php5-ftp
 ftp/php55-ftp
@@ -50,6 +65,8 @@ graphics/libqrencode
 graphics/pecl-imagick
 graphics/php5-gd
 graphics/php55-gd
+graphics/py-chart
+graphics/py-pydot
 japanese/spamassassin
 lang/perl5.16
 lang/perl5.18
@@ -92,6 +109,7 @@ net/php55-ldap
 net/phpldapadmin
 net/py-ldap2
 net/py-netifaces
+net/py-zsi
 net/rsync
 net/samba-libsmbclient
 net/socat
@@ -101,6 +119,8 @@ net/zsync
 ports-mgmt/dialog4ports
 ports-mgmt/pkg
 ports-mgmt/poudriere
+print/py-pdf
+print/py-reportlab
 print/xfce4-print
 security/amavisd-new
 security/ca_root_nss
@@ -124,6 +144,7 @@ security/php55-mcrypt
 security/php55-openssl
 security/pinentry-curses
 security/py-fail2ban
+security/py-openid
 security/stunnel
 security/sudo
 shells/bash
@@ -142,6 +163,7 @@ sysutils/mcelog
 sysutils/pftop
 sysutils/php5-fileinfo
 sysutils/php55-fileinfo
+sysutils/py-psutil
 sysutils/rubygem-chef
 sysutils/screen
 sysutils/smartmontools
@@ -161,6 +183,11 @@ textproc/php55-ctype
 textproc/php55-dom
 textproc/php55-pspell
 textproc/php55-xml
+textproc/py-docutils
+textproc/py-feedparser
+textproc/py-libxslt
+textproc/py-mako
+textproc/py-xlwt
 textproc/xfce4-dict-plugin
 www/apache22
 www/awstats
@@ -178,6 +205,9 @@ www/pecl-APC
 www/php5-tidy
 www/php55-session
 www/php55-tidy
+www/py-pywebdav
+www/py-requests
+www/py-werkzeug
 www/varnish
 www/w3m
 www/webpy
