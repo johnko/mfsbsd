@@ -42,7 +42,9 @@ ezjail_use_zfs_for_jails="YES"
 ezjail_jailzfs="data/ezjail"
 EOF
 
-# If rc.d/ezjail exists, onestop it
-test -x /usr/local/etc/rc.d/ezjail && /usr/local/etc/rc.d/ezjail onestop
+if [ "no" != "$1" ]; then
+	# If rc.d/ezjail exists, onestop it
+	test -x /usr/local/etc/rc.d/ezjail && /usr/local/etc/rc.d/ezjail onestop
 
-/bin/pkill ucarp
+	/bin/pkill ucarp
+fi

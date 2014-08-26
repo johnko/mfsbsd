@@ -955,7 +955,7 @@ jrolesetuphost () {
 	testforx /server/bin/startezjail
 
 	# Run startezjail
-	/server/bin/startezjail
+	/server/bin/startezjail no
 
 	# Set devfs and disable ezjail for persistence after reboot
 	# (we onestart ezjail during rc.d/jezjail)
