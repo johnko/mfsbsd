@@ -10,7 +10,7 @@ else
 	#/usr/local/bin/poudriere ports -u
 fi
 /usr/local/bin/git clone https://github.com/johnko/freebsd-ports-test.git /server/root/freebsd-ports-test
-/server/bin/r -a --exclude .git /server/root/freebsd-ports-test/ /poudriere/ports/default/
+/server/bin/r -ba --exclude .git /server/root/freebsd-ports-test/ /poudriere/ports/default/
 # End of rubygem-chef build
 
 /server/bin/startpoudriereiredmail
