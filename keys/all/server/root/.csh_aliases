@@ -1,0 +1,8 @@
+##### .csh_aliases
+alias j 'jobs -l'
+alias atop 'apachetop -q -l -p -r 1'
+alias egrep '/usr/bin/egrep --color'
+alias grep 'egrep'
+alias findd 'find . -type d -exec ls -ld {} \; | egrep -v "(drwx--S---)"'
+alias findf 'find . -type f -exec ls -ld {} \; | egrep -v "(-rw.------)"'
+alias findport 'find /usr/ports/ -maxdepth 2 -type d | egrep -i'
