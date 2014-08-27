@@ -15,16 +15,13 @@ stop_cmd=":"
 
 jroute_start()
 {
-	if [ -e /server/csv/ucarp ]; then
-		local server=$( /bin/cat /server/csv/ucarp | /usr/bin/tr -d '\n' )
-		if /sbin/ifconfig | /usr/bin/grep status | /usr/bin/grep -v "no carrier" \
-		| /usr/bin/grep . > /dev/null 2> /dev/null ; then
-			/sbin/route del 10.7.7.0/24 > /dev/null 2> /dev/null
-			/sbin/route add 10.7.7.0/24 ${server}
-		fi
+	test -e /server/csv/ucarp \
+	&& local server=$( /bin/cat /server/csv/ucarp | /usr/bin/tr -d '\n' )
+	if [ "x" != "x$server" ]; then
+		/sbin/route del 10.7.7.0/24 > /dev/null 2> /dev/null
+		/sbin/route add 10.7.7.0/24 ${server}
 	fi
 }
 
 load_rc_config $name
 run_rc_command "$1"
-
