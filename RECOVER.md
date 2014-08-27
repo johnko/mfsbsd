@@ -21,11 +21,11 @@ These instructions will assist in setting up a FreeBSD host server with jails ru
 Variable         | Example           | Description
 -----------------|-------------------|------------
 [password]       |                   | Default is empty / blank.
-[company]        | contoso           | Needed in step 5 and 13. Company short name.
-[router_ip]      | 192.168.0.1       | Needed in step 4. The router's IP address. If the router is running DHCP, can be found by running `net-router`.
-[ip_address]     | 192.168.0.120     | Needed in step 4. An address currently unassigned (it will become the host IP). Please ensure the next IP is also unassigned.
+[company]        | contoso           | Needed in step 8. Company short name.
+[router_ip]      | 192.168.0.1       | Needed in step 6. The router's IP address. If the router is running DHCP, can be found by running `net-router`.
+[ip_address]     | 192.168.0.120     | Needed in step 6. An address currently unassigned (it will become the host IP). Please ensure the next IP is also unassigned.
 [ip_address + 1] | 192.168.0.121     | It will become the DHCP service IP address if you enable `dhcpd` in step 9.
-[network_if]     | re0               | Needed in step 4. The primary network interface. If network cables are plugged in, can be found by running:
+[network_if]     | re0               | Needed in step 6. The primary network interface. If network cables are plugged in, can be found by running:
 
 ```
 net-nic
@@ -125,7 +125,27 @@ startgui nointel novesa
 > Open the `File System` icon and go to `/server/root/mfsbsd/RECOVER.md`.
 
 
-### 4) Configure network interface on new host server manually with a command like:
+### 4) **Warning:** If the HDD have data, you may need to erase them:
+
+***BE EXTRA CAREFUL AND MAKE SURE YOU DON'T NEED ANY DATA ON THESE DRIVES, THEN CONTINUE WITH:***
+
+In the following example, we are wiping the partition table of 2 HDDs, `/dev/ada0` and `/dev/ada1`
+
+```
+destroygeom -d ada0 -d ada1
+```
+
+
+### 5) Install the `NOX` recovery image:
+
+This script will automatically detect available disks and create a ZFS mirror, if applicable:
+
+```
+mfsbsd-install
+```
+
+
+### 6) Configure network interface on new host server manually with a command like:
 
 > If you're in a GUI, open the Terminal app to continue.
 
@@ -152,7 +172,12 @@ host google.ca
 ```
 
 
-### 5) Edit the CSV network map:
+### 7) After the host server reboots twice, unplug the USB drive or eject the CD.
+
+Login again as per step 3.
+
+
+### 8) Edit the CSV network map:
 
 > The MAC / Hardware / Ethernet address needed below can be found with
 > ```
@@ -187,32 +212,11 @@ dhcp-option,option:domain-name,contoso.local                     | Local domain 
 dhcp-range,192.168.0.10,192.168.0.19                             | First DHCP range for DHCP service. Most known devices we set as DHCP reservations, so these are usually for guests.
 dhcp-range,192.168.0.20,192.168.0.29                             | Additional DHCP range for DHCP service. If all the devices are brand new, you may want to increase these and remove a lot of the `dhcp-host` lines.
 dhcp-subnet,192.168.0.0,255.255.255.0                            | Network and subnet
-dhcp-host,00:00:00:00:12:34,alfa,192.168.0.120,localchain,static | Host server with static IP
+dhcp-host,00:00:00:00:12:34,alfa,192.168.0.120,localchain,static | Example PRIMARY host server with static IP
+dhcp-host,00:00:00:00:56:78,beta,192.168.0.140,localchain,static | Example SECONDARY host server with static IP
 
 **Save the file.**
 
-
-### 6) **Warning:** If the HDD have data, you may need to erase them:
-
-***BE EXTRA CAREFUL AND MAKE SURE YOU DON'T NEED ANY DATA ON THESE DRIVES, THEN CONTINUE WITH:***
-
-In the following example, we are wiping the partition table of 2 HDDs, `/dev/ada0` and `/dev/ada1`
-
-```
-destroygeom -d ada0 -d ada1
-```
-
-### 7) Install the `NOX` recovery image:
-
-This script will automatically detect available disks and create a ZFS mirror, if applicable:
-
-```
-mfsbsd-install
-```
-
-### 8) After the host server reboots twice, unplug the USB drive or eject the CD.
-
-Login again as per step 3.
 
 ### 9) Create the network service jails:
 
@@ -222,7 +226,7 @@ If you are setting up a network with a router / RocketHub and you don't know how
 jrolerecover pxe
 ```
 
-For full recovery with DHCP, and assuming you edited modified `dhcp-failover` from step 5:
+For full recovery with DHCP, and assuming you edited modified `dhcp-failover` from step 8:
 
 ```
 jrolerecover dhcpd
@@ -238,6 +242,7 @@ If you choose to do this, you can skip steps 11 and 12.
 startsvnbuilder
 ```
 
+
 ### 11)* Compile updated ports into a pkgng repository (takes a few hours):
 
 **This step is optional, and requires a fast Internet connection to download the ports files!*
@@ -248,6 +253,7 @@ If you choose to do this, you can skip step 12.
 startmfsbsdbuilder ports newkey
 ```
 
+
 ### 12) Build a new `NOX` recovery image (takes a few minutes):
 
 **This builds a new `NOX` recovery image which is a modified mfsBSD image from the existing source code located in `/server/root/mfsbsd`**
@@ -255,6 +261,7 @@ startmfsbsdbuilder ports newkey
 ```
 startmfsbsdbuilder newkey
 ```
+
 
 ### 13) When complete, new USB, CD, and tar `NOX` recovery images can be listed at:
 
