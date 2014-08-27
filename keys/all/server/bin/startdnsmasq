@@ -27,7 +27,7 @@ test -x /server/bin/startconfig && /server/bin/startconfig dnsmasq
 /usr/sbin/sysrc -f /etc/rc.conf dnsmasq_conf="/server/dnsmasq/dnsmasq.conf"
 
 if [ ! -f "/usr/local/etc/rc.d/dnsmasq" ]; then
-	/usr/local/sbin/pkg-static install -y dnsmasq
+	/server/bin/pkgstatic install -y dnsmasq
 fi
 
 if [ ! -f "/usr/local/etc/rc.d/dnsmasq" ]; then

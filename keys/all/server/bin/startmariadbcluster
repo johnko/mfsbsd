@@ -11,8 +11,8 @@ umask 022
 #/server/mysql/sites-enabled/wsrep.cnf"
 
 if [ ! -f "/usr/local/etc/rc.d/mysql-server" ]; then
-#	/usr/local/sbin/pkg-static install -y xtrabackup
-	/usr/local/sbin/pkg-static install -y mariadb55-galera-server
+#	/server/bin/pkgstatic install -y xtrabackup
+	/server/bin/pkgstatic install -y mariadb55-galera-server
 fi
 /usr/sbin/sysrc -f /etc/rc.conf sshd_enable="YES"
 /etc/rc.d/sshd onestatus || /etc/rc.d/sshd onestart

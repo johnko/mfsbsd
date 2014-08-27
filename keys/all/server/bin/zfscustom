@@ -213,7 +213,7 @@ if [ "$UPGRADE" != "1" ]; then
 
 	for i in ${PKGLIST} ; do
 
-		/usr/local/sbin/pkg-static -c "${MNT}" install -y "${i}" \
+		/server/bin/pkgstatic -c "${MNT}" install -y "${i}" \
 		> /dev/null 2> /dev/null
 
 	done

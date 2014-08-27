@@ -6,7 +6,7 @@ REPLICAPASS=$( /server/bin/pwgen | /usr/bin/head -1 )
 
 
 if [ ! -e /usr/local/bin/screen ]; then
-	/usr/local/sbin/pkg-static install -y screen
+	/server/bin/pkgstatic install -y screen
 fi
 SCREENCMD="/usr/local/bin/screen -c /dev/null"
 SSHCMD="/usr/bin/ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"

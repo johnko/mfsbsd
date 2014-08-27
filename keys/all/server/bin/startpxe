@@ -45,7 +45,7 @@ fi
 
 ##### INSTALL
 if [ ! -f "/usr/local/share/syslinux/bios/memdisk/memdisk" ]; then
-	/usr/local/sbin/pkg-static install -y syslinux
+	/server/bin/pkgstatic install -y syslinux
 fi
 
 

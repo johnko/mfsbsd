@@ -13,7 +13,7 @@ if [ "$APPENDMYCNF" = "1" ]; then
 fi
 
 if [ ! -f "/usr/local/etc/rc.d/mysql-server" ]; then
-	/usr/local/sbin/pkg-static install -y percona56-XtraDB-Cluster
+	/server/bin/pkgstatic install -y percona56-XtraDB-Cluster
 fi
 
 /usr/sbin/sysrc -f /etc/rc.conf mysql_enable="YES"

@@ -33,7 +33,7 @@ EOF
 
 
 	if [ ! -e "/usr/local/bin/poudriere" ]; then
-		/usr/local/sbin/pkg-static install -y poudriere > /dev/null 2> /dev/null
+		/server/bin/pkgstatic install -y poudriere
 	fi
 
 	/usr/local/bin/poudriere ports -c > /dev/null 2> /dev/null

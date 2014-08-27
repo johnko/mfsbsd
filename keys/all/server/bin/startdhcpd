@@ -16,7 +16,7 @@ fi
 
 ##### INSTALL
 if [ ! -f "/usr/local/etc/rc.d/isc-dhcpd" ]; then
-	/usr/local/sbin/pkg-static install -y isc-dhcp43-server
+	/server/bin/pkgstatic install -y isc-dhcp43-server
 fi
 
 /usr/sbin/sysrc -f ${MNT}/etc/rc.conf dhcpd_enable="YES"

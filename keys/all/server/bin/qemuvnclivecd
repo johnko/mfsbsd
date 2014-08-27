@@ -10,7 +10,7 @@ testforx (){
 }
 
 if [ ! -x /usr/local/bin/qemu-system-x86_64 ]; then
-	/usr/local/sbin/pkg-static install -y qemu-devel > /dev/null 2> /dev/null
+	/server/bin/pkgstatic install -y qemu-devel > /dev/null 2> /dev/null
 fi
 
 if [ "x" = "x${1}" ]; then

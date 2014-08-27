@@ -11,7 +11,7 @@ test -x /server/bin/startconfig && /server/bin/startconfig nginx
 /usr/sbin/sysrc -f /etc/rc.conf nginxlimits_args="-e -U www"
 
 if [ ! -f "/usr/local/etc/rc.d/nginx" ]; then
-	/usr/local/sbin/pkg-static install -y nginx
+	/server/bin/pkgstatic install -y nginx
 fi
 
 if [ ! -f "/usr/local/etc/rc.d/nginx" ]; then

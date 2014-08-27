@@ -10,12 +10,12 @@ fi
 case $1 in
 	git)
 		if [ ! -e /usr/local/bin/git ]; then
-			/usr/local/sbin/pkg-static install -y git
+			/server/bin/pkgstatic install -y git
 		fi
 		;;
 	svn)
 		if [ ! -e /usr/local/bin/svn ]; then
-			/usr/local/sbin/pkg-static install -y subversion
+			/server/bin/pkgstatic install -y subversion
 		fi
 		;;
 esac

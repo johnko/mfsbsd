@@ -7,8 +7,7 @@ ARCH=amd64
 #ARCH=`uname -m`
 
 if [ ! -e /usr/local/bin/gpg2 ]; then
-	/usr/local/sbin/pkg-static install -y gnupg \
-	> /dev/null 2> /dev/null
+	/server/bin/pkgstatic install -y gnupg
 fi
 
 if [ "$1" = "nox" ]; then

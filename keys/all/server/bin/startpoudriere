@@ -36,13 +36,11 @@ DISTFILES_CACHE=/usr/ports/distfiles
 EOF
 fi
 
-
-if [ ! -e "/usr/local/bin/poudriere" ]; then
-	/usr/local/sbin/pkg-static install -y poudriere
-fi
-if [ ! -e "/usr/local/bin/dialog4ports" ]; then
-	/usr/local/sbin/pkg-static install -y dialog4ports
-fi
+for i in poudriere dialog4ports ; do
+	if [ ! -e "/usr/local/bin/$i" ]; then
+		/server/bin/pkgstatic install -y $i
+	fi
+done
 
 if [ ! -e /server/pkg/key ]; then
 	RESTOREMASK=`umask`

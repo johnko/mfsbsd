@@ -21,7 +21,7 @@ jautomount_start()
 	if [ "x" != "x${automount}" ]; then
 		/sbin/gmirror load > /dev/null 2> /dev/null || echo "."
 		/sbin/swapon -a > /dev/null 2> /dev/null || echo "."
-		test -e /usr/local/sbin/pkg-static && /usr/local/sbin/pkg-static clean -y -a -q
+		test -e /server/bin/pkgstatic && /server/bin/pkgstatic clean -y -a -q
 		test -e /server/bin/geliunlockall && /server/bin/geliunlockall
 		if /sbin/zpool import | /usr/bin/grep 'pool.*autoroot' > /dev/null 2> /dev/null ; then
 			/usr/bin/install -d -m 700 /etc/ssh.mfsroot

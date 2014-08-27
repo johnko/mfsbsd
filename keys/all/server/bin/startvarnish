@@ -16,7 +16,7 @@ fi
 /usr/sbin/sysrc -f /etc/rc.conf varnishd_config="/server/varnish/default.vcl"
 
 if [ ! -f "/usr/local/etc/rc.d/varnishd" ]; then
-	/usr/local/sbin/pkg-static install -y varnish
+	/server/bin/pkgstatic install -y varnish
 fi
 
 /usr/bin/install -d -m 755 /server/varnish

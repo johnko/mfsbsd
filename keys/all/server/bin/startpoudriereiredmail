@@ -886,7 +886,7 @@ EOF
 }
 
 if [ ! -e "/usr/local/bin/bash" ]; then
-	/usr/local/sbin/pkg-static install -y bash
+	/server/bin/pkgstatic install -y bash
 fi
 /server/bin/startpoudriere unattended
 install_all

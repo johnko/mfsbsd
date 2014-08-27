@@ -12,11 +12,10 @@ xfce4-timer-plugin xfce4-volumed xfce4-weather-plugin xfce4-wm-themes xfce4-wmdo
 
 # Install ezjail if ezjail-admin doesn't exist and we have network
 if [ ! -e /usr/local/bin/Xorg ]; then
-	if /sbin/ifconfig | /usr/bin/grep status | /usr/bin/grep -v "no carrier" \
-	| /usr/bin/grep . > /dev/null 2> /dev/null ; then
+	if /sbin/ifconfig | /usr/bin/grep status | /usr/bin/grep " active" > /dev/null 2> /dev/null ; then
 		echo -n "Installing X packages..."
 		for i in ${XPACKAGES} ; do
-			/usr/local/sbin/pkg-static install -y ${i} > /dev/null 2> /dev/null
+			/server/bin/pkgstatic install -y ${i} > /dev/null 2> /dev/null
 		done
 		echo " done"
 	else
@@ -32,7 +31,7 @@ if [ ! -e /usr/local/bin/Xorg ]; then
 			LOOP=0;
 			echo -n '.'
 			for i in /media/pkgdisk/*.t?z ; do
-				/usr/local/sbin/pkg-static add $i 2>&1 | /usr/bin/grep 'already installed' > /dev/null 2> /dev/null || LOOP=1
+				/server/bin/pkgstatic add $i 2>&1 | /usr/bin/grep 'already installed' > /dev/null 2> /dev/null || LOOP=1
 			done
 		done
 		echo " done"

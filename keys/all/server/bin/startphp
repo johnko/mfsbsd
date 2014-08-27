@@ -4,7 +4,7 @@
 /usr/sbin/sysrc -f /etc/rc.conf php_fpm_enable="YES"
 
 if [ ! -e "/usr/local/etc/rc.d/php-fpm" ]; then
-	/usr/local/sbin/pkg-static install -y php55 php55-filter php55-mysql php55-mysqli php55-zip php55-zlib php55-imap php55-session php55-hash php55-mcrypt php55-json
+	/server/bin/pkgstatic install -y php55 php55-filter php55-mysql php55-mysqli php55-zip php55-zlib php55-imap php55-session php55-hash php55-mcrypt php55-json
 	# phpsecinfo php-suhosin
 fi
 

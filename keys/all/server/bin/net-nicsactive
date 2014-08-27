@@ -14,7 +14,7 @@ NIC=$( /sbin/ifconfig -l )
 for i in $NIC ; do
 
 	status=$( /sbin/ifconfig $i | /usr/bin/grep "status" \
-	| /usr/bin/grep "active" )
+	| /usr/bin/grep " active" )
 
 	if [ "x" != "x$status" ]; then
 		echo -n "$i "

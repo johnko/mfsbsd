@@ -14,7 +14,7 @@ MYHOST="mx"
 /usr/sbin/sysrc -f ${MNT}/etc/rc.conf sendmail_msp_queue_enable="NO"
 
 if [ ! -e "/usr/local/bin/postfix" ]; then
-	/usr/local/sbin/pkg-static install -y postfix
+	/server/bin/pkgstatic install -y postfix
 fi
 
 /usr/sbin/sysrc -f ${MNT}/etc/rc.conf postfix_enable="YES"

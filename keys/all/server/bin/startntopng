@@ -8,7 +8,7 @@
 /server/bin/startnginx
 
 if [ ! -f "/usr/local/bin/ntopng" ]; then
-	/usr/local/sbin/pkg-static install -y ntopng GeoIP
+	/server/bin/pkgstatic install -y ntopng GeoIP
 fi
 
 for i in /server/www/ntopng ; do

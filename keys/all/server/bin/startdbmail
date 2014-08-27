@@ -1,4 +1,4 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
-/usr/local/sbin/pkg-static install -y dbmail
+/server/bin/pkgstatic install -y dbmail

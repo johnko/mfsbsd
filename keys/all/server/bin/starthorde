@@ -8,7 +8,7 @@
 
 
 if [ ! -e /usr/local/bin/webmail-install ]; then
-	/usr/local/sbin/pkg-static install -y horde-webmail bash php5-gd php5-tidy php5-fileinfo php5-ftp pecl-imagick pecl-lzf pecl-memcached
+	/server/bin/pkgstatic install -y horde-webmail bash php5-gd php5-tidy php5-fileinfo php5-ftp pecl-imagick pecl-lzf pecl-memcached
 fi
 
 

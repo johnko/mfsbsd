@@ -1,0 +1,43 @@
+#!/bin/sh
+# Copyright (c) 2014 John Ko
+
+if [ -e /etc/pkg/FreeBSD.conf ]; then
+	/bin/mv /etc/pkg/FreeBSD.conf /etc/pkg.FreeBSD.conf.bkp
+fi
+if ! /sbin/mount | /usr/bin/grep "/var/cache/pkg" > /dev/null 2> /dev/null; then
+	/sbin/mount -t tmpfs tmpfs /var/cache
+fi
+if ! /sbin/mount | /usr/bin/grep "/var/db/pkg" > /dev/null 2> /dev/null; then
+	/sbin/mount -t tmpfs tmpfs /var/db/pkg
+fi
+
+if [ -x /usr/local/sbin/pkg-static ]; then
+
+	if echo "$*" | /usr/bin/egrep "(install|update|upgrade)" > /dev/null 2> /dev/null ; then
+
+		if /sbin/ifconfig | /usr/bin/grep status | /usr/bin/grep " active" > /dev/null 2> /dev/null ; then
+
+			test -e /usr/local/etc/pkg/repos/myrepo.conf \
+			&& REPOURL=$( /usr/bin/grep URL: /usr/local/etc/pkg/repos/myrepo.conf \
+			| /usr/bin/egrep -v '^\s*#' | /usr/bin/awk '{print $NF}' | /usr/bin/head -1 )
+
+			if /usr/bin/fetch -q -o /dev/null -T 1 "${REPOURL}/digests.txz" ; then
+				/usr/local/sbin/pkg-static $* || exit $?
+			else
+				echo "Error: can't reach ${REPOURL}"
+				exit 1
+			fi
+
+		else
+			echo "Error: no network interface active"
+			exit 1
+		fi
+
+	else
+		/usr/local/sbin/pkg-static $* || exit $?
+	fi
+
+else
+	echo "Error: /usr/local/sbin/pkg-static no exec or not found"
+	exit 1
+fi

@@ -2,7 +2,7 @@
 # Copyright (c) 2014 John Ko
 
 if [ ! -e /usr/local/bin/ezjail-admin ]; then
-	/usr/local/sbin/pkg-static install -y ezjail
+	/server/bin/pkgstatic install -y ezjail
 fi
 
 if [ $( /usr/local/bin/ezjail-admin list | /usr/bin/wc -l ) -gt 2 ]; then

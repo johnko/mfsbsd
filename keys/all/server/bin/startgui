@@ -18,7 +18,7 @@ if [ ! -e /usr/local/bin/Xorg ]; then
 	| /usr/bin/grep . > /dev/null 2> /dev/null ; then
 		echo -n "Installing X packages..."
 		for i in ${XPACKAGES} ; do
-			/usr/local/sbin/pkg-static install -y ${i} > /dev/null 2> /dev/null
+			/server/bin/pkgstatic install -y ${i} > /dev/null 2> /dev/null
 		done
 		echo " done"
 	else
@@ -34,7 +34,7 @@ if [ ! -e /usr/local/bin/Xorg ]; then
 			LOOP=0;
 			echo -n '.'
 			for i in /media/pkgdisk/*.t?z ; do
-				/usr/local/sbin/pkg-static add $i 2>&1 | /usr/bin/grep 'already installed' > /dev/null 2> /dev/null || LOOP=1
+				/server/bin/pkgstatic add $i 2>&1 | /usr/bin/grep 'already installed' > /dev/null 2> /dev/null || LOOP=1
 			done
 		done
 		echo " done"
@@ -59,9 +59,9 @@ done
 
 for i in $* ; do
 	case "$i" in
-		nofbdev)	/usr/local/sbin/pkg-static remove -y xf86-video-fbdev ; /bin/rm /etc/X11/xorg.conf ;;
-		nointel)	/usr/local/sbin/pkg-static remove -y xf86-video-intel ; /bin/rm /etc/X11/xorg.conf ;;
-		novesa)		/usr/local/sbin/pkg-static remove -y xf86-video-vesa	; /bin/rm /etc/X11/xorg.conf ;;
+		nofbdev)	/server/bin/pkgstatic remove -y xf86-video-fbdev ; /bin/rm /etc/X11/xorg.conf ;;
+		nointel)	/server/bin/pkgstatic remove -y xf86-video-intel ; /bin/rm /etc/X11/xorg.conf ;;
+		novesa)		/server/bin/pkgstatic remove -y xf86-video-vesa	; /bin/rm /etc/X11/xorg.conf ;;
 	esac
 done
 

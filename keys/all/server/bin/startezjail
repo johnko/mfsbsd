@@ -31,9 +31,7 @@ test -x /etc/rc.d/sshd \
 
 # Install ezjail if ezjail-admin doesn't exist and we have network
 if [ ! -e /usr/local/bin/ezjail-admin ]; then
-	/sbin/ifconfig | /usr/bin/grep status | /usr/bin/grep -v "no carrier" \
-	| /usr/bin/grep . > /dev/null 2> /dev/null \
-	&& /usr/local/sbin/pkg-static install -y ezjail
+	/server/bin/pkgstatic install -y ezjail
 fi
 
 # Exit if ezjail still doesn't exist
