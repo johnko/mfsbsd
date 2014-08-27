@@ -33,7 +33,7 @@ jautopkg_start()
 		else
 			local trylocal="YES"
 		fi
-		if [ "x$trylocal" = "xYES" ]; then
+		if [ "$trylocal" = "YES" ]; then
 			PACKAGES=`/bin/ls -1 /packages/*.t?z 2>/dev/null`
 			if /bin/test -n "$PACKAGES"; then
 				echo -n "Installing from /packages"

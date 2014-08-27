@@ -17,11 +17,11 @@ if [ -x /usr/local/sbin/pkg-static ]; then
 
 	if echo "$1" | /usr/bin/egrep "(install|update|upgrade)" > /dev/null 2> /dev/null ; then
 
-		if /sbin/ifconfig | /usr/bin/grep status | /usr/bin/grep " active" > /dev/null 2> /dev/null ; then
-
-			test -e /usr/local/etc/pkg/repos/myrepo.conf \
-			&& REPOURL=$( /usr/bin/grep URL: /usr/local/etc/pkg/repos/myrepo.conf \
-			| /usr/bin/egrep -v '^\s*#' | /usr/bin/awk '{print $NF}' | /usr/bin/head -1 )
+		test -e /usr/local/etc/pkg/repos/myrepo.conf \
+		&& REPOURL=$( /usr/bin/grep URL: /usr/local/etc/pkg/repos/myrepo.conf \
+		| /usr/bin/egrep -v '^\s*#' | /usr/bin/awk '{print $NF}' | /usr/bin/head -1 )
+		
+		if [ "x" != "x$REPOURL" ]; then
 
 			if /usr/bin/fetch -q -o /dev/null -T 1 "${REPOURL}/digests.txz" ; then
 				/usr/local/sbin/pkg-static $* || exit $?
@@ -31,7 +31,7 @@ if [ -x /usr/local/sbin/pkg-static ]; then
 			fi
 
 		else
-			echo "Error: no network interface active"
+			echo "Error: URL not found in /usr/local/etc/pkg/repos/myrepo.conf"
 			exit 1
 		fi
 

@@ -104,13 +104,13 @@ Then at the `Password:` prompt, enter the `[password]` listed above.
 > #
 > ```
 
-You may be able to start a GUI session with:
+For ease of copy and paste, you may be able to start a GUI session with:
 
 ```
 startgui
 ```
 
-or a variation of:
+If that doesn't work, press `Ctrl + C` several times (this will interrupt the running process), and then try a variation of:
 
 ```
 startgui nofbdev
@@ -121,8 +121,13 @@ startgui nofbdev novesa
 startgui nointel novesa
 ```
 
+> To find these instructions so you can copy and paste the commands:
+> Open the `File System` icon and go to `/server/root/mfsbsd/RECOVER.md`.
+
 
 ### 4) Configure network interface on new host server manually with a command like:
+
+> If you're in a GUI, open the Terminal app to continue.
 
 ```
 ifconfig [network_if] inet [ip_address]/32
@@ -160,7 +165,9 @@ host google.ca
 
 Edit the `/server/csv/dhcpd/[company].csv` file with a plain text editor.
 
-You may be able to edit via the command line with:
+> If you are in a GUI session, open the `File System` icon and go to the file.
+
+If not in a GUI session, you may be able to edit via the command line with:
 
 ```
 edit /server/csv/dhcpd/[company].csv
@@ -181,6 +188,8 @@ dhcp-range,192.168.0.10,192.168.0.19                             | First DHCP ra
 dhcp-range,192.168.0.20,192.168.0.29                             | Additional DHCP range for DHCP service. If all the devices are brand new, you may want to increase these and remove a lot of the `dhcp-host` lines.
 dhcp-subnet,192.168.0.0,255.255.255.0                            | Network and subnet
 dhcp-host,00:00:00:00:12:34,alfa,192.168.0.120,localchain,static | Host server with static IP
+
+**Save the file.**
 
 
 ### 6) **Warning:** If the HDD have data, you may need to erase them:
@@ -221,7 +230,7 @@ jrolerecover dhcpd
 
 ### 10)* Compile a new FreeBSD patch or release (takes many hours):
 
-**This step is optional, and requires a fast Internet connection!*
+**This step is optional, and requires a fast Internet connection to download the FreeBSD source!*
 
 If you choose to do this, you can skip steps 11 and 12.
 
@@ -231,7 +240,7 @@ startsvnbuilder
 
 ### 11)* Compile updated ports into a pkgng repository (takes a few hours):
 
-**This step is optional, and requires a fast Internet connection!*
+**This step is optional, and requires a fast Internet connection to download the ports files!*
 
 If you choose to do this, you can skip step 12.
 
@@ -241,11 +250,13 @@ startmfsbsdbuilder ports newkey
 
 ### 12) Build a new `NOX` recovery image (takes a few minutes):
 
+**This builds a new `NOX` recovery image which is a modified mfsBSD image from the existing source code located in `/server/root/mfsbsd`**
+
 ```
 startmfsbsdbuilder newkey
 ```
 
-### 13) New USB, CD, and tar `NOX` recovery images can be listed at:
+### 13) When complete, new USB, CD, and tar `NOX` recovery images can be listed at:
 
 ```
 ls -lh /usr/jails/mfsbsd*/root/mfsbsd/NOX*
@@ -256,6 +267,7 @@ Plug in a new USB, and the new `NOX` recovery image can be written to the USB dr
 ```
 writenoxusb /dev/da0
 ```
+
 
 ### 14) SECONDARY new host server can now be plugged in to the network.
 

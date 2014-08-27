@@ -13,13 +13,24 @@ xfce4-timer-plugin xfce4-volumed xfce4-weather-plugin xfce4-wm-themes xfce4-wmdo
 midori"
 
 # Install X
-if /sbin/ifconfig | /usr/bin/grep status | /usr/bin/grep " active" > /dev/null 2> /dev/null ; then
-	echo -n "Installing X packages..."
-	for i in ${XPACKAGES} ; do
-		/server/bin/pkgstatic install -y ${i} > /dev/null 2> /dev/null
-	done
-	echo " done"
+test -e /usr/local/etc/pkg/repos/myrepo.conf \
+&& REPOURL=$( /usr/bin/grep URL: /usr/local/etc/pkg/repos/myrepo.conf \
+| /usr/bin/egrep -v '^\s*#' | /usr/bin/awk '{print $NF}' | /usr/bin/head -1 )
+
+if [ "x" != "x$REPOURL" ]; then
+	if /usr/bin/fetch -q -o /dev/null -T 1 "${REPOURL}/digests.txz" ; then
+		echo -n "Installing X packages..."
+		for i in ${XPACKAGES} ; do
+			/server/bin/pkgstatic install -y ${i} > /dev/null 2> /dev/null
+		done
+		echo " done"
+	else
+		trylocal=YES
+	fi
 else
+	trylocal=YES
+fi
+if [ "$trylocal" = "YES" ]; then
 	if [ -e /dev/da0a ]; then
 		test -d /media || /bin/mkdir /media
 		echo -n "Mounting USB..."

@@ -1,45 +1,56 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
-XPACKAGES="xf86-video-vesa xf86-video-fbdev xf86-input-mouse xf86-input-keyboard \
+XPACKAGES="xf86-video-fbdev xf86-video-intel xf86-video-vesa \
+xf86-input-mouse xf86-input-keyboard \
 xineramaproto xinit xrdb xauth \
 slim xfce xfce4-battery-plugin xfce4-bsdcpufreq-plugin xfce4-clipman-plugin \
 xfce4-cpugraph-plugin xfce4-datetime-plugin xfce4-dict-plugin xfce4-diskperf-plugin \
 xfce4-fsguard-plugin xfce4-genmon-plugin xfce4-minicmd-plugin xfce4-mount-plugin \
 xfce4-netload-plugin xfce4-notification-daemon xfce4-print xfce4-quicklauncher-plugin \
 xfce4-screenshooter-plugin xfce4-systemload-plugin xfce4-taskmanager xfce4-terminal \
-xfce4-timer-plugin xfce4-volumed xfce4-weather-plugin xfce4-wm-themes xfce4-wmdock-plugin"
+xfce4-timer-plugin xfce4-volumed xfce4-weather-plugin xfce4-wm-themes xfce4-wmdock-plugin \
+midori"
 
-# Install ezjail if ezjail-admin doesn't exist and we have network
-if [ ! -e /usr/local/bin/Xorg ]; then
-	if /sbin/ifconfig | /usr/bin/grep status | /usr/bin/grep " active" > /dev/null 2> /dev/null ; then
+# Install X
+test -e /usr/local/etc/pkg/repos/myrepo.conf \
+&& REPOURL=$( /usr/bin/grep URL: /usr/local/etc/pkg/repos/myrepo.conf \
+| /usr/bin/egrep -v '^\s*#' | /usr/bin/awk '{print $NF}' | /usr/bin/head -1 )
+
+if [ "x" != "x$REPOURL" ]; then
+	if /usr/bin/fetch -q -o /dev/null -T 1 "${REPOURL}/digests.txz" ; then
 		echo -n "Installing X packages..."
 		for i in ${XPACKAGES} ; do
 			/server/bin/pkgstatic install -y ${i} > /dev/null 2> /dev/null
 		done
 		echo " done"
 	else
-		if [ -e /dev/da0a ]; then
-			test -d /media || /bin/mkdir /media
-			echo -n "Mounting USB..."
-			/sbin/mount -o ro /dev/da0a /media
-			echo " done"
-		fi
-		echo -n "Adding X packages from /media/pkgdisk..."
-		LOOP=1
-		while [ $LOOP -eq 1 ]; do
-			LOOP=0;
-			echo -n '.'
-			for i in /media/pkgdisk/*.t?z ; do
-				/server/bin/pkgstatic add $i 2>&1 | /usr/bin/grep 'already installed' > /dev/null 2> /dev/null || LOOP=1
-			done
-		done
+		trylocal=YES
+	fi
+else
+	trylocal=YES
+fi
+if [ "$trylocal" = "YES" ]; then
+	if [ -e /dev/da0a ]; then
+		test -d /media || /bin/mkdir /media
+		echo -n "Mounting USB..."
+		/sbin/mount -o ro /dev/da0a /media
 		echo " done"
-		if [ -e /dev/da0a ]; then
-			echo -n "Unmounting USB..."
-			/sbin/umount /dev/da0a
-			echo " done"
-		fi
+	fi
+	echo -n "Adding X packages from /media/pkgdisk..."
+	LOOP=1
+	while [ $LOOP -eq 1 ]; do
+		LOOP=0;
+		echo -n '.'
+		for i in /media/pkgdisk/*.t?z ; do
+			/server/bin/pkgstatic add $i 2>&1 | /usr/bin/grep 'already installed' > /dev/null 2> /dev/null || LOOP=1
+		done
+	done
+	echo " done"
+	if [ -e /dev/da0a ]; then
+		echo -n "Unmounting USB..."
+		/sbin/umount /dev/da0a
+		echo " done"
 	fi
 fi
 
