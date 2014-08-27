@@ -15,7 +15,7 @@ fi
 
 if [ -x /usr/local/sbin/pkg-static ]; then
 
-	if echo "$*" | /usr/bin/egrep "(install|update|upgrade)" > /dev/null 2> /dev/null ; then
+	if echo "$1" | /usr/bin/egrep "(install|update|upgrade)" > /dev/null 2> /dev/null ; then
 
 		if /sbin/ifconfig | /usr/bin/grep status | /usr/bin/grep " active" > /dev/null 2> /dev/null ; then
 
