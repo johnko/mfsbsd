@@ -5,9 +5,11 @@ if [ -e /etc/pkg/FreeBSD.conf ]; then
 	/bin/mv /etc/pkg/FreeBSD.conf /etc/pkg.FreeBSD.conf.bkp
 fi
 if ! /sbin/mount | /usr/bin/grep "/var/cache/pkg" > /dev/null 2> /dev/null; then
+	test -d /var/cache/pkg || /usb/bin/install -d -m 0700 -o root -g wheel /var/cache/pkg
 	/sbin/mount -t tmpfs tmpfs /var/cache/pkg
 fi
 if ! /sbin/mount | /usr/bin/grep "/var/db/pkg" > /dev/null 2> /dev/null; then
+	test -d /var/db/pkg || /usb/bin/install -d -m 0700 -o root -g wheel /var/db/pkg
 	/sbin/mount -t tmpfs tmpfs /var/db/pkg
 fi
 
