@@ -18,14 +18,14 @@ These instructions will assist in setting up a FreeBSD host server with jails ru
 
 ## Definitions
 
-Variable         | Example           | Description
------------------|-------------------|------------
-[password]       |                   | Default is empty / blank.
-[company]        | contoso           | Needed in step 8. Company short name.
-[router_ip]      | 192.168.0.1       | Needed in step 6. The router's IP address. If the router is running DHCP, can be found by running `net-router`.
-[ip_address]     | 192.168.0.120     | Needed in step 6. An address currently unassigned (it will become the host IP). Please ensure the next IP is also unassigned.
-[ip_address + 1] | 192.168.0.121     | It will become the DHCP service IP address if you enable `dhcpd` in step 9.
-[network_if]     | re0               | Needed in step 6. The primary network interface. If network cables are plugged in, can be found by running:
+Variable         | Example       | Description
+-----------------|---------------|------------
+[password]       |               | Default is empty / blank.
+[company]        | contoso       | Needed in step 7. Company short name.
+[router_ip]      | 192.168.0.1   | Needed in step 7. The router's IP address. If the router is running DHCP, can be found by running `net-router`.
+[ip_address]     | 192.168.0.120 | Needed in step 7. An address currently unassigned (it will become the host IP). Please ensure the next IP is also unassigned.
+[ip_address + 1] | 192.168.0.121 | It will become the DHCP service IP address if you enable `dhcpd` in step 9.
+[network_if]     | re0           | May be needed in step 7. The primary network interface. If network cables are plugged in, can be found by running:
 
 ```
 net-nic
@@ -145,39 +145,16 @@ mfsbsd-install
 ```
 
 
-### 6) Configure network interface on new host server manually with a command like:
-
-> If you're in a GUI, open the Terminal app to continue.
-
-```
-ifconfig [network_if] inet [ip_address]/32
-```
-
-You will also need a default route:
-
-```
-route add default [router_ip]
-```
-
-And upstream DNS (for Google's DNS which is 8.8.8.8):
-
-```
-echo "nameserver 8.8.8.8" > /etc/resolv.conf
-```
-
-At this point, if you do the following and get a bunch of numbers, your network is working:
-
-```
-host google.ca
-```
-
-
-### 7) After the host server reboots twice, unplug the USB drive or eject the CD.
+### 6) After the host server reboots twice, unplug the USB drive or eject the CD.
 
 Login again as per step 3.
 
+> Remember, you can also start a GUI session.
 
-### 8) Edit the CSV network map:
+
+### 7) Edit the CSV network map:
+
+The network map is basically a list of all the computers (or at least servers) connected to the network.
 
 > The MAC / Hardware / Ethernet address needed below can be found with
 > ```
@@ -204,18 +181,33 @@ edit /server/csv/dhcpd/[company].csv
 Line | Description
 -----|------------
 dhcp-boot,tag:!gpxe,lpxelinux.0,192.168.0.200                    | PXE boot service IP. This IP is used with `ucarp` failover.
-dhcp-failover,primary,192.168.0.121                              | Primary DHCP service IP
-dhcp-failover,secondary,192.168.0.141                            | Secondary DHCP service IP
+dhcp-failover,primary,192.168.0.121                              | [ip_address + 1] PRIMARY DHCP service IP
+dhcp-failover,secondary,192.168.0.141                            | [ip_address + 1] SECONDARY DHCP service IP
 dhcp-option,option:dns-server,8.8.8.8,208.67.222.222             | DNS IP (Usually Windows AD server, Google and OpenDNS are listed as examples)
-dhcp-option,option:router,192.168.0.1                            | Router internal IP
+dhcp-option,option:router,192.168.0.1                            | [router_ip] Router internal IP. This is the default route, aka default gateway.
 dhcp-option,option:domain-name,contoso.local                     | Local domain name
 dhcp-range,192.168.0.10,192.168.0.19                             | First DHCP range for DHCP service. Most known devices we set as DHCP reservations, so these are usually for guests.
 dhcp-range,192.168.0.20,192.168.0.29                             | Additional DHCP range for DHCP service. If all the devices are brand new, you may want to increase these and remove a lot of the `dhcp-host` lines.
 dhcp-subnet,192.168.0.0,255.255.255.0                            | Network and subnet
-dhcp-host,00:00:00:00:12:34,alfa,192.168.0.120,localchain,static | Example PRIMARY host server with static IP
-dhcp-host,00:00:00:00:56:78,beta,192.168.0.140,localchain,static | Example SECONDARY host server with static IP
+dhcp-host,00:00:00:00:12:34,alfa,192.168.0.120,localchain,static | [ip_address] Example PRIMARY host server with static IP.
+dhcp-host,00:00:00:00:56:78,beta,192.168.0.140,localchain,static | [ip_address] Example SECONDARY host server with static IP.
 
 **Save the file.**
+
+
+### 8) To apply and test the changes to the network map, run the command:
+
+```
+cron-csv-detect-diff
+```
+
+At this point, if you do the following and get a bunch of numbers, your network is working:
+
+```
+host google.ca
+```
+
+If you don't see a response like `google.ca has address XX.XX.XX.XX` then restart from step 7.
 
 
 ### 9) Create the network service jails:
