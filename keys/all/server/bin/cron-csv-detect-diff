@@ -30,6 +30,7 @@ EOF
 		if /sbin/sysctl security.jail.jailed | /usr/bin/grep 0 >/dev/null 2>&1 ; then
 			# based on rcorder /etc/rc.d/*
 			test -x /etc/rc.d/jcsvinterfaces && /etc/rc.d/jcsvinterfaces onestart
+			/etc/rc.d/hostname onestart
 			test -x /etc/rc.d/jinterfaces && /etc/rc.d/jinterfaces onestart
 			/etc/rc.d/netoptions onerestart
 			/etc/rc.d/netif onerestart
