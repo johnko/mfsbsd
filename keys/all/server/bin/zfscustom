@@ -5,15 +5,11 @@
 PKGLIST="indexinfo pkg rsync screen cmdwatch openssl bash git subversion curl wget gnupg ezjail ucarp dialog4ports poudriere iftop openntpd"
 # gnutls w3m rtorrent cdrtools
 
-
-
 # Copy mfsbsd password hash to new system
 test "$MFSBSD" != "1" \
 && /usr/bin/grep root /etc/master.passwd | /usr/bin/grep Charlie | /usr/bin/awk -F: '{print $2}' | /usr/sbin/chroot /mnt /usr/sbin/pw usermod root -H 0
 
-
-
-
+/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf.local" autopkg="${PKGLIST}"
 
 if [ "$MFSBSD" != "1" ]; then
 	/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" accf_data_load="YES"
@@ -34,16 +30,9 @@ if [ "$MFSBSD" != "1" ]; then
 	#	/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" cc_htcp_load="YES"
 	#	/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf" net.inet.tcp.hostcache.cachelimit="0"
 	#### End of problems
-fi
-/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf.local" autopkg="${PKGLIST}"
-/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf.local" "kern.maxfiles=65000"
-/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf.local" "kern.maxswzone=512M"
-/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf.local" "vfs.zfs.arc_max=256000000"
-
-
-
-
-if [ "$MFSBSD" != "1" ]; then
+	/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf.local" "kern.maxfiles=65000"
+	/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf.local" "kern.maxswzone=512M"
+	/usr/sbin/sysrc -f "${MNT}/bootdir/boot/loader.conf.local" "vfs.zfs.arc_max=256000000"
 
 	##### NETWORK ALIAS, replace MYIP4ADDRESS
 	#	/usr/sbin/sysrc -f "${MNT}/etc/rc.conf" ifconfig_eth0_alias0="inet MYIP4ADDRESS netmask 255.255.255.255"

@@ -756,12 +756,15 @@ if [ -z "$NOINSTALL" ]; then
 		/bin/cp -Rpv /var/backups/*.eli "${MNT}/var/backups/"
 		umask $RESTOREMASK
 	fi
-	if [ "$USEBOOT" = "1" ]; then
-		if [ "$MBR" != "1" ]; then
-			/usr/sbin/sysrc -f "${MNT}/boot/loader.conf.local" "vfs.root.mountfrom=zfs:autoboot/bootdir"
-		else
-			/usr/sbin/sysrc -f "${MNT}/boot/loader.conf.local" "vfs.root.mountfrom=ufs:mirror/bootdir"
+	if [ "$MFSBSD" != "1" ]; then
+		if [ "$USEBOOT" = "1" ]; then
+			if [ "$MBR" != "1" ]; then
+				/usr/sbin/sysrc -f "${MNT}/boot/loader.conf.local" "vfs.root.mountfrom=zfs:autoboot/bootdir"
+			else
+				/usr/sbin/sysrc -f "${MNT}/boot/loader.conf.local" "vfs.root.mountfrom=ufs:mirror/bootdir"
+			fi
 		fi
+		/usr/sbin/sysrc -f "${MNT}/boot/loader.conf.local" "vfs.root.mountfrom=zfs:${POOL}/${RFS}"
 	fi
 	if [ "$GELI" = "1" ]; then
 		umask 077
@@ -775,9 +778,6 @@ if [ -z "$NOINSTALL" ]; then
 			/bin/cat /tmp/loader.keys >> "${MNT}/boot/loader.conf.local"
 		fi
 		umask $RESTOREMASK
-	fi
-	if [ "$MFSBSD" != "1" ]; then
-		/usr/sbin/sysrc -f "${MNT}/boot/loader.conf.local" "vfs.root.mountfrom=zfs:${POOL}/${RFS}"
 	fi
 	echo " done"
 	if [ "$MFSBSD" != "1" ]; then
@@ -811,8 +811,6 @@ EOF
 		echo -n "Writing /etc/rc.conf..."
 		/usr/sbin/sysrc -f "${MNT}/etc/rc.conf" zfs_enable="YES"
 		echo " done"
-	fi
-	if [ "$MFSBSD" != "1" ]; then
 		echo -n "Copying /boot/zfs/zpool.cache ..."
 		if [ "$USEBOOT" = "1" ]; then
 			if [ "$MBR" = "1" ]; then
