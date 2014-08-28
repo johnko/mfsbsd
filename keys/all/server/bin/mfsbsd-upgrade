@@ -120,7 +120,7 @@ for file in ${EXTRACT_FILES}; do
 		echo "Not mfsbsd, aborting" ; exit 1
 	fi
 
-	if ! /usr/bin/tar -C /bootdir --exclude="${RELEASE}-${ARCH}" -x -f "${file}" > /dev/null 2> /dev/null ; then
+	if ! /usr/bin/tar -C /bootdir --exclude="${RELEASE}-${ARCH}" --exclude=loader.conf.local -x -f "${file}" > /dev/null 2> /dev/null ; then
 		echo " error" ; exit 1
 	fi
 
