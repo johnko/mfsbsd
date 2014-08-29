@@ -1,0 +1,32 @@
+#!/bin/sh
+# Copyright (c) 2014 John Ko
+
+# IF NOT JAILED
+if /sbin/sysctl security.jail.jailed | /usr/bin/grep 0 >/dev/null 2>&1 ; then
+
+	srcdir=/var/log
+	if [ -e ${srcdir} ]; then
+		if [ ! -e /server/log/backup/README ]; then
+			/bin/cat >/server/log/backup/README <<EOF
+Backups are kept only if different from previous backup
+EOF
+		fi
+
+		prevdir=$( /bin/ls -1dtr /server/log/backup/host/*/ | /usr/bin/tail -1 )
+		if [ ! -d "${prevdir}" ]; then
+			prevdir="/var/empty/"
+		fi
+		if /usr/bin/diff -r ${prevdir} ${srcdir}/ >/dev/null 2>&1 ; then
+			/usr/bin/touch /server/log/backup/README
+		else
+			newdir=/server/log/backup/host/$( /server/bin/date-d )
+			/usr/bin/install -d -m 700 -o root -g wheel ${newdir}
+			if [ -x /usr/local/bin/rsync -a -x /server/bin/r ]; then
+				/server/bin/r -LHmtcogp ${srcdir}/* ${newdir}/
+			else
+				/bin/cp -a ${srcdir}/* ${newdir}/
+			fi
+		fi
+	fi
+
+fi

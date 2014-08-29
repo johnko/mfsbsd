@@ -38,6 +38,7 @@ ZFSBOOT_DATASETS="
 	/server/dnsmasq						compression=lzjb,exec=off,setuid=off
 	/server/dovecot						compression=lzjb,exec=off,setuid=off
 	/server/ezjail						setuid=off,mountpoint=/usr/local/etc/ezjail
+	/server/log				exec=off,setuid=off
 	/server/nginx							exec=off,setuid=off
 	/server/patch							compression=lzjb,exec=off,setuid=off
 	/server/pf								compression=lzjb,exec=off,setuid=off
@@ -176,6 +177,7 @@ ZFSBOOT_DATASETS="
 	/server						canmount=off,compression=lzjb,mountpoint=/server
 	#/server/bin			setuid=off
 	#/server/csv			exec=off,setuid=off
+	/server/log				exec=off,setuid=off
 	/server/pkg				exec=off,setuid=off
 	/server/root			setuid=off
 	/server/savepf		exec=off,setuid=off

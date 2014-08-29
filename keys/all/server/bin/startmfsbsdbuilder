@@ -10,8 +10,12 @@ fi
 if [ "newkey" = "$1" -o "newkey" = "$2" ]; then
 	/usr/bin/ssh-keygen -N '' -t rsa -b 4096 -f ~/.ssh/id_rsa
 	chmod 600 ~/.ssh/id_rsa
-												echo >> /server/root/mfsbsd/keys/all/server/root/.ssh/authorized_keys
-	/bin/cat ~/.ssh/id_rsa.pub >> /server/root/mfsbsd/keys/all/server/root/.ssh/authorized_keys
+	CSV=$( /bin/cat /server/csv/id | /usr/bin/tr -d '\n' )
+	if [ "x" = "x$CSV" ]; then
+		CSV=all
+	fi
+												echo >> /server/root/mfsbsd/keys/${CSV}/server/root/.ssh/authorized_keys
+	/bin/cat ~/.ssh/id_rsa.pub >> /server/root/mfsbsd/keys/${CSV}/server/root/.ssh/authorized_keys
 fi
 
 # Cleanup old mfsbsd
