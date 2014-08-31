@@ -17,8 +17,8 @@ databases/php55-mysql
 databases/php55-mysqli
 databases/phpmyadmin
 databases/phppgadmin
-databases/postgresql93-client
-databases/postgresql93-server
+databases/postgresql92-client
+databases/postgresql92-server
 databases/py-MySQLdb
 databases/py-psycopg2
 databases/riak
