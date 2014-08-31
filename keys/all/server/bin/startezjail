@@ -2,17 +2,15 @@
 # Copyright (c) 2014 John Ko
 
 # Test for net-ipreal as we use it below
-if [ ! -x /server/bin/net-ipreal ] ; then
+if [ ! -x /server/bin/net-ipreal ]; then
 	echo "Error: /server/bin/net-ipreal not found"; exit 1
 fi
 
 # Add ListenAddress to ssh
 /bin/chflags noschg /etc/ssh/sshd_config
 for ip in $( /server/bin/net-ipreal -F ' ' ) ; do
-	/usr/bin/egrep \
-		"ListenAddress $ip" \
-		/etc/ssh/sshd_config \
-		> /dev/null 2> /dev/null \
+	/usr/bin/egrep "ListenAddress $ip" /etc/ssh/sshd_config \
+	> /dev/null 2> /dev/null \
 	|| /bin/cat >>/etc/ssh/sshd_config <<EOF
 ##### Added by jrolesetuphost
 ListenAddress $ip
