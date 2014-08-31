@@ -1,0 +1,63 @@
+#!/bin/sh
+# Copyright (c) 2014 John Ko
+
+# Packages listed from http://www.schenkels.nl/2014/07/install-odoo-v8-0-from-github-ubuntu-14-04-lts-formerly-openerp/
+PYPACKAGES="
+git
+python
+py27-dateutil
+py27-feedparser
+py27-ldap2
+py27-libxslt
+py27-lxml
+py27-mako
+py27-openid
+py27-psycopg2
+py27-Babel
+py27-chart
+py27-pydot
+py27-parsing
+py27-reportlab
+py27-simplejson
+py27-pytz
+py27-vatnumber
+py27-vobject
+py27-PyWebDAV
+py27-werkzeug
+py27-xlwt
+py27-yaml
+py27-zsi
+py27-docutils
+py27-psutil
+py27-mock
+py27-unittest2
+py27-Jinja2
+py27-pdf
+py27-decorator
+py27-requests
+py27-gdata
+"
+
+for i in $PYPACKAGES ; do
+	/usr/local/sbin/pkg-static install -y $i
+done
+
+/server/bin/adduser-normal odoo
+
+sudo -u odoo -i -- git clone https://www.github.com/odoo/odoo --branch 8.0 /usr/home/odoo/odoo
+
+/bin/cat > /etc/odoo-server.conf <<EOF
+[options]
+; This is the password that allows database operations:
+; admin_passwd = admin
+db_host = 10.7.7.10
+db_port = False
+db_user = odoo
+db_password = XXXXX
+addons_path = /usr/home/odoo/odoo/addons
+logfile = /var/log/odoo-server.log
+EOF
+/usr/sbin/chown odoo:odoo /etc/odoo-server.conf
+/bin/chmod 640 /etc/odoo-server.conf
+
+sudo -u odoo -i -- python /usr/home/odoo/odoo/openerp-server --config=/etc/odoo-server.conf

@@ -170,7 +170,11 @@ jrolebgstart () {
 
 	else
 
-		echo "Not implemented: jrolebgstart $1 $2"
+		if [ -x "/server/bin/start$1" ]; then
+			/usr/local/bin/ezjail-admin console -f -e "/server/bin/start$1" "$2"
+		else
+			echo "Not implemented: jrolebgstart $1 $2"
+		fi
 
 	fi
 }

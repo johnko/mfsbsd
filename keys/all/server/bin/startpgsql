@@ -1,0 +1,38 @@
+#!/bin/sh
+# Copyright (c) 2014 John Ko
+
+if [ ! -x /usr/local/etc/rc.d/postgresql ]; then
+	/server/bin/pkgstatic install -y postgresql92-server
+fi
+
+# Exit if postgres still doesn't exist
+if [ ! -x /usr/local/etc/rc.d/postgresql ]; then
+	echo "Error: postgres not found"; exit 1
+fi
+
+/usr/local/etc/rc.d/postgresql oneinitdb
+
+/usr/local/etc/rc.d/postgresql onestart
+
+echo "createuser -s odoo" | /usr/bin/su pgsql
+
+/bin/cat <<EOF
+Do the following:
+	psql template1
+	ALTER ROLE odoo WITH password 'XXXXX';
+	\q
+	exit
+EOF
+/usr/bin/su pgsql
+
+# Comment the existing pg_gb
+/bin/cat /usr/local/pgsql/data/pg_hba.conf | /usr/bin/awk '$0 ~/^#/ {print} $0 !~/^#/ {print "# "$0}' > /usr/local/pgsql/data/pg_hba.conf2
+/bin/mv /usr/local/pgsql/data/pg_hba.conf2 /usr/local/pgsql/data/pg_hba.conf
+/usr/sbin/chown pgsql:pgsql /usr/local/pgsql/data/pg_hba.conf
+/bin/chmod 600 /usr/local/pgsql/data/pg_hba.conf
+
+/bin/cat >> /usr/local/pgsql/data/pg_hba.conf <<EOF
+local all all              md5
+host  all all 10.123.234.0/24 md5
+host  all all 10.7.7.0/24 md5
+EOF
