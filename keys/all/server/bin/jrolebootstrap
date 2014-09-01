@@ -32,6 +32,7 @@ fi
 if [ "x" = "x$CSV" ]; then
 	echo "Can't determine CSV key." ; exit 1
 fi
+PGSQLPASSWD=$( /server/bin/pwgen | /usr/bin/head -1 )
 
 /usr/bin/touch /var/log/jrolebgstart.log
 
@@ -52,20 +53,20 @@ jrolenat (){
 		local server="$DHCP"
 	fi
 
-	/usr/bin/egrep "nat on $NIC from $LOCALIP" /server/savepf/jails.anchor \
+	/usr/bin/egrep "nat on $NIC from ${LOCALIP}.0/24 to any" /server/savepf/jails.anchor \
 	> /dev/null 2> /dev/null || /bin/cat >>/server/savepf/jails.anchor <<EOF
 nat on $NIC from ${LOCALIP}.0/24 to any -> (${NIC})
 EOF
 
 	/server/bin/pf-anchor-load jails
 
-	if [ "$1" = "dhcpd" ]; then
+	if [ "dhcpd" = "$1" ]; then
 		echo
-	elif [ "$1" = "pxe" ]; then
+	elif [ "pxe" = "$1" ]; then
 
 		local newip="${PRODIP}.${ip##*.}"
 
-		/usr/bin/egrep "nat on $NIC from $ip" /server/savepf/jails.anchor \
+		/usr/bin/egrep "nat on $NIC from $newip to any" /server/savepf/jails.anchor \
 		> /dev/null 2> /dev/null || /bin/cat >>/server/savepf/jails.anchor <<EOF
 nat on $NIC from $newip to any -> $DHCP
 rdr pass on $NIC proto udp from any to $DHCP port 69 -> $newip
@@ -75,11 +76,22 @@ EOF
 
 		/server/bin/pf-anchor-load jails
 
+	elif [ "odoo" = "$1" ]; then
+
+		local newip="${PRODIP}.${ip##*.}"
+
+		/usr/bin/egrep "rdr on $NIC proto tcp from any to $PUBLICIP port 8069" /server/savepf/jails.anchor \
+		> /dev/null 2> /dev/null || /bin/cat >>/server/savepf/jails.anchor <<EOF
+rdr pass on $NIC proto tcp from any to $PUBLICIP port 8069 -> $newip
+EOF
+
+		/server/bin/pf-anchor-load jails
+
 	else
 
 		local newip="${PRODIP}.${ip##*.}"
 
-		/usr/bin/egrep "nat on $NIC from $newip" /server/savepf/jails.anchor \
+		/usr/bin/egrep "nat on $NIC from $newip to any" /server/savepf/jails.anchor \
 		> /dev/null 2> /dev/null || /bin/cat >>/server/savepf/jails.anchor <<EOF
 nat on $NIC from $newip to any -> (${NIC})
 EOF
@@ -128,12 +140,12 @@ jrolebgstart () {
 	fi
 
 ############################################
-	if [ "$1" = "dhcpd" ]; then
+	if [ "dhcpd" = "$1" ]; then
 
 		/usr/local/bin/ezjail-admin console -f -e /server/bin/startdhcpd "$2"
 
 ############################################
-	elif [ "$1" = "pxe" ]; then
+	elif [ "pxe" = "$1" ]; then
 
 		if [ -e /server/csv/ucarp ]; then
 			local server=$( /bin/cat /server/csv/ucarp | /usr/bin/tr -d '\n' )
@@ -148,12 +160,7 @@ jrolebgstart () {
 		| /usr/bin/grep "pxe" | /usr/bin/awk '{print $4}' )
 
 ############################################
-	elif [ "$1" = "pkgng" -o "$1" = "freebsd-dist" -o "$1" = "littlechef" ]; then
-
-		/usr/local/bin/ezjail-admin console -f -e "/server/bin/start$1" "$2"
-
-############################################
-	elif [ "$1" = "release" ]; then
+	elif [ "release" = "$1" ]; then
 
 		/usr/local/bin/ezjail-admin console -f -e "/server/bin/start$1" "$2"
 
@@ -162,9 +169,15 @@ jrolebgstart () {
 		/usr/local/bin/ezjail-admin list | /usr/bin/grep "mfsbsd" || /server/bin/startmfsbsdbuilder ports newkey
 
 ############################################
-	elif [ "$1" = "mfsbsd" ]; then
+	elif [ "mfsbsd" = "$1" ]; then
 
 		jailbuildmfsbsd
+
+############################################
+	elif [ "odoo" = "$1" -o "pgsql" = "$1" ]; then
+
+		/usr/local/bin/ezjail-admin console -f -e "/server/bin/start$1 $PGSQLPASSWD" "$2"
+		jroleproductionip "$2"
 
 ############################################
 

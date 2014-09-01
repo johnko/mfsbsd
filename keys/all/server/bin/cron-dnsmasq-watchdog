@@ -7,7 +7,7 @@ THISFILE=`echo ${THISSCRIPT##*/} | /usr/bin/sed 's,cron-,,' | /usr/bin/sed 's,-l
 if /bin/pgrep -lf ${THISSCRIPT##*/} >/dev/null 2>&1 ; then
 	exit 1
 else
-	if ! /usr/sbin/sysrc -f /etc/rc.conf dnsmasq_enable | /usr/bin/egrep "YES" >/dev/null 2>&1 ; then
+	if ! /usr/sbin/sysrc -f /etc/rc.conf.local dnsmasq_enable | /usr/bin/egrep "YES" >/dev/null 2>&1 ; then
 		if /bin/pgrep -lf '/usr/local/sbin/dnsmasq' >/dev/null 2>&1 ; then
 			exit
 		else

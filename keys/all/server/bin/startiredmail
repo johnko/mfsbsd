@@ -4,7 +4,7 @@
 MYDOMAIN="mydomain.local"
 MYHOST="mx"
 
-/usr/sbin/sysrc -f /etc/rc.conf hostname="${MYHOST}.${MYDOMAIN}"
+/usr/sbin/sysrc -f /etc/rc.conf.local hostname="${MYHOST}.${MYDOMAIN}"
 
 if [ ! -e "/usr/local/bin/bash" ]; then
 	/server/bin/pkgstatic install -y bash

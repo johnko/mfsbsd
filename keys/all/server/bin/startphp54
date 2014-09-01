@@ -1,7 +1,7 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
-/usr/sbin/sysrc -f /etc/rc.conf php_fpm_enable="YES"
+/usr/sbin/sysrc -f /etc/rc.conf.local php_fpm_enable="YES"
 
 if [ ! -e "/usr/local/etc/rc.d/php-fpm" ]; then
 	/server/bin/pkgstatic install -y php5 php5-filter php5-mysql php5-mysqli php5-zip php5-zlib php5-imap php5-session php5-hash php5-mcrypt php5-json

@@ -19,28 +19,28 @@ if [ ! -f "/usr/local/etc/rc.d/isc-dhcpd" ]; then
 	/server/bin/pkgstatic install -y isc-dhcp43-server
 fi
 
-/usr/sbin/sysrc -f ${MNT}/etc/rc.conf dhcpd_enable="YES"
-/usr/sbin/sysrc -f ${MNT}/etc/rc.conf dhcpd_flags="-q"
-/usr/sbin/sysrc -f ${MNT}/etc/rc.conf dhcpd_conf="/server/dhcpd/dhcpd.conf"
-/usr/sbin/sysrc -f ${MNT}/etc/rc.conf dhcpd_includedir="/server/dhcpd/include"
-/usr/sbin/sysrc -f ${MNT}/etc/rc.conf dhcpd_ifaces=""
-/usr/sbin/sysrc -f ${MNT}/etc/rc.conf dhcpd_withumask="022"
-/usr/sbin/sysrc -f ${MNT}/etc/rc.conf dhcpd_chuser_enable="YES"
-/usr/sbin/sysrc -f ${MNT}/etc/rc.conf dhcpd_withuser="dhcpd"
-/usr/sbin/sysrc -f ${MNT}/etc/rc.conf dhcpd_withgroup="dhcpd"
+/usr/sbin/sysrc -f "${MNT}/etc/rc.conf.local" dhcpd_enable="YES"
+/usr/sbin/sysrc -f "${MNT}/etc/rc.conf.local" dhcpd_flags="-q"
+/usr/sbin/sysrc -f "${MNT}/etc/rc.conf.local" dhcpd_conf="/server/dhcpd/dhcpd.conf"
+/usr/sbin/sysrc -f "${MNT}/etc/rc.conf.local" dhcpd_includedir="/server/dhcpd/include"
+/usr/sbin/sysrc -f "${MNT}/etc/rc.conf.local" dhcpd_ifaces=""
+/usr/sbin/sysrc -f "${MNT}/etc/rc.conf.local" dhcpd_withumask="022"
+/usr/sbin/sysrc -f "${MNT}/etc/rc.conf.local" dhcpd_chuser_enable="YES"
+/usr/sbin/sysrc -f "${MNT}/etc/rc.conf.local" dhcpd_withuser="dhcpd"
+/usr/sbin/sysrc -f "${MNT}/etc/rc.conf.local" dhcpd_withgroup="dhcpd"
 if /sbin/sysctl security.jail.jailed | /usr/bin/grep 1 >/dev/null 2>&1 ; then
-	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf dhcpd_chroot_enable="NO"
-	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf dhcpd_devfs_enable="NO"
+	/usr/sbin/sysrc -f "${MNT}/etc/rc.conf.local" dhcpd_chroot_enable="NO"
+	/usr/sbin/sysrc -f "${MNT}/etc/rc.conf.local" dhcpd_devfs_enable="NO"
 else
-	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf dhcpd_chroot_enable="YES"
-	/usr/sbin/sysrc -f ${MNT}/etc/rc.conf dhcpd_devfs_enable="YES"
-	if ! /usr/sbin/sysrc -f ${MNT}/etc/rc.conf syslogd_flags | /usr/bin/egrep "/var/db/dhcpd/var/run/log" >/dev/null 2>&1 ; then
-		old=`/usr/sbin/sysrc -f ${MNT}/etc/rc.conf syslogd_flags | /usr/bin/awk '{$1="";print $0}'`
-		/usr/sbin/sysrc -f ${MNT}/etc/rc.conf syslogd_flags="${old} -l /var/db/dhcpd/var/run/log"
+	/usr/sbin/sysrc -f "${MNT}/etc/rc.conf.local" dhcpd_chroot_enable="YES"
+	/usr/sbin/sysrc -f "${MNT}/etc/rc.conf.local" dhcpd_devfs_enable="YES"
+	if ! /usr/sbin/sysrc -f "${MNT}/etc/rc.conf" syslogd_flags | /usr/bin/egrep "/var/db/dhcpd/var/run/log" >/dev/null 2>&1 ; then
+		old=`/usr/sbin/sysrc -f "${MNT}/etc/rc.conf" syslogd_flags | /usr/bin/awk '{$1="";print $0}'`
+		/usr/sbin/sysrc -f "${MNT}/etc/rc.conf" syslogd_flags="${old} -l /var/db/dhcpd/var/run/log"
 	fi
 fi
-/usr/sbin/sysrc -f ${MNT}/etc/rc.conf dhcpd_rootdir="/var/db/dhcpd"
-/usr/sbin/sysrc -f ${MNT}/etc/rc.conf newsyslog_enable="YES"
+/usr/sbin/sysrc -f "${MNT}/etc/rc.conf.local" dhcpd_rootdir="/var/db/dhcpd"
+/usr/sbin/sysrc -f "${MNT}/etc/rc.conf" newsyslog_enable="YES"
 
 /etc/rc.d/jcsvdhcpd onestart
 

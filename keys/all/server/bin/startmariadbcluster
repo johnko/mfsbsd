@@ -5,9 +5,9 @@
 RESTOREMASK=`umask`
 umask 022
 
-/usr/sbin/sysrc -f /etc/rc.conf mysql_limits="YES"
-/usr/sbin/sysrc -f /etc/rc.conf mysql_dbdir="/server/mysql/data"
-/usr/sbin/sysrc -f /etc/rc.conf mysql_optfile="/server/mysql/my.cnf"
+/usr/sbin/sysrc -f /etc/rc.conf.local mysql_limits="YES"
+/usr/sbin/sysrc -f /etc/rc.conf.local mysql_dbdir="/server/mysql/data"
+/usr/sbin/sysrc -f /etc/rc.conf.local mysql_optfile="/server/mysql/my.cnf"
 #/server/mysql/sites-enabled/wsrep.cnf"
 
 if [ ! -f "/usr/local/etc/rc.d/mysql-server" ]; then
@@ -17,14 +17,14 @@ fi
 /usr/sbin/sysrc -f /etc/rc.conf sshd_enable="YES"
 /etc/rc.d/sshd onestatus || /etc/rc.d/sshd onestart
 
-/usr/sbin/sysrc -f /etc/rc.conf mysql_enable="YES"
+/usr/sbin/sysrc -f /etc/rc.conf.local mysql_enable="YES"
 MYIP=$( /sbin/ifconfig | /usr/bin/egrep inet | /usr/bin/sed -e 's/broadcast.*//g' -e 's/netmask.*//g' | /usr/bin/egrep -o "([0-9]{1,3}\.){3}[0-9]{1,3}" | /usr/bin/head -1 )
 OTHERNODES=$( echo $2 | /usr/bin/sed -e "s/,${MYIP}//" -e 's#/,#/#' )
 if [ -n "$1" ]; then
 	if [ $1 -eq 1 ]; then
-#		/usr/sbin/sysrc -f /etc/rc.conf mysql_args='--wsrep-new-cluster'
+#		/usr/sbin/sysrc -f /etc/rc.conf.local mysql_args='--wsrep-new-cluster'
 	else
-#		/usr/sbin/sysrc -f /etc/rc.conf mysql_args="--wsrep_cluster_address=${OTHERNODES}"
+#		/usr/sbin/sysrc -f /etc/rc.conf.local mysql_args="--wsrep_cluster_address=${OTHERNODES}"
 	fi
 fi
 /server/bin/configmysql 1 mariadb "$1" "$2"
@@ -63,7 +63,7 @@ if [ -x "/usr/local/etc/rc.d/mysql-server" ]; then
 	/usr/local/etc/rc.d/mysql-server onerestart
 fi
 
-#TODO XXX FIXME /usr/sbin/sysrc -f /etc/rc.conf mysql_args="--wsrep_cluster_address=${OTHERNODES}"
+#TODO XXX FIXME /usr/sbin/sysrc -f /etc/rc.conf.local mysql_args="--wsrep_cluster_address=${OTHERNODES}"
 
 if [ -x /server/bin/cron-mariadb-watchdog ]; then
 	if ! /usr/bin/egrep 'cron-mariadb-watchdog$' /etc/crontab > /dev/null 2>&1 ; then

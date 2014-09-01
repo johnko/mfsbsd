@@ -4,9 +4,9 @@
 RESTOREMASK=`umask`
 umask 022
 
-/usr/sbin/sysrc -f /etc/rc.conf mysql_enable="YES"
-/usr/sbin/sysrc -f /etc/rc.conf mysql_limits="YES"
-/usr/sbin/sysrc -f /etc/rc.conf mysql_dbdir="/server/mysql/data"
+/usr/sbin/sysrc -f /etc/rc.conf.local mysql_enable="YES"
+/usr/sbin/sysrc -f /etc/rc.conf.local mysql_limits="YES"
+/usr/sbin/sysrc -f /etc/rc.conf.local mysql_dbdir="/server/mysql/data"
 
 if [ ! -f "/usr/local/etc/rc.d/mysql-server" ]; then
 	/server/bin/pkgstatic install -y mysql56-server

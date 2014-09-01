@@ -23,8 +23,8 @@ fi
 
 test -x /server/bin/startconfig && /server/bin/startconfig dnsmasq
 
-/usr/sbin/sysrc -f /etc/rc.conf dnsmasq_enable="YES"
-/usr/sbin/sysrc -f /etc/rc.conf dnsmasq_conf="/server/dnsmasq/dnsmasq.conf"
+/usr/sbin/sysrc -f /etc/rc.conf.local dnsmasq_enable="YES"
+/usr/sbin/sysrc -f /etc/rc.conf.local dnsmasq_conf="/server/dnsmasq/dnsmasq.conf"
 
 if [ ! -f "/usr/local/etc/rc.d/dnsmasq" ]; then
 	/server/bin/pkgstatic install -y dnsmasq

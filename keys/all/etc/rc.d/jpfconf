@@ -54,7 +54,7 @@ martians = "{  127.0.0.0/8,  192.168.0.0/16,  172.16.0.0/12, \
 										mail_ports = "{ \
 	smtp, smtps, submission, imap, imaps, pop3, pop3s }"
 										web_ports = "{ \
-	http, https }"
+	http, https, 8069 }"
 										db_ports = "{ \
 	mysql, postgresql }"
 										udp_ports = "{ \

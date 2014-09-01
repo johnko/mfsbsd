@@ -19,7 +19,7 @@ echo "createuser -s odoo" | /usr/bin/su pgsql
 /bin/cat <<EOF
 Do the following:
 	psql template1
-	ALTER ROLE odoo WITH password 'XXXXX';
+	ALTER ROLE odoo WITH password '$1';
 	\q
 	exit
 EOF
@@ -32,7 +32,13 @@ EOF
 /bin/chmod 600 /usr/local/pgsql/data/pg_hba.conf
 
 /bin/cat >> /usr/local/pgsql/data/pg_hba.conf <<EOF
-local all all              md5
+local all all                 md5
 host  all all 10.123.234.0/24 md5
-host  all all 10.7.7.0/24 md5
+host  all all 10.7.7.0/24     md5
 EOF
+
+/bin/cat >> /usr/local/pgsql/data/postgresql.conf <<EOF
+listen_addresses = '*'
+EOF
+
+/usr/sbin/sysrc -f /etc/rc.conf.local postgresql_enable="YES"

@@ -3,12 +3,12 @@
 
 test -x /server/bin/startconfig && /server/bin/startconfig nginx
 
-/usr/sbin/sysrc -f /etc/rc.conf nginx_enable="YES"
-/usr/sbin/sysrc -f /etc/rc.conf nginx_profiles=""
-/usr/sbin/sysrc -f /etc/rc.conf nginx_pid_prefix=""
-/usr/sbin/sysrc -f /etc/rc.conf nginxlimits_enable="NO"
-/usr/sbin/sysrc -f /etc/rc.conf nginx_flags="-c /server/nginx/nginx.conf"
-/usr/sbin/sysrc -f /etc/rc.conf nginxlimits_args="-e -U www"
+/usr/sbin/sysrc -f /etc/rc.conf.local nginx_enable="YES"
+/usr/sbin/sysrc -f /etc/rc.conf.local nginx_profiles=""
+/usr/sbin/sysrc -f /etc/rc.conf.local nginx_pid_prefix=""
+/usr/sbin/sysrc -f /etc/rc.conf.local nginxlimits_enable="NO"
+/usr/sbin/sysrc -f /etc/rc.conf.local nginx_flags="-c /server/nginx/nginx.conf"
+/usr/sbin/sysrc -f /etc/rc.conf.local nginxlimits_args="-e -U www"
 
 if [ ! -f "/usr/local/etc/rc.d/nginx" ]; then
 	/server/bin/pkgstatic install -y nginx

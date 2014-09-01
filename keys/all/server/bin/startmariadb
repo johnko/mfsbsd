@@ -5,9 +5,9 @@
 RESTOREMASK=`umask`
 umask 022
 
-/usr/sbin/sysrc -f /etc/rc.conf mysql_limits="YES"
-/usr/sbin/sysrc -f /etc/rc.conf mysql_dbdir="/server/mysql/data"
-/usr/sbin/sysrc -f /etc/rc.conf mysql_optfile="/server/mysql/my.cnf"
+/usr/sbin/sysrc -f /etc/rc.conf.local mysql_limits="YES"
+/usr/sbin/sysrc -f /etc/rc.conf.local mysql_dbdir="/server/mysql/data"
+/usr/sbin/sysrc -f /etc/rc.conf.local mysql_optfile="/server/mysql/my.cnf"
 #/server/mysql/sites-enabled/wsrep.cnf"
 
 if [ ! -f "/usr/local/etc/rc.d/mysql-server" ]; then
@@ -17,7 +17,7 @@ fi
 /usr/sbin/sysrc -f /etc/rc.conf sshd_enable="YES"
 /etc/rc.d/sshd onestatus || /etc/rc.d/sshd onestart
 
-/usr/sbin/sysrc -f /etc/rc.conf mysql_enable="YES"
+/usr/sbin/sysrc -f /etc/rc.conf.local mysql_enable="YES"
 
 
 

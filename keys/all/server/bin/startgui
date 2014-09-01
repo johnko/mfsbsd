@@ -62,7 +62,7 @@ fi
 SERVICES="dbus"
 
 for i in ${SERVICES} ; do
-	/usr/sbin/sysrc -f /etc/rc.conf ${i}_enable=YES
+	/usr/sbin/sysrc -f /etc/rc.conf.local ${i}_enable=YES
 done
 
 for i in $* ; do

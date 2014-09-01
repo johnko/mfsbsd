@@ -42,22 +42,31 @@ for i in $PYPACKAGES ; do
 	/usr/local/sbin/pkg-static install -y $i
 done
 
-/server/bin/adduser-normal odoo
+/server/bin/adduser-nopass odoo
 
 sudo -u odoo -i -- git clone https://www.github.com/odoo/odoo --branch 8.0 /usr/home/odoo/odoo
 
+/usr/bin/install -d -m 0700 -o odoo -g wheel /var/log/odoo
 /bin/cat > /etc/odoo-server.conf <<EOF
 [options]
 ; This is the password that allows database operations:
-; admin_passwd = admin
+admin_passwd = $1
 db_host = 10.7.7.10
 db_port = False
 db_user = odoo
-db_password = XXXXX
+db_password = $1
 addons_path = /usr/home/odoo/odoo/addons
-logfile = /var/log/odoo-server.log
+#logfile = /var/log/odoo/odoo-server.log
+syslog = True
+logrotate = True
+log_handler = [':INFO']
+log_level = info
+smtp_server = False
 EOF
 /usr/sbin/chown odoo:odoo /etc/odoo-server.conf
 /bin/chmod 640 /etc/odoo-server.conf
 
+/bin/cat > /etc/rc.local <<EOF
 sudo -u odoo -i -- python /usr/home/odoo/odoo/openerp-server --config=/etc/odoo-server.conf
+EOF
+/bin/chmod 755 /etc/rc.local
