@@ -56,8 +56,8 @@ db_port = False
 db_user = odoo
 db_password = $1
 addons_path = /usr/home/odoo/odoo/addons
-#logfile = /var/log/odoo/odoo-server.log
-syslog = True
+logfile = /var/log/odoo/odoo-server.log
+syslog = False
 logrotate = True
 log_handler = [':INFO']
 log_level = info
@@ -66,7 +66,33 @@ EOF
 /usr/sbin/chown odoo:odoo /etc/odoo-server.conf
 /bin/chmod 640 /etc/odoo-server.conf
 
-/bin/cat > /etc/rc.local <<EOF
-sudo -u odoo -i -- python /usr/home/odoo/odoo/openerp-server --config=/etc/odoo-server.conf
+/bin/cat > /etc/rc.d/odoo <<EOF
+#!/bin/sh
+# Copyright (c) 2014 John Ko
+# ODOO CUSTOM
+# PROVIDE: odoo
+# REQUIRE: FILESYSTEMS LOGIN NETWORKING
+. /etc/rc.subr
+name="odoo"
+start_cmd="odoo_start"
+stop_cmd="odoo_stop"
+odoo_start()
+{
+	/usr/local/bin/sudo -u odoo -i -- /usr/local/bin/python /usr/home/odoo/odoo/openerp-server --config=/etc/odoo-server.conf &
+}
+odoo_stop()
+{
+	local LOOP=1
+	while [ $LOOP -eq 1 ]; do
+		if /bin/pgrep -lf odoo-server > /dev/null 2> /dev/null ; then
+			/bin/pkill -lf odoo-server > /dev/null 2> /dev/null
+		else
+			local LOOP=0
+		fi
+		sleep 5
+	done
+}
+load_rc_config \$name
+run_rc_command "\$1"
 EOF
-/bin/chmod 755 /etc/rc.local
+/bin/chmod 755 /etc/rc.d/odoo
