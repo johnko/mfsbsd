@@ -82,6 +82,7 @@ EOF
 
 		/usr/bin/egrep "rdr on $NIC proto tcp from any to $PUBLICIP port 8069" /server/savepf/jails.anchor \
 		> /dev/null 2> /dev/null || /bin/cat >>/server/savepf/jails.anchor <<EOF
+nat on $NIC from $newip to any -> (${NIC})
 rdr pass on $NIC proto tcp from any to $PUBLICIP port 8069 -> $newip
 EOF
 
