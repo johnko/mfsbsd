@@ -15,29 +15,36 @@ fi
 if /sbin/mount | /usr/bin/grep "/server/savepf" > /dev/null 2> /dev/null; then
 
 
-	/usr/bin/install -d -m 700	/server/savepf/backup
+	/usr/bin/install -d -m 700      /server/savepf/backup
 	outfile=/server/savepf/backup/$1.table.$( /server/bin/date-d )
+	prevfile=$( /bin/ls -1tr /server/savepf/backup/$1.table.* 2> /dev/null | /usr/bin/tail -1 )
 
 	/sbin/pfctl -P -t $1 -T show \
-		>${outfile} \
-		2>/dev/null
+	>${outfile} \
+	2>/dev/null
 
 	if [ ! -e /server/savepf/backup/README ]; then
-		/bin/cat >/server/savepf/backup/README <<EOF
-Backups are kept only if different from previous backup
-EOF
+	/bin/cat >/server/savepf/backup/README <<EOF
+	Backups are kept only if different from previous backup
+	EOF
 	fi
 
-	prevfile=$( /bin/ls -1tr /server/savepf/backup/$1.table.* | /usr/bin/tail -1 )
-	if /usr/bin/diff $prevfile $outfile >/dev/null 2>&1 ; then
-		/bin/rm $outfile
-		#/bin/ln -shf $prevfile $outfile
-		/usr/bin/touch /server/savepf/backup/README
+	if [ "x" != "x$prevfile" -a "$prevfile" != "$outfile" ]; then
+
+		if /usr/bin/diff $prevfile $outfile >/dev/null 2>&1 ; then
+			echo "/bin/rm $outfile"
+			/bin/rm $outfile
+			#/bin/ln -shf $prevfile $outfile
+			/usr/bin/touch /server/savepf/backup/README
+		else
+			echo $outfile
+		fi
+
 	else
 		echo $outfile
 	fi
 
-
+else
+	echo "no savepf folder"
+	exit 1
 fi
-
-
