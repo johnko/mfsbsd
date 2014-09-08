@@ -1,11 +1,16 @@
 archivers/p5-Archive-Tar
 archivers/pecl-lzf
+archivers/php5-bz2
+archivers/php5-zip
+archivers/php5-zlib
 archivers/php55-bz2
 archivers/php55-zip
 archivers/php55-zlib
 audio/libgroove
 audio/murmur
 converters/libiconv
+converters/php5-iconv
+converters/php5-mbstring
 converters/php55-iconv
 converters/php55-mbstring
 databases/couchdb
@@ -13,8 +18,12 @@ databases/mariadb55-galera-server
 databases/mongodb
 databases/pecl-memcached
 databases/percona56-server
+databases/php5-mysql
+databases/php5-mysqli
+databases/php5-pdo_pgsql
 databases/php55-mysql
 databases/php55-mysqli
+databases/php55-pdo_pgsql
 databases/phpmyadmin
 databases/phppgadmin
 databases/postgresql92-client
@@ -33,6 +42,7 @@ devel/git
 devel/gmake
 devel/libexecinfo
 devel/m4
+devel/php5-gettext
 devel/php55-gettext
 devel/py-Jinja2
 devel/py-babel
@@ -52,8 +62,6 @@ devel/ruby-gems
 devel/subversion
 dns/dnsmasq
 dns/p5-Net-DNS
-emulators/kqemu-kmod
-emulators/kqemu-kmod-devel
 emulators/qemu-devel
 emulators/virtualbox-ose
 finance/py-vatnumber
@@ -70,6 +78,8 @@ graphics/py-pydot
 japanese/spamassassin
 lang/perl5.16
 lang/perl5.18
+lang/php5
+lang/php5-extensions
 lang/php55
 lang/php55-extensions
 lang/python27
@@ -79,6 +89,7 @@ mail/dovecot2-pigeonhole
 mail/fetchmail
 mail/horde-webmail
 mail/isync
+mail/php5-imap
 mail/php55-imap
 mail/policyd2
 mail/postfix
@@ -102,9 +113,9 @@ net/ndpi
 net/netatalk3
 net/openldap24-client
 net/openldap24-sasl-client
-net/openldap24-server
 net/openntpd
 net/openslp
+net/php5-ldap
 net/php55-ldap
 net/phpldapadmin
 net/py-ldap2
@@ -138,6 +149,10 @@ security/openvpn
 security/p5-Authen-SASL
 security/p5-IO-Socket-SSL
 security/pam_google_authenticator
+security/php5-filter
+security/php5-hash
+security/php5-mcrypt
+security/php5-openssl
 security/php55-filter
 security/php55-hash
 security/php55-mcrypt
@@ -160,6 +175,7 @@ sysutils/ipmitool
 sysutils/logrotate
 sysutils/logwatch
 sysutils/mcelog
+sysutils/monit
 sysutils/pftop
 sysutils/php5-fileinfo
 sysutils/php55-fileinfo
@@ -179,6 +195,10 @@ sysutils/xfce4-minicmd-plugin
 sysutils/xfce4-mount-plugin
 sysutils/xfce4-netload-plugin
 sysutils/xfce4-systemload-plugin
+textproc/php5-ctype
+textproc/php5-dom
+textproc/php5-pspell
+textproc/php5-xml
 textproc/php55-ctype
 textproc/php55-dom
 textproc/php55-pspell
@@ -202,6 +222,7 @@ www/nginx
 www/node
 www/npm
 www/pecl-APC
+www/php5-session
 www/php5-tidy
 www/php55-session
 www/php55-tidy

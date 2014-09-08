@@ -1,5 +1,9 @@
-/usr/ports/security/openvpn-auth-ldap
-/usr/ports/sysutils/e2fsprogs
-/usr/ports/editors/libreoffice
-/usr/ports/x11-drivers/xf86-video-ati #crashes X on logout
+security/openvpn-auth-ldap
+sysutils/e2fsprogs
+editors/libreoffice
+x11-drivers/xf86-video-ati #crashes X on logout
 databases/percona56-xtradb-cluster
+emulators/kqemu-kmod #ignored
+emulators/kqemu-kmod-devel #ignored
+www/mod_auth_mysql_another #ignored
+net/openldap24-server #fails build
