@@ -14,31 +14,40 @@ fi
 
 /usr/local/etc/rc.d/postgresql onestart
 
-echo "createuser -s odoo" | /usr/bin/su pgsql
+if [ "odoo" = "$1" ]; then
+	/usr/local/bin/createuser -U pgsql odoo
+	echo "ALTER ROLE odoo WITH password '$2';"
+	/usr/local/bin/psql -U pgsql -d template1 -c "ALTER ROLE odoo WITH password '$2';"
+	/usr/local/bin/psql -U pgsql -d template1 -c "ALTER ROLE odoo WITH CREATEDB;"
+elif [ "dbmail" = "$1" ]; then
+	/usr/local/bin/createuser -U pgsql dbmail
+	/usr/local/bin/createdb -E utf8 -U pgsql -O dbmail dbmail
+	echo "ALTER ROLE dbmail WITH password '$2';"
+	/usr/local/bin/psql -U pgsql -d template1 -c "ALTER ROLE dbmail WITH password '$2';"
+elif [ "horde" = "$1" ]; then
+	/usr/local/bin/createuser -U pgsql horde
+	/usr/local/bin/createdb -E utf8 -U pgsql -O horde horde
+	echo "ALTER ROLE horde WITH password '$2';"
+	/usr/local/bin/psql -U pgsql -d template1 -c "ALTER ROLE horde WITH password '$2';"
+fi
 
-/bin/cat <<EOF
-Do the following:
-	psql template1
-	ALTER ROLE odoo WITH password '$1';
-	\q
-	exit
-EOF
-/usr/bin/su pgsql
-
-# Comment the existing pg_gb
-/bin/cat /usr/local/pgsql/data/pg_hba.conf | /usr/bin/awk '$0 ~/^#/ {print} $0 !~/^#/ {print "# "$0}' > /usr/local/pgsql/data/pg_hba.conf2
-/bin/mv /usr/local/pgsql/data/pg_hba.conf2 /usr/local/pgsql/data/pg_hba.conf
-/usr/sbin/chown pgsql:pgsql /usr/local/pgsql/data/pg_hba.conf
-/bin/chmod 600 /usr/local/pgsql/data/pg_hba.conf
-
-/bin/cat >> /usr/local/pgsql/data/pg_hba.conf <<EOF
-local all all                 md5
+if ! /usr/bin/grep "^host  all all 10.7.7.0/24     md5" /usr/local/pgsql/data/pg_hba.conf ; then
+	# Comment the existing pg_gb
+	/bin/cat /usr/local/pgsql/data/pg_hba.conf | /usr/bin/awk '$0 ~/^#/ {print} $0 !~/^#/ {print "# "$0}' > /usr/local/pgsql/data/pg_hba.conf2
+	/bin/mv /usr/local/pgsql/data/pg_hba.conf2 /usr/local/pgsql/data/pg_hba.conf
+	/usr/sbin/chown pgsql:pgsql /usr/local/pgsql/data/pg_hba.conf
+	/bin/chmod 600 /usr/local/pgsql/data/pg_hba.conf
+	/bin/cat >> /usr/local/pgsql/data/pg_hba.conf <<EOF
+local all all                 trust
 host  all all 10.123.234.0/24 md5
 host  all all 10.7.7.0/24     md5
 EOF
+fi
 
-/bin/cat >> /usr/local/pgsql/data/postgresql.conf <<EOF
+if ! /usr/bin/grep "^listen_addresses = '*'" /usr/local/pgsql/data/postgresql.conf ; then
+	/bin/cat >> /usr/local/pgsql/data/postgresql.conf <<EOF
 listen_addresses = '*'
 EOF
+fi
 
 /usr/sbin/sysrc -f /etc/rc.conf.local postgresql_enable="YES"

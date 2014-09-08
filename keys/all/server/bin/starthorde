@@ -8,7 +8,9 @@
 
 
 if [ ! -e /usr/local/bin/webmail-install ]; then
-	/server/bin/pkgstatic install -y horde-webmail bash php5-gd php5-tidy php5-fileinfo php5-ftp pecl-imagick pecl-lzf pecl-memcached
+	for i in horde-webmail bash php5-pdo php5-pdo_pgsql php5-gd php5-tidy php5-fileinfo php5-ftp pecl-imagick pecl-lzf pecl-memcached ; do
+		/server/bin/pkgstatic install -y $i
+	done
 fi
 
 
