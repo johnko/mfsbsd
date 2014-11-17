@@ -1,0 +1,50 @@
+#!/bin/sh
+# Copyright (c) 2014 John Ko
+
+# Test for execute bit on file, or exit 1
+testforx (){
+	[ $# -lt 1 ] && echo "Usage: `basename $0` file" && exit 1
+	if [ ! -x "$1" ]; then
+		echo "Error: $1 not found or executable"; exit 1
+	fi
+}
+
+if [ ! -x /usr/local/bin/qemu-system-x86_64 ]; then
+	/server/bin/pkgstatic install -y qemu-devel > /dev/null 2> /dev/null
+fi
+
+if [ "x" = "x${1}" ]; then
+	echo "Usage: $0 /path/to/hda.img 40G /path/to/cdimage.iso"
+	exit 1
+fi
+
+testforx /server/bin/net-nic
+testforx /usr/local/bin/qemu-img
+testforx /usr/local/bin/qemu-system-x86_64
+
+/sbin/ifconfig bridge0 addm tap0 addm `/server/bin/net-nic` up
+
+/bin/cat <<EOF
+For Mac OS X VNC, you may need to type below:
+change vnc password
+
+EOF
+
+if [ ! -e "${1}" ]; then
+	/usr/local/bin/qemu-img create -f raw ${1} ${2}
+fi
+
+/usr/local/bin/qemu-system-x86_64 \
+	-net nic,model=e1000 \
+	-net tap \
+	-usb \
+	-usbdevice tablet \
+	-vnc 0.0.0.0:0,password -monitor stdio \
+	-m 2G \
+	-hda ${1} \
+	-cdrom ${3} \
+	-boot c
+
+# -boot c = hda
+# -boot d = cd
+# -boot n = pxe
