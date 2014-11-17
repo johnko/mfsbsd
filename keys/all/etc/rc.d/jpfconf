@@ -49,40 +49,27 @@ EOF
 martians = "{  127.0.0.0/8,  192.168.0.0/16,  172.16.0.0/12, \
                10.0.0.0/8,  169.254.0.0/16,  192.0.2.0/24, \
                0.0.0.0/8,  240.0.0.0/4  }"
-										ssh_ports = "{ \
-	ssh }"
-										mail_ports = "{ \
-	smtp, smtps, submission, imap, imaps, pop3, pop3s }"
-										web_ports = "{ \
-	http, https, 8069 }"
-										db_ports = "{ \
-	mysql, postgresql }"
-										udp_ports = "{ \
-	domain, ntp }"
-										dhcp_ports = "{ \
-	bootps, bootpc }"
-										failover_ports = "{ \
-	647, 7911 }"
-										tftp_ports = "{ \
-	tftp }"
-										ftp_ports = "{ \
-	ftp, ftp-data, ftps, ftps-data }"
-										apple_ports = "{ \
-	afpovertcp, rsync, 5900, 5901 }"
-										ms_ports = "{ \
-	loc-srv, netbios-ns, netbios-dgm, netbios-ssn, microsoft-ds, ldap, ldaps, 3389 }"
-										ipsec_ports = "{ \
-	isakmp, l2tp, sae-urn }"
+ssh_ports = "{ ssh }"
+mail_ports = "{ smtp, smtps, submission, imap, imaps, pop3, pop3s }"
+web_ports = "{ http, https, 8069, 8300, 8301, 8302, 8400, 8500, 8600 }"
+db_ports = "{ mysql, postgresql }"
+udp_ports = "{ domain, ntp, 8301, 8302, 8600 }"
+dhcp_ports = "{ bootps, bootpc }"
+failover_ports = "{ 647, 7911 }"
+tftp_ports = "{	tftp }"
+ftp_ports = "{ ftp, ftp-data, ftps, ftps-data }"
+apple_ports = "{ afpovertcp, rsync, 5900, 5901 }"
+ms_ports = "{ loc-srv, netbios-ns, netbios-dgm, netbios-ssn, microsoft-ds, ldap, ldaps, 3389 }"
+ipsec_ports = "{ isakmp, l2tp, sae-urn }"
 
 
 ipsec_proto = "{ esp, ah, ipencap }"
 icmp_types = "{ echoreq, unreach }"
 
-										tftp_out = "{ \
-	10000:60000 }"
+tftp_out = "{ 10000:60000 }"
 
 client_out = "{ \
-	ssh, 2200:2299, \
+	ssh, \
 	smtp, smtps, submission, imap, imaps, pop3, pop3s, \
 	http, https, 8000:8999, 44300:44399, \
 	mysql, postgresql, \
