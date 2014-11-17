@@ -1,0 +1,14 @@
+#!/bin/sh
+# Copyright (c) 2014 John Ko
+
+case `uname -s` in
+	FreeBSD)
+		BINPATH=/server/bin
+	;;
+esac
+
+pkill -lf 'daemon.*consul'
+while pgrep -lf 'daemon.*consul' > /dev/null 2> /dev/null ; do
+	sleep 1
+done
+${BINPATH}/consul-agent

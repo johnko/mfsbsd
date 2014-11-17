@@ -1,0 +1,18 @@
+#!/bin/sh
+# Copyright (c) 2014 John Ko
+
+if [ -z "$1" ]; then
+	echo "Usage: $0 jailname"
+	exit 1
+else
+	if [ -d "/usr/jails/$1" ]; then
+		PREFIX="/usr/jails/$1"
+	else
+		echo "Error: jail $1 doesn't exist!"
+		exit 1
+	fi
+fi
+
+if [ -e /server/www/consul-0.4.0_web_ui.zip ]; then
+	/usr/bin/unzip -d ${PREFIX}/var/ui-consul /server/www/consul-0.4.0_web_ui.zip
+fi

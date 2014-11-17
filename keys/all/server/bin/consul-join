@@ -1,0 +1,43 @@
+#!/bin/sh
+# Copyright (c) 2014 John Ko
+
+if [ -z "$1" ]; then
+	echo "Usage: $0 Node1 Node2 ... NodeN"
+	exit 1
+fi
+
+case `uname -s` in
+	FreeBSD)
+		BINPATH=/server/bin
+	;;
+esac
+
+if [ ! -e /usr/local/bin/consul ]; then
+	/usr/local/sbin/pkg-static install consul
+fi
+
+MYIP=$( ${BINPATH}/net-ip )
+CONFIG=/usr/local/consul
+
+/usr/local/bin/consul join $*
+
+OUTPUT="\"start_join\": [ "
+count=0
+for i in $* ; do
+	if [ "$i" != "$MYIP" ]; then
+		if [ $count -eq 0 ]; then
+			OUTPUT="${OUTPUT}\"$i\""
+		else
+			OUTPUT="${OUTPUT}, \"$i\""
+		fi
+		count=$(( count + 1 ))
+	fi
+done
+OUTPUT="${OUTPUT} ]"
+
+if [ ! -e ${CONFIG}/startjoin.json ]; then
+	cat > ${CONFIG}/startjoin.json <<EOF
+{ ${OUTPUT} }
+EOF
+	chown consul ${CONFIG}/startjoin.json
+fi

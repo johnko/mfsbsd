@@ -1,0 +1,8 @@
+#!/bin/sh
+# Copyright (c) 2014 John Ko
+
+if [ ! -e /usr/local/bin/consul ]; then
+	/usr/local/sbin/pkg-static install consul
+fi
+
+/usr/local/bin/consul reload

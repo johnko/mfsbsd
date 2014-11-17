@@ -1,0 +1,122 @@
+#!/bin/sh
+# Copyright (c) 2014 John Ko
+
+case `uname -s` in
+	FreeBSD)
+		BINPATH=/server/bin
+	;;
+esac
+
+if [ ! -e /usr/local/bin/consul ]; then
+	/usr/local/sbin/pkg-static install consul
+fi
+
+MYIP=$( ${BINPATH}/net-ip )
+DATA=/var/consul
+CONFIG=/usr/local/consul
+PID=/var/run/consul.pid
+UI=/var/ui-consul/dist
+UIARG="-ui-dir $UI"
+
+while getopts d:a:e:ls o; do
+	case "$o" in
+		d) DC="${OPTARG}" ;;
+		a) ADVERTISE="${OPTARG}" ;;
+		e) EXPECT="-bootstrap-expect ${OPTARG}" ;;
+		r) RECURSOR="${OPTARG}" ;;
+		l) LOG="-log-level trace" ;;
+		s) LOG="-syslog" ;;
+	esac
+done
+
+case `uname -s` in
+	FreeBSD)
+		if ! /usr/bin/grep "^consul" /etc/passwd > /dev/null 2> /dev/null ; then
+			/server/bin/adduser-nopass consul
+		fi
+	;;
+esac
+
+for i in /var/log/consul.log /var/log/consul.err ; do
+	touch $i
+	chown consul $i
+	chmod 0600 $i
+done
+
+if [ ! -e ${CONFIG} ]; then
+	/usr/bin/install -d -m 0700 -o consul ${CONFIG}
+fi
+
+if [ -n "$DC" ]; then
+	cat > ${CONFIG}/dc.json <<EOF
+{"datacenter": "$DC"}
+EOF
+	chown consul ${CONFIG}/dc.json
+fi
+
+if [ -n "$ADVERTISE" ]; then
+	cat > ${CONFIG}/advertise.json <<EOF
+{"advertise_addr": "$ADVERTISE"}
+EOF
+	chown consul ${CONFIG}/advertise.json
+fi
+
+if [ ! -e ${CONFIG}/encrypt.json ]; then
+	KEY=$( /usr/local/bin/consul keygen )
+	cat > ${CONFIG}/encrypt.json <<EOF
+{"encrypt": "$KEY"}
+EOF
+	chown consul ${CONFIG}/encrypt.json
+fi
+
+if [ -n "$RECURSOR" ]; then
+	cat > ${CONFIG}/recursor.json <<EOF
+{"recursor": "$RECURSOR"}
+EOF
+	chown consul ${CONFIG}/recursor.json
+fi
+
+if [ ! -e ${CONFIG}/recursor.json ]; then
+	cat > ${CONFIG}/recursor.json <<EOF
+{"recursor": "8.8.8.8"}
+EOF
+	chown consul ${CONFIG}/recursor.json
+fi
+
+if [ ! -d ${DATA} ]; then
+	/usr/bin/install -d -m 0700 -o consul ${DATA}
+fi
+
+if [ ! -e ${CONFIG}/datadir.json ]; then
+	cat > ${CONFIG}/datadir.json <<EOF
+{"data_dir": "${DATA}"}
+EOF
+	chown consul ${CONFIG}/datadir.json
+fi
+
+if [ ! -d ${UI} ]; then
+	UIARG=""
+fi
+
+if [ ! -e ${CONFIG}/server.json ]; then
+	cat > ${CONFIG}/server.json <<EOF
+{"server": true}
+EOF
+	chown consul ${CONFIG}/server.json
+fi
+
+echo /usr/sbin/daemon -r -p $PID -u consul /usr/local/bin/consul agent \
+${EXPECT} \
+-config-dir ${CONFIG} \
+-client ${MYIP} \
+-bind ${MYIP} \
+${LOG} \
+${UIARG}
+
+/usr/sbin/daemon -r -p $PID -u consul /usr/local/bin/consul agent \
+${EXPECT} \
+-config-dir ${CONFIG} \
+-client ${MYIP} \
+-bind ${MYIP} \
+${LOG} \
+${UIARG} > /var/log/consul.log 2> /var/log/consul.err
