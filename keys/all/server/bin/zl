@@ -1,4 +1,13 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
-/sbin/zfs list -o name,used,available,refer,usedbychildren,usedbysnapshots,quota,mounted,mountpoint,creation $*
+case `uname -s` in
+  Darwin)
+    ZFS=/usr/sbin/zfs
+    ;;
+  FreeBSD)
+    ZFS=/sbin/zfs
+    ;;
+esac
+
+$ZFS list -o name,used,available,refer,usedbychildren,usedbysnapshots,quota,mounted,mountpoint,creation $*

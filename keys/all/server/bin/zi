@@ -1,4 +1,13 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
-/sbin/zpool import $*
+case `uname -s` in
+  Darwin)
+    ZPOOL=/usr/sbin/zpool
+    ;;
+  FreeBSD)
+    ZPOOL=/sbin/zpool
+    ;;
+esac
+
+$ZPOOL import $*

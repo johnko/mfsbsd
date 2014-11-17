@@ -1,7 +1,16 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
-line="DATE `/server/bin/date-dr`"
+case `uname -s` in
+	Darwin)
+		BINPATH=~/bin
+	;;
+	FreeBSD)
+		BINPATH=/server/bin
+	;;
+esac
+
+line="DATE `${BINPATH}/date-dr`"
 echo -n "$line"
 if [ ${#line} -lt 40 ]; then
 	tab=""
@@ -12,13 +21,25 @@ fi
 echo -n "$tab"
 echo "HOST `/bin/hostname -f`"
 
-/server/bin/stat-gpg
+${BINPATH}/stat-gpg
 
-/usr/bin/uname -i -p -r -s
-echo "SSHR `/server/bin/ssh-finger-rsa`"
-echo "SSHE `/server/bin/ssh-finger-ecdsa`"
+case `uname -s` in
+	Darwin)
+		uname -r -s
+	;;
+	FreeBSD)
+		uname -i -p -r -s
+	;;
+esac
 
-line="CPU  `/server/bin/stat-cpu`"
+echo "SSHR `${BINPATH}/ssh-finger-rsa`"
+case `uname -s` in
+	FreeBSD)
+		echo "SSHE `${BINPATH}/ssh-finger-ecdsa`"
+	;;
+esac
+
+line="CPU  `${BINPATH}/stat-cpu`"
 echo -n "$line"
 if [ ${#line} -lt 40 ]; then
 	tab=""
@@ -27,9 +48,9 @@ if [ ${#line} -lt 40 ]; then
 	done
 fi
 echo -n "$tab"
-echo "UPT  `/server/bin/stat-up`"
+echo "UPT  `${BINPATH}/stat-up`"
 
-line="RAM  `/server/bin/stat-ram`"
+line="RAM  `${BINPATH}/stat-ram`"
 echo -n "$line"
 if [ ${#line} -lt 40 ]; then
 	tab=""
@@ -38,9 +59,9 @@ if [ ${#line} -lt 40 ]; then
 	done
 fi
 echo -n "$tab"
-echo "USR  `/server/bin/stat-usr`"
+echo "USR  `${BINPATH}/stat-usr`"
 
-line="HDD  `/server/bin/stat-disk`"
+line="HDD  `${BINPATH}/stat-disk`"
 echo -n "$line"
 if [ ${#line} -lt 40 ]; then
 	tab=""
@@ -49,10 +70,10 @@ if [ ${#line} -lt 40 ]; then
 	done
 fi
 echo -n "$tab"
-echo "WHO  `/server/bin/stat-who`"
+echo "WHO  `${BINPATH}/stat-who`"
 
 count=0
-/server/bin/stat-swap | while read line; do
+${BINPATH}/stat-swap | while read line; do
 	count=$(( count + 1 ))
 	if [ $count -eq 1 ]; then
 		echo -n "SWAP "
@@ -63,7 +84,7 @@ count=0
 done
 
 count=0
-/server/bin/stat-zfs | while read line; do
+${BINPATH}/stat-zfs | while read line; do
 	count=$(( count + 1 ))
 	if [ $count -eq 1 ]; then
 		echo -n "ZFS  "
@@ -74,7 +95,7 @@ count=0
 done
 
 count=0
-/server/bin/stat-ucarp | while read line; do
+${BINPATH}/stat-ucarp | while read line; do
 	count=$(( count + 1 ))
 	if [ $count -eq 1 ]; then
 		echo -n "CARP "
@@ -85,7 +106,7 @@ count=0
 done
 
 count=0
-/server/bin/stat-net | while read line; do
+${BINPATH}/stat-net | while read line; do
 	count=$(( count + 1 ))
 	if [ $count -eq 1 ]; then
 		echo -n "NET  "
@@ -95,30 +116,35 @@ count=0
 	echo "$line"
 done
 
-count=0
-/server/bin/stat-dhcpd | while read line; do
-	count=$(( count + 1 ))
-	if [ $count -eq 1 ]; then
-		echo -n "DHCP "
-	else
-		echo -n "     "
-	fi
-	echo "$line"
-done
+
+case `uname -s` in
+	FreeBSD)
+		count=0
+		${BINPATH}/stat-dhcpd | while read line; do
+			count=$(( count + 1 ))
+			if [ $count -eq 1 ]; then
+				echo -n "DHCP "
+			else
+				echo -n "     "
+			fi
+			echo "$line"
+		done
+
+		count=0
+		${BINPATH}/stat-jail | while read line; do
+			count=$(( count + 1 ))
+			if [ $count -eq 1 ]; then
+				echo -n "JAIL "
+			else
+				echo -n "     "
+			fi
+			echo "$line"
+		done
+	;;
+esac
 
 count=0
-/server/bin/stat-jail | while read line; do
-	count=$(( count + 1 ))
-	if [ $count -eq 1 ]; then
-		echo -n "JAIL "
-	else
-		echo -n "     "
-	fi
-	echo "$line"
-done
-
-count=0
-/server/bin/net-connections -a | while read line; do
+${BINPATH}/net-connections -a | while read line; do
 	count=$(( count + 1 ))
 	if [ $count -eq 1 ]; then
 		echo -n "CON  "

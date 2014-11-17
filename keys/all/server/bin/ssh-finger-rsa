@@ -2,14 +2,15 @@
 # Copyright (c) 2014 John Ko
 
 case `uname -s` in
-	"Darwin")
-		exit 1
-		;;
-	"FreeBSD")
-		if [ -e /etc/ssh/ssh_host_rsa_key.pub ]; then
-			/usr/bin/ssh-keygen -lf /etc/ssh/ssh_host_rsa_key.pub | \
-				/usr/bin/awk '$2{ print $2 }'
-		fi
-		;;
+	Darwin)
+		FILE=/etc/ssh_host_rsa_key.pub
+	;;
+	FreeBSD)
+		FILE=/etc/ssh/ssh_host_rsa_key.pub
+	;;
 esac
 
+if [ -e "$FILE" ]; then
+	/usr/bin/ssh-keygen -lf "$FILE" | \
+		/usr/bin/awk '$2{ print $2 }'
+fi

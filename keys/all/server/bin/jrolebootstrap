@@ -68,6 +68,10 @@ EOF
 
 		local newip="${PRODIP}.${ip##*.}"
 
+		if [ "x" = "x$DHCP" ]; then
+			DHCP="$PUBLICIP"
+		fi
+
 		/usr/bin/egrep "nat on $NIC from $newip to any" /server/savepf/jails.anchor \
 		> /dev/null 2> /dev/null || /bin/cat >>/server/savepf/jails.anchor <<EOF
 nat on $NIC from $newip to any -> $DHCP

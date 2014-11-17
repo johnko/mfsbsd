@@ -14,7 +14,7 @@ if [ ! -x /usr/local/bin/qemu-system-x86_64 ]; then
 fi
 
 if [ "x" = "x${1}" ]; then
-	echo "Usage: $0 /path/to/iso"
+	echo "Usage: $0 /path/to/cdimage.iso"
 	exit 1
 fi
 

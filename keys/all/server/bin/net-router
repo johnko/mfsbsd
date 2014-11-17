@@ -3,7 +3,16 @@
 
 # use netstat because in jail, route fails
 
-/usr/bin/netstat -nr \
+case `uname -s` in
+	Darwin)
+		BINPATH=/usr/sbin
+	;;
+	FreeBSD)
+		BINPATH=/usr/bin
+	;;
+esac
+
+${BINPATH}/netstat -nr \
 | /usr/bin/egrep default \
 | /usr/bin/awk '{ print $2 }' \
 | /usr/bin/sort -u

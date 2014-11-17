@@ -1,4 +1,13 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
-/sbin/zfs get all | /usr/bin/egrep $*
+case `uname -s` in
+  Darwin)
+    ZFS=/usr/sbin/zfs
+    ;;
+  FreeBSD)
+    ZFS=/sbin/zfs
+    ;;
+esac
+
+$ZFS get all | /usr/bin/egrep $*

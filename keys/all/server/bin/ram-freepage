@@ -1,17 +1,26 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
+case `uname -s` in
+	Darwin)
+		BINPATH=/usr/sbin
+	;;
+	FreeBSD)
+		BINPATH=/sbin
+	;;
+esac
+
 ram-pagesize () {
-	/sbin/sysctl -n hw.pagesize
+	${BINPATH}/sysctl -n hw.pagesize
 }
 
 case `uname -s` in
   "Darwin")
-    echo $( sysctl -n vm.page_free_count )" "$( ram-pagesize ) | \
-      awk '{ printf "%.1f\n", $1 * $2 }'
+    echo $( ${BINPATH}/sysctl -n vm.page_free_count )" "$( ram-pagesize ) | \
+      /usr/bin/awk '{ printf "%.1f\n", $1 * $2 }'
     ;;
   "FreeBSD")
-    echo $( /sbin/sysctl -n vm.stats.vm.v_free_count )" "$( ram-pagesize ) | \
+    echo $( ${BINPATH}/sysctl -n vm.stats.vm.v_free_count )" "$( ram-pagesize ) | \
       /usr/bin/awk '{ printf "%.1f\n", $1 * $2 }'
     ;;
 esac

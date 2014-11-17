@@ -1,6 +1,15 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
-/sbin/sysctl -n vm.loadavg | \
+case `uname -s` in
+	Darwin)
+		BINPATH=/usr/sbin
+	;;
+	FreeBSD)
+		BINPATH=/sbin
+	;;
+esac
+
+${BINPATH}/sysctl -n vm.loadavg | \
   /usr/bin/sed -e 's/[^[:alnum:] .]//g' -e 's/^ *//g' -e 's/ *$//g'
 

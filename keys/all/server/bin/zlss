@@ -1,4 +1,13 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
-/sbin/zfs list -t snapshot -o name -s creation $*
+case `uname -s` in
+  Darwin)
+    ZFS=/usr/sbin/zfs
+    ;;
+  FreeBSD)
+    ZFS=/sbin/zfs
+    ;;
+esac
+
+$ZFS list -t snapshot -o name -s creation $*

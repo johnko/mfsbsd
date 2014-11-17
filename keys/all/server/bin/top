@@ -1,4 +1,13 @@
 #!/bin/sh
 # Copyright (c) 2014 John Ko
 
-/usr/bin/top -CazHits1 $*
+case `uname -s` in
+	Darwin)
+		ARGS="-a -i 1 -s 1"
+	;;
+	FreeBSD)
+		ARGS="-CazHits1"
+	;;
+esac
+
+/usr/bin/top ${ARGS} $*
