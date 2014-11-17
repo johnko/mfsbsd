@@ -40,7 +40,9 @@ devel/apr1
 devel/autotools
 devel/git
 devel/gmake
+devel/go-hashicorp-logutils
 devel/libexecinfo
+devel/libowfat
 devel/m4
 devel/php5-gettext
 devel/php55-gettext
@@ -64,6 +66,8 @@ dns/dnsmasq
 dns/p5-Net-DNS
 emulators/qemu-devel
 emulators/virtualbox-ose
+emulators/virtualbox-ose-additions
+emulators/virtualbox-ose-kmod
 finance/py-vatnumber
 ftp/curl
 ftp/php5-ftp
@@ -105,6 +109,7 @@ net-im/openfire
 net-mgmt/iftop
 net-mgmt/net-snmp
 net-p2p/rtorrent
+net-p2p/transmission-cli
 net/GeoIP
 net/haproxy
 net/isc-dhcp43-server
@@ -115,6 +120,7 @@ net/openldap24-client
 net/openldap24-sasl-client
 net/openntpd
 net/openslp
+net/opentracker
 net/php5-ldap
 net/php55-ldap
 net/phpldapadmin
@@ -126,6 +132,7 @@ net/samba-libsmbclient
 net/socat
 net/tightvnc
 net/ucarp
+net/unison
 net/zsync
 ports-mgmt/dialog4ports
 ports-mgmt/pkg
@@ -167,6 +174,7 @@ shells/lshell
 sysutils/busybox
 sysutils/cdrtools
 sysutils/cmdwatch
+sysutils/consul
 sysutils/cpdup
 sysutils/dmidecode
 sysutils/ezjail
@@ -184,6 +192,7 @@ sysutils/rubygem-chef
 sysutils/screen
 sysutils/smartmontools
 sysutils/syslinux
+sysutils/tmux
 sysutils/webmin
 sysutils/xfce4-battery-plugin
 sysutils/xfce4-bsdcpufreq-plugin
@@ -226,6 +235,7 @@ www/php5-session
 www/php5-tidy
 www/php55-session
 www/php55-tidy
+www/phpvirtualbox
 www/py-pywebdav
 www/py-requests
 www/py-werkzeug
